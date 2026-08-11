@@ -135,11 +135,15 @@ export function calculateWeatherRisk(
   };
 }
 
-// Spray volume formula: (Vazao_Lmin * 600) / (Espacamento_m * Velocidade_kmh)
 export function calculateVolumeDeCalda(vazaoLmin: number, espacamentoCm: number, velocidadeKmh: number): number {
-  if (espacamentoCm <= 0 || velocidadeKmh <= 0) return 0;
+  if (!Number.isFinite(vazaoLmin) || vazaoLmin <= 0) return 0;
+  if (!Number.isFinite(espacamentoCm) || espacamentoCm <= 0) return 0;
+  if (!Number.isFinite(velocidadeKmh) || velocidadeKmh <= 0) return 0;
+
   const espacamentoM = espacamentoCm / 100;
   const volume = (vazaoLmin * 600) / (espacamentoM * velocidadeKmh);
+  if (!Number.isFinite(volume) || volume <= 0) return 0;
+
   return Number(volume.toFixed(1));
 }
 
@@ -154,13 +158,17 @@ export function evaluateNozzles(volumesMl: number[]): {
     return { overallAvgMl: 0, flowAvgLmin: 0, maxDevPercent: 0, nozzleDeviations: [] };
   }
 
-  const sum = volumesMl.reduce((acc, curr) => acc + curr, 0);
-  const overallAvgMl = Math.round(sum / volumesMl.length);
+  const validVolumes = volumesMl.map((v) => Math.max(0, Number.isFinite(v) ? v : 0));
+  const sum = validVolumes.reduce((acc, curr) => acc + curr, 0);
+  const overallAvgMl = Math.round(sum / validVolumes.length);
   const flowAvgLmin = Number((overallAvgMl / 1000).toFixed(2));
 
   let maxDev = 0;
-  const nozzleDeviations = volumesMl.map((vol) => {
-    const dev = Math.round(((vol - overallAvgMl) / overallAvgMl) * 100);
+  const nozzleDeviations = validVolumes.map((vol) => {
+    let dev = 0;
+    if (overallAvgMl > 0) {
+      dev = Math.round(((vol - overallAvgMl) / overallAvgMl) * 100);
+    }
     if (Math.abs(dev) > maxDev) maxDev = Math.abs(dev);
 
     let actionRequired: 'SUBSTITUIR' | 'LIMPAR' | 'OK' = 'OK';
@@ -172,7 +180,7 @@ export function evaluateNozzles(volumesMl: number[]): {
 
     return {
       volumeMl: vol,
-      deviationPercent: dev,
+      deviationPercent: Number.isFinite(dev) ? dev : 0,
       actionRequired,
     };
   });
@@ -180,7 +188,7 @@ export function evaluateNozzles(volumesMl: number[]): {
   return {
     overallAvgMl,
     flowAvgLmin,
-    maxDevPercent: maxDev,
+    maxDevPercent: Number.isFinite(maxDev) ? maxDev : 0,
     nozzleDeviations,
   };
 }

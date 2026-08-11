@@ -1,33 +1,35 @@
 import React, { useState } from 'react';
-import { Info, ArrowRight } from 'lucide-react';
+import { Info, ArrowRight, AlertTriangle } from 'lucide-react';
+import { validateScale } from '../../core/scaleValidation';
 
 interface Step3ScaleProps {
   cardSizeMm: { width: number; height: number };
   onChangeCardSize: (size: { width: number; height: number }) => void;
-  dpi: number;
+  rectWidthPx?: number;
+  rectHeightPx?: number;
   onNext: () => void;
 }
 
 export const Step3Scale: React.FC<Step3ScaleProps> = ({
   cardSizeMm,
   onChangeCardSize,
-  dpi,
+  rectWidthPx = 760,
+  rectHeightPx = 260,
   onNext,
 }) => {
-  const [selectedOption, setSelectedOption] = useState<'76x26' | '76x52' | '26x38' | 'custom'>('76x26');
-  const [customW, setCustomW] = useState(76);
-  const [customH, setCustomH] = useState(26);
+  const [selectedOption, setSelectedOption] = useState<'none' | '76x26' | '76x52' | '26x38' | 'custom'>('76x26');
+  const [customW, setCustomW] = useState(cardSizeMm.width || 76);
+  const [customH, setCustomH] = useState(cardSizeMm.height || 26);
 
-  const handleSelectOption = (opt: '76x26' | '76x52' | '26x38' | 'custom') => {
+  const handleSelectOption = (opt: 'none' | '76x26' | '76x52' | '26x38' | 'custom') => {
     setSelectedOption(opt);
     if (opt === '76x26') onChangeCardSize({ width: 76, height: 26 });
     else if (opt === '76x52') onChangeCardSize({ width: 76, height: 52 });
     else if (opt === '26x38') onChangeCardSize({ width: 26, height: 38 });
-    else onChangeCardSize({ width: customW, height: customH });
+    else if (opt === 'custom') onChangeCardSize({ width: customW, height: customH });
   };
 
-  const areaCm2 = ((cardSizeMm.width * cardSizeMm.height) / 100).toFixed(2);
-  const mmPerPixel = (25.4 / dpi).toFixed(4);
+  const scaleResult = validateScale(cardSizeMm.width, cardSizeMm.height, rectWidthPx, rectHeightPx);
 
   return (
     <div className="flex-1 flex flex-col max-w-[1200px] mx-auto w-full pb-32 px-4 pt-4">
@@ -143,6 +145,7 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
                   <label className="text-xs text-on-surface-variant font-medium">Largura (mm)</label>
                   <input
                     type="number"
+                    min="1"
                     value={customW}
                     onChange={(e) => {
                       const val = Number(e.target.value);
@@ -156,6 +159,7 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
                   <label className="text-xs text-on-surface-variant font-medium">Altura (mm)</label>
                   <input
                     type="number"
+                    min="1"
                     value={customH}
                     onChange={(e) => {
                       const val = Number(e.target.value);
@@ -170,27 +174,36 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
           </label>
         </div>
 
-        {/* Info Box */}
-        <div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant flex items-start gap-2.5">
-          <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-          <span className="text-xs text-on-surface-variant flex-1 leading-relaxed">
-            DPI detectado no arquivo: <strong>{dpi} dpi</strong>
-          </span>
-        </div>
+        {/* Validation Info Box */}
+        {scaleResult.isValid ? (
+          <div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant flex items-start gap-2.5">
+            <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="text-xs text-on-surface-variant flex-1 leading-relaxed">
+              <p>Razão calculada: <strong>{scaleResult.mmPerPixel} mm/pixel</strong></p>
+              <p>Área física total: <strong>{scaleResult.areaCm2} cm²</strong> ({scaleResult.areaMm2} mm²)</p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-3.5 bg-error-container text-on-error-container rounded-lg border border-error/30 flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+            <span className="text-xs font-semibold flex-1 leading-relaxed">
+              {scaleResult.errorReason || 'Defina dimensões físicas válidas (maiores que zero) para prosseguir.'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Bottom Action Area */}
       <footer className="fixed bottom-0 left-0 right-0 p-4 bg-surface dark:bg-surface-dim border-t border-outline-variant z-40">
         <div className="max-w-md mx-auto flex flex-col gap-3">
-          <div className="text-center">
-            <p className="text-xs text-on-surface-variant">
-              Escala: {mmPerPixel} mm/pixel · Área analisada: {areaCm2} cm²
-            </p>
-          </div>
-
           <button
             onClick={onNext}
-            className="w-full h-[52px] bg-primary text-on-primary font-semibold text-base rounded-full active:opacity-80 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+            disabled={!scaleResult.isValid}
+            className={`w-full h-[52px] font-semibold text-base rounded-full transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+              scaleResult.isValid
+                ? 'bg-primary text-on-primary hover:bg-primary-container active:scale-[0.99]'
+                : 'bg-outline-variant text-on-surface-variant/50 cursor-not-allowed'
+            }`}
           >
             Continuar
             <ArrowRight className="w-5 h-5" />

@@ -11,9 +11,11 @@ import {
   Download,
   Printer,
   Check,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { AnalysisData, FieldExperiment } from '../../types';
 import { generateAnalysisPdfReport } from '../../utils/generatePdfReport';
+import { downloadAnalysisCsv } from '../../utils/generateCsvReport';
 
 interface Step5ResultProps {
   analysis: AnalysisData;
@@ -34,6 +36,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   const [selectedFieldId, setSelectedFieldId] = useState(fieldExperiments[0]?.id || '');
   const [sampleNameInput, setSampleNameInput] = useState(`Amostra ${Math.floor(Math.random() * 10) + 1}`);
   const [pdfGeneratedToast, setPdfGeneratedToast] = useState(false);
+  const [csvGeneratedToast, setCsvGeneratedToast] = useState(false);
 
   const isRunoff = analysis.verdict === 'EXCESSO';
   const isGood = analysis.verdict === 'BOM';
@@ -46,6 +49,18 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
       setTimeout(() => setPdfGeneratedToast(false), 3500);
     } catch (err) {
       console.error('Erro ao gerar relatório PDF:', err);
+      alert('Atenção: Não é possível gerar relatório com métricas inválidas.');
+    }
+  };
+
+  const handleGenerateCsv = () => {
+    try {
+      downloadAnalysisCsv(analysis);
+      setCsvGeneratedToast(true);
+      setTimeout(() => setCsvGeneratedToast(false), 3500);
+    } catch (err) {
+      console.error('Erro ao gerar relatório CSV:', err);
+      alert('Atenção: Não é possível exportar CSV com métricas inválidas.');
     }
   };
 
@@ -250,33 +265,59 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           </div>
         </section>
 
-        {/* Export PDF Report Card Action */}
+        {/* Export PDF & CSV Report Actions */}
         <section className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={handleGeneratePdf}
-            className="w-full flex items-center justify-between p-4 bg-primary/10 border-2 border-primary/30 rounded-2xl hover:bg-primary/20 transition-all cursor-pointer shadow-xs active:scale-[0.99] group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
-                <FileText className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={handleGeneratePdf}
+              className="flex items-center justify-between p-3.5 bg-primary/10 border border-primary/30 rounded-2xl hover:bg-primary/20 transition-all cursor-pointer shadow-xs active:scale-[0.99] group text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-on-surface">Relatório PDF</span>
+                  <span className="text-[10px] text-on-surface-variant">Laudo completo em PDF</span>
+                </div>
               </div>
-              <div className="flex flex-col text-left">
-                <span className="text-sm font-bold text-on-surface">Gerar Relatório PDF</span>
-                <span className="text-xs text-on-surface-variant">
-                  Exportar laudo técnico com métricas de gotas, DMV e classificação ASABE
-                </span>
-              </div>
-            </div>
-            <Download className="w-5 h-5 text-primary shrink-0 group-hover:translate-y-0.5 transition-transform" />
-          </button>
+              <Download className="w-4 h-4 text-primary shrink-0" />
+            </button>
 
-          {/* Toast Notification */}
+            <button
+              type="button"
+              onClick={handleGenerateCsv}
+              className="flex items-center justify-between p-3.5 bg-secondary-container/50 border border-secondary-fixed rounded-2xl hover:bg-secondary-container transition-all cursor-pointer shadow-xs active:scale-[0.99] group text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-secondary text-on-secondary flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-on-surface">Exportar CSV</span>
+                  <span className="text-[10px] text-on-surface-variant">Formato GOTAS (;)</span>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-secondary shrink-0" />
+            </button>
+          </div>
+
+          {/* Toast Notifications */}
           {pdfGeneratedToast && (
             <div className="bg-primary text-on-primary text-xs font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center justify-between animate-fade-in">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4" />
-                <span>Relatório PDF gerado e baixado com sucesso!</span>
+                <span>Relatório PDF baixado com sucesso!</span>
+              </div>
+            </div>
+          )}
+
+          {csvGeneratedToast && (
+            <div className="bg-secondary text-on-secondary text-xs font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center justify-between animate-fade-in">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                <span>Arquivo CSV baixado com sucesso!</span>
               </div>
             </div>
           )}

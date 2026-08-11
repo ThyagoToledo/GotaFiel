@@ -251,8 +251,12 @@ export default function App() {
           <BottomNav
             activeTab={activeTab}
             onChangeTab={(tab) => {
-              setActiveTab(tab);
-              setIsWizardOpen(false);
+              if (tab === 'analysis') {
+                handleStartNewAnalysis();
+              } else {
+                setActiveTab(tab);
+                setIsWizardOpen(false);
+              }
             }}
           />
         </>

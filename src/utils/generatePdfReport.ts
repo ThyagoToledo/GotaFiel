@@ -2,6 +2,23 @@ import jsPDF from 'jspdf';
 import { AnalysisData } from '../types';
 
 export function generateAnalysisPdfReport(analysis: AnalysisData): void {
+  const metrics = [
+    analysis.density,
+    analysis.coveragePercent,
+    analysis.span,
+    analysis.vmdUm,
+    analysis.dv01Um,
+    analysis.dv09Um,
+    analysis.estimatedVolumeLha,
+    analysis.verdictScore,
+  ];
+
+  for (const m of metrics) {
+    if (!Number.isFinite(m)) {
+      throw new Error('Não é possível gerar PDF com métricas inválidas (NaN/Infinity).');
+    }
+  }
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

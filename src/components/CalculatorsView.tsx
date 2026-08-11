@@ -286,36 +286,45 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
           </form>
 
           {/* Result Panel */}
-          <div className="bg-secondary-container border border-secondary-fixed rounded-2xl p-5 flex flex-col gap-3 shadow-sm relative overflow-hidden mt-1">
-            <div className="flex justify-between items-start z-10 relative">
-              <div className="flex flex-col">
-                <h2 className="text-xs font-bold text-on-secondary-container uppercase tracking-widest">
-                  VOLUME DE CALDA RESULTANTE
-                </h2>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="font-extrabold text-4xl text-on-secondary-container">
-                    {volumeResult.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}
-                  </span>
-                  <span className="text-sm font-bold text-on-secondary-container">L/ha</span>
+          {vazao <= 0 || espacamento <= 0 || velocidade <= 0 ? (
+            <div className="bg-error-container text-on-error-container border border-error/30 rounded-2xl p-4 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-error shrink-0" />
+              <span className="text-xs font-bold">
+                Informe valores positivos maiores que zero para vazão, espaçamento e velocidade para calcular o volume de calda.
+              </span>
+            </div>
+          ) : (
+            <div className="bg-secondary-container border border-secondary-fixed rounded-2xl p-5 flex flex-col gap-3 shadow-sm relative overflow-hidden mt-1">
+              <div className="flex justify-between items-start z-10 relative">
+                <div className="flex flex-col">
+                  <h2 className="text-xs font-bold text-on-secondary-container uppercase tracking-widest">
+                    VOLUME DE CALDA RESULTANTE
+                  </h2>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="font-extrabold text-4xl text-on-secondary-container">
+                      {volumeResult.toLocaleString('pt-BR', { minimumFractionDigits: 1 })}
+                    </span>
+                    <span className="text-sm font-bold text-on-secondary-container">L/ha</span>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleCopyVolume}
+                  className="h-10 px-4 rounded-full bg-surface-container-lowest border border-outline text-primary font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer shadow-xs"
+                >
+                  {copied ? <Check className="w-4 h-4 text-quality-good" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Copiado!' : 'Copiar'}
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={handleCopyVolume}
-                className="h-10 px-4 rounded-full bg-surface-container-lowest border border-outline text-primary font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-surface-container-low active:scale-95 transition-all cursor-pointer shadow-xs"
-              >
-                {copied ? <Check className="w-4 h-4 text-quality-good" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copiado!' : 'Copiar'}
-              </button>
+              <div className="z-10 relative border-t border-on-secondary-container/15 pt-2">
+                <p className="text-[11px] text-on-secondary-container opacity-90 font-medium">
+                  Fórmula: (Vazão L/min × 600) ÷ (Espaçamento cm × Velocidade km/h)
+                </p>
+              </div>
             </div>
-
-            <div className="z-10 relative border-t border-on-secondary-container/15 pt-2">
-              <p className="text-[11px] text-on-secondary-container opacity-90 font-medium">
-                Fórmula: (Vazão L/min × 600) ÷ (Espaçamento cm × Velocidade km/h)
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       ) : activeSubTab === 'afericao' ? (
         /* AFERIÇÃO DE BICOS CALCULATOR */

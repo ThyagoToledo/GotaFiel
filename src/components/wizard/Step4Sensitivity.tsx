@@ -1,25 +1,39 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, RotateCcw } from 'lucide-react';
+import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2 } from 'lucide-react';
 import { SAMPLE_CARD_IMAGES } from '../../data/mockData';
+import { BinarizationMethod } from '../../core/types';
 
 interface Step4SensitivityProps {
   sensitivity: number;
   onChangeSensitivity: (val: number) => void;
+  method?: BinarizationMethod;
+  onChangeMethod?: (m: BinarizationMethod) => void;
+  minDropletUm?: number;
+  onChangeMinDropletUm?: (val: number) => void;
+  discardBorder?: boolean;
+  onChangeDiscardBorder?: (val: boolean) => void;
   onNext: () => void;
 }
 
 export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   sensitivity,
   onChangeSensitivity,
+  method = 'chromatic',
+  onChangeMethod,
+  minDropletUm = 50,
+  onChangeMinDropletUm,
+  discardBorder = true,
+  onChangeDiscardBorder,
   onNext,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(true);
-  const [minDropletUm, setMinDropletUm] = useState(50);
-  const [filterEdges, setFilterEdges] = useState(true);
+  const [localMinDroplet, setLocalMinDroplet] = useState(minDropletUm);
+  const [localDiscardBorder, setLocalDiscardBorder] = useState(discardBorder);
+  const [localMethod, setLocalMethod] = useState<BinarizationMethod>(method);
 
   // Calculate percentage fills for custom visual tracks
   const sensPercent = Math.min(100, Math.max(0, sensitivity + 50));
-  const dropPercent = Math.min(100, Math.max(0, ((minDropletUm - 10) / (150 - 10)) * 100));
+  const dropPercent = Math.min(100, Math.max(0, ((localMinDroplet - 10) / (150 - 10)) * 100));
 
   const handleNudgeSensitivity = (delta: number) => {
     const nextVal = Math.min(50, Math.max(-50, sensitivity + delta));
@@ -27,8 +41,14 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   };
 
   const handleNudgeMinDroplet = (delta: number) => {
-    const nextVal = Math.min(150, Math.max(10, minDropletUm + delta));
-    setMinDropletUm(nextVal);
+    const nextVal = Math.min(150, Math.max(10, localMinDroplet + delta));
+    setLocalMinDroplet(nextVal);
+    onChangeMinDropletUm?.(nextVal);
+  };
+
+  const handleMethodChange = (m: BinarizationMethod) => {
+    setLocalMethod(m);
+    onChangeMethod?.(m);
   };
 
   return (
@@ -51,12 +71,12 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
 
       <div className="w-full max-w-md mx-auto flex-1 flex flex-col gap-4">
         {/* Binary Mask Preview Card */}
-        <section className="w-full h-[260px] relative rounded-2xl border-2 border-outline-variant bg-surface-container-low overflow-hidden flex flex-col shadow-sm">
-          <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
-            <h2 className="text-xs font-bold text-on-surface uppercase tracking-wider">
-              Prévia da detecção (Máscara Binária)
+        <section className="w-full h-[240px] relative rounded-2xl border-2 border-outline-variant bg-surface-container-low overflow-hidden flex flex-col shadow-sm">
+          <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
+            <h2 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-4 h-4 text-primary" />
+              Prévia da Máscara Binária ({localMethod === 'chromatic' ? 'Cromático' : 'GOTAS Legacy'})
             </h2>
-            <ImageIcon className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1 relative w-full h-full p-2 flex items-center justify-center bg-black">
             <img
@@ -68,9 +88,41 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
               }}
             />
             {/* Live indicator tag */}
-            <div className="absolute bottom-3 right-3 bg-primary text-on-primary text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md border border-white/20 backdrop-blur-xs">
+            <div className="absolute bottom-3 right-3 bg-primary text-on-primary text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md border border-white/20">
               Sensibilidade: {sensitivity > 0 ? `+${sensitivity}` : sensitivity}
             </div>
+          </div>
+        </section>
+
+        {/* Method Selector */}
+        <section className="p-3.5 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xs flex flex-col gap-2">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
+            <Settings2 className="w-4 h-4 text-primary" />
+            <span>Método de Binarização:</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => handleMethodChange('chromatic')}
+              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                localMethod === 'chromatic'
+                  ? 'bg-primary text-on-primary border-primary shadow-xs'
+                  : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
+              }`}
+            >
+              Cromático (B - max)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMethodChange('gotas-legacy')}
+              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+                localMethod === 'gotas-legacy'
+                  ? 'bg-primary text-on-primary border-primary shadow-xs'
+                  : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
+              }`}
+            >
+              GOTAS (Cinza)
+            </button>
           </div>
         </section>
 
@@ -81,13 +133,13 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
             <div className="flex justify-between items-center">
               <div>
                 <label htmlFor="sensitivity" className="text-sm font-bold text-on-surface block">
-                  Sensibilidade
+                  Sensibilidade do Limiar
                 </label>
                 <span className="text-[11px] text-on-surface-variant">
-                  Ajuste o limiar de contraste das gotas
+                  Ajuste fino de Otsu (-50 a +50)
                 </span>
               </div>
-              <span className="font-extrabold text-2xl text-primary bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">
+              <span className="font-extrabold text-xl text-primary bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">
                 {sensitivity > 0 ? `+${sensitivity}` : sensitivity}
               </span>
             </div>
@@ -97,13 +149,13 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
               <button
                 type="button"
                 onClick={() => handleNudgeSensitivity(-5)}
-                className="w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                className="w-10 h-10 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
                 title="Diminuir sensibilidade (-5)"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-5 h-5" />
               </button>
 
-              <div className="relative flex-1">
+              <div className="relative flex-1 py-2">
                 <input
                   id="sensitivity"
                   type="range"
@@ -114,34 +166,34 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   style={{
                     background: `linear-gradient(to right, #006439 0%, #006439 ${sensPercent}%, #becabe ${sensPercent}%, #becabe 100%)`,
                   }}
-                  className="w-full h-2.5 rounded-full cursor-pointer appearance-none"
+                  className="w-full h-3 rounded-full cursor-pointer appearance-none"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={() => handleNudgeSensitivity(5)}
-                className="w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                className="w-10 h-10 rounded-xl bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
                 title="Aumentar sensibilidade (+5)"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
               </button>
             </div>
 
             {/* Quick Preset Buttons */}
-            <div className="grid grid-cols-5 gap-1 pt-1">
+            <div className="grid grid-cols-5 gap-1.5 pt-1">
               {[-30, -15, 0, 15, 30].map((preset) => (
                 <button
                   key={preset}
                   type="button"
                   onClick={() => onChangeSensitivity(preset)}
-                  className={`py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                  className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     sensitivity === preset
                       ? 'bg-primary text-on-primary shadow-xs'
-                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/40'
+                      : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/60'
                   }`}
                 >
-                  {preset === 0 ? '0 (Padrão)' : preset > 0 ? `+${preset}` : preset}
+                  {preset === 0 ? '0' : preset > 0 ? `+${preset}` : preset}
                 </button>
               ))}
             </div>
@@ -169,53 +221,60 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   <div className="flex justify-between items-center font-bold text-on-surface">
                     <span>Tamanho mínimo de gota:</span>
                     <span className="text-primary font-extrabold text-sm bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
-                      {minDropletUm} µm
+                      {localMinDroplet} µm
                     </span>
                   </div>
 
                   {/* Slider with Stepper Buttons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 py-1">
                     <button
                       type="button"
                       onClick={() => handleNudgeMinDroplet(-5)}
-                      className="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                      className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
                     >
-                      <Minus className="w-3.5 h-3.5" />
+                      <Minus className="w-4 h-4" />
                     </button>
 
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 py-1">
                       <input
                         type="range"
                         min="10"
                         max="150"
                         step="5"
-                        value={minDropletUm}
-                        onChange={(e) => setMinDropletUm(Number(e.target.value))}
+                        value={localMinDroplet}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setLocalMinDroplet(val);
+                          onChangeMinDropletUm?.(val);
+                        }}
                         style={{
                           background: `linear-gradient(to right, #006439 0%, #006439 ${dropPercent}%, #becabe ${dropPercent}%, #becabe 100%)`,
                         }}
-                        className="w-full h-2.5 rounded-full cursor-pointer appearance-none"
+                        className="w-full h-3 rounded-full cursor-pointer appearance-none"
                       />
                     </div>
 
                     <button
                       type="button"
                       onClick={() => handleNudgeMinDroplet(5)}
-                      className="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
+                      className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Preset Droplet Chips */}
-                  <div className="grid grid-cols-4 gap-1 mt-0.5">
+                  <div className="grid grid-cols-4 gap-1.5 mt-0.5">
                     {[25, 50, 75, 100].map((preset) => (
                       <button
                         key={preset}
                         type="button"
-                        onClick={() => setMinDropletUm(preset)}
-                        className={`py-1 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
-                          minDropletUm === preset
+                        onClick={() => {
+                          setLocalMinDroplet(preset);
+                          onChangeMinDropletUm?.(preset);
+                        }}
+                        className={`py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          localMinDroplet === preset
                             ? 'bg-primary text-on-primary shadow-xs'
                             : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
                         }`}
@@ -234,8 +293,12 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   </div>
                   <input
                     type="checkbox"
-                    checked={filterEdges}
-                    onChange={(e) => setFilterEdges(e.target.checked)}
+                    checked={localDiscardBorder}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setLocalDiscardBorder(val);
+                      onChangeDiscardBorder?.(val);
+                    }}
                     className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
                   />
                 </div>
