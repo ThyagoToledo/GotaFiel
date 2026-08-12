@@ -9,6 +9,111 @@ import {
 import { ASABECategory, QualityVerdict, DropletItem } from '../types';
 
 /**
+ * Target physical resolution of the rectified raster: 0.1 mm per pixel (254 dpi).
+ * Chosen so a 76x26 mm card lands on exactly 760x260 px, matching the historical raster.
+ */
+export const TARGET_MM_PER_PIXEL = 0.1;
+
+/** Smallest raster side we will ever produce, to keep degenerate inputs analysable. */
+const MIN_RASTER_SIDE = 32;
+
+export interface TargetRaster {
+  targetWidth: number;
+  targetHeight: number;
+  /** true when the ideal resolution was reduced to avoid upscaling past the source. */
+  limitedBySource: boolean;
+  /** Uniform factor applied to the ideal resolution. 1 means no reduction. */
+  appliedScale: number;
+}
+
+/**
+ * Chooses the rectified raster so that pixels are SQUARE in physical space.
+ *
+ *   targetWidth  = cardWidthMm  / TARGET_MM_PER_PIXEL
+ *   targetHeight = cardHeightMm / TARGET_MM_PER_PIXEL
+ *
+ * which gives 76x26 -> 760x260, 76x52 -> 760x520, 26x38 -> 260x380.
+ *
+ * Because the raster aspect ratio then equals the card aspect ratio, scaleX === scaleY
+ * and the anisotropy is gone at the source rather than merely compensated for. This is
+ * also what makes a future circularity/roundness filter meaningful: 4*pi*A/P^2 is only a
+ * shape measure when pixels are square.
+ *
+ * Upscaling guard: we never invent resolution the photograph does not have. When the
+ * ideal raster exceeds the measured size of the source quad, both sides are reduced by
+ * the SAME factor. Clamping each axis independently would restore the aspect mismatch
+ * and reintroduce non-square pixels — the very defect being removed.
+ */
+export function computeTargetRaster(
+  cardWidthMm: number,
+  cardHeightMm: number,
+  sourceQuadWidthPx?: number,
+  sourceQuadHeightPx?: number
+): TargetRaster {
+  if (
+    !Number.isFinite(cardWidthMm) || cardWidthMm <= 0 ||
+    !Number.isFinite(cardHeightMm) || cardHeightMm <= 0
+  ) {
+    return {
+      targetWidth: MIN_RASTER_SIDE,
+      targetHeight: MIN_RASTER_SIDE,
+      limitedBySource: false,
+      appliedScale: 1,
+    };
+  }
+
+  const idealWidth = cardWidthMm / TARGET_MM_PER_PIXEL;
+  const idealHeight = cardHeightMm / TARGET_MM_PER_PIXEL;
+
+  // One uniform reduction factor across both axes preserves the aspect ratio.
+  let appliedScale = 1;
+
+  if (Number.isFinite(sourceQuadWidthPx) && (sourceQuadWidthPx as number) > 0) {
+    appliedScale = Math.min(appliedScale, (sourceQuadWidthPx as number) / idealWidth);
+  }
+  if (Number.isFinite(sourceQuadHeightPx) && (sourceQuadHeightPx as number) > 0) {
+    appliedScale = Math.min(appliedScale, (sourceQuadHeightPx as number) / idealHeight);
+  }
+
+  const limitedBySource = appliedScale < 1;
+  if (!Number.isFinite(appliedScale) || appliedScale <= 0) appliedScale = 1;
+
+  const targetWidth = Math.max(MIN_RASTER_SIDE, Math.round(idealWidth * appliedScale));
+  const targetHeight = Math.max(MIN_RASTER_SIDE, Math.round(idealHeight * appliedScale));
+
+  return { targetWidth, targetHeight, limitedBySource, appliedScale };
+}
+
+/**
+ * Measures the crop quad in SOURCE pixels, so the raster planner knows how much real
+ * resolution the photograph actually carries. Takes the longer of each opposing pair,
+ * which is the side that would be undersampled first.
+ */
+export function measureQuadSizePx(
+  corners: CropCorners,
+  srcWidth: number,
+  srcHeight: number
+): { widthPx: number; heightPx: number } {
+  const px = (p: { x: number; y: number }) => ({
+    x: (p.x / 100) * srcWidth,
+    y: (p.y / 100) * srcHeight,
+  });
+
+  const tl = px(corners.tl);
+  const tr = px(corners.tr);
+  const br = px(corners.br);
+  const bl = px(corners.bl);
+
+  const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y);
+
+  return {
+    widthPx: Math.max(dist(tl, tr), dist(bl, br)),
+    heightPx: Math.max(dist(tl, bl), dist(tr, br)),
+  };
+}
+
+/**
  * Physical AREA of a single raster pixel, in mm².
  *
  * This is the ONLY correct way to convert pixel counts into physical area when the

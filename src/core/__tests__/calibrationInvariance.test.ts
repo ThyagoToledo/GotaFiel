@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   computeMetricsFromHistogram,
   computeMm2PerPixel,
+  computeTargetRaster,
+  measureQuadSizePx,
   mmPerPixelEquivalent,
+  TARGET_MM_PER_PIXEL,
 } from '../imageProcessor';
 import { runAnalysisCore } from '../analysisCore';
 import { validateScale } from '../scaleValidation';
@@ -298,7 +301,9 @@ describe('Invariância no pipeline real do Worker (runAnalysisCore)', () => {
     return pixels;
   }
 
-  it('mesma imagem e mesmos parâmetros: cobertura idêntica nos três tamanhos de cartão', () => {
+  it('raster FIXO: cobertura exatamente idêntica nos três tamanhos de cartão', () => {
+    // Forçando o mesmo raster para os três, a máscara é literalmente a mesma e a
+    // invariância tem de ser exata — nenhuma tolerância.
     const runs = CARD_PRESETS.map((preset) =>
       runAnalysisCore({
         // Fresh buffer per run: the pipeline must not depend on mutation order.
@@ -335,6 +340,124 @@ describe('Invariância no pipeline real do Worker (runAnalysisCore)', () => {
     for (const product of densityTimesArea) {
       expect(product).toBeCloseTo(a.metrics.totalDroplets, 0);
     }
+  });
+
+  it('raster DINÂMICO: pixels quadrados e cobertura estável dentro da tolerância de reamostragem', () => {
+    // Sem override, o raster acompanha o cartão. A máscara passa a ser reamostrada em
+    // resoluções diferentes, então a cobertura não é mais bit a bit idêntica — mas tem
+    // de permanecer estável, porque continua sendo a mesma fração física molhada.
+    const runs = CARD_PRESETS.map((preset) => {
+      const planned = computeTargetRaster(
+        preset.widthMm,
+        preset.heightMm,
+        // A foto sintética é grande o bastante para não limitar o raster ideal.
+        10_000,
+        10_000
+      );
+
+      const run = runAnalysisCore({
+        pixels: buildSyntheticCard(),
+        srcWidth: SRC_W,
+        srcHeight: SRC_H,
+        corners: CORNERS,
+        targetWidth: planned.targetWidth,
+        targetHeight: planned.targetHeight,
+        cardSizeMm: { width: preset.widthMm, height: preset.heightMm },
+        params: PARAMS,
+      });
+
+      return { preset, planned, run };
+    });
+
+    // 1. O raster segue exatamente card / 0,1 mm.
+    expect(runs[0].planned.targetWidth).toBe(760);
+    expect(runs[0].planned.targetHeight).toBe(260);
+    expect(runs[1].planned.targetWidth).toBe(760);
+    expect(runs[1].planned.targetHeight).toBe(520);
+    expect(runs[2].planned.targetWidth).toBe(260);
+    expect(runs[2].planned.targetHeight).toBe(380);
+
+    // 2. Pixels quadrados: scaleX === scaleY, logo mm2PerPixel === 0,1².
+    for (const { run } of runs) {
+      expect(run.mm2PerPixel).toBeCloseTo(TARGET_MM_PER_PIXEL * TARGET_MM_PER_PIXEL, 12);
+    }
+
+    // 3. Cobertura estável entre os três, dentro da tolerância de reamostragem.
+    const coverages = runs.map((r) => r.run.metrics.coveragePercentExact);
+    const maxCoverage = Math.max(...coverages);
+    const minCoverage = Math.min(...coverages);
+    expect(maxCoverage - minCoverage).toBeLessThan(0.5); // pontos percentuais
+
+    // 4. Contagem de gotas estável (a grade sintética tem 24 blocos).
+    for (const { run } of runs) {
+      expect(run.metrics.totalDroplets).toBe(24);
+    }
+
+    // 5. Área média da gota escala LINEARMENTE com a área física do cartão.
+    //
+    //    Isto não é um defeito: é a mesma fotografia sendo declarada como três objetos
+    //    físicos diferentes. Uma mancha que ocupa 3 % da largura da imagem mede 2,3 mm
+    //    num cartão de 76 mm e 0,8 mm num de 26 mm. Grandezas adimensionais (cobertura,
+    //    contagem) não podem mudar; grandezas com unidade física (área, diâmetro,
+    //    volume) têm de mudar, e na proporção certa.
+    const meanDropletAreaMm2 = runs.map(
+      ({ run }) =>
+        (run.metrics.includedDropletPixelCount * run.metrics.mm2PerPixel) /
+        run.metrics.totalDroplets
+    );
+
+    const cardAreas = CARD_PRESETS.map((p) => p.widthMm * p.heightMm);
+
+    // Razão área-da-gota / área-do-cartão constante entre os presets.
+    const ratios = meanDropletAreaMm2.map((a, i) => a / cardAreas[i]);
+    const maxRatio = Math.max(...ratios);
+    const minRatio = Math.min(...ratios);
+    expect((maxRatio - minRatio) / minRatio).toBeLessThan(0.05); // < 5 %, ruído de reamostragem
+
+    // E o DMV, por ser um comprimento, escala com a raiz da área do cartão.
+    const vmds = runs.map((r) => r.run.metrics.dv05Um);
+    const idx76x26 = 0;
+    const idx26x38 = 2;
+    const expectedVmdRatio = Math.sqrt(cardAreas[idx76x26] / cardAreas[idx26x38]);
+    const actualVmdRatio = vmds[idx76x26] / vmds[idx26x38];
+    // O fator de espalhamento é não linear, então a razão não é exatamente a raiz.
+    expect(actualVmdRatio).toBeGreaterThan(expectedVmdRatio * 0.8);
+    expect(actualVmdRatio).toBeLessThan(expectedVmdRatio * 1.2);
+  });
+
+  it('o raster nunca amplia além da resolução da fotografia', () => {
+    // Um cartão 76x52 pediria 760x520, mas a foto só oferece um quad de 200x120.
+    const planned = computeTargetRaster(76, 52, 200, 120);
+
+    expect(planned.limitedBySource).toBe(true);
+    expect(planned.targetWidth).toBeLessThanOrEqual(200);
+    expect(planned.targetHeight).toBeLessThanOrEqual(120);
+
+    // Redução uniforme: a proporção do cartão é preservada, então o pixel continua
+    // quadrado. Limitar cada eixo isoladamente reintroduziria a anisotropia.
+    const cardAspect = 76 / 52;
+    const rasterAspect = planned.targetWidth / planned.targetHeight;
+    expect(rasterAspect).toBeCloseTo(cardAspect, 1);
+
+    // E a área por pixel continua isotrópica.
+    const scaleX = 76 / planned.targetWidth;
+    const scaleY = 52 / planned.targetHeight;
+    expect(scaleX).toBeCloseTo(scaleY, 2);
+  });
+
+  it('sem limitação de fonte, o raster é exatamente card / 0,1 mm', () => {
+    for (const preset of CARD_PRESETS) {
+      const planned = computeTargetRaster(preset.widthMm, preset.heightMm);
+      expect(planned.limitedBySource).toBe(false);
+      expect(planned.targetWidth).toBe(Math.round(preset.widthMm / TARGET_MM_PER_PIXEL));
+      expect(planned.targetHeight).toBe(Math.round(preset.heightMm / TARGET_MM_PER_PIXEL));
+    }
+  });
+
+  it('measureQuadSizePx mede o quad em pixels da imagem original', () => {
+    const size = measureQuadSizePx(CORNERS, SRC_W, SRC_H);
+    expect(size.widthPx).toBeCloseTo(SRC_W, 6);
+    expect(size.heightPx).toBeCloseTo(SRC_H, 6);
   });
 
   it('mm2PerPixel do pipeline é o produto das escalas', () => {

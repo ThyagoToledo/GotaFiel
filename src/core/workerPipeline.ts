@@ -1,4 +1,5 @@
 import { runAnalysisCore } from './analysisCore';
+import { computeTargetRaster, measureQuadSizePx } from './imageProcessor';
 import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
 import { DropletItem } from '../types';
 import { WorkerRequest, WorkerResponse } from './imageWorker';
@@ -16,6 +17,8 @@ export interface PipelineResult {
   mmPerPixel: number;
   rectWidthPx: number;
   rectHeightPx: number;
+  /** true quando o raster ideal foi reduzido para não ampliar além da foto original. */
+  rasterLimitedBySource: boolean;
   binaryDataUrl: string;
   rectifiedDataUrl: string;
 }
@@ -99,10 +102,28 @@ export async function runImagePipeline(
   corners: CropCorners,
   cardSizeMm: { width: number; height: number },
   params: AnalysisParams,
-  targetWidth = 760,
-  targetHeight = 260
+  /**
+   * Raster override. Leave undefined so the raster is derived from the card, which is
+   * what keeps pixels square. Passing explicit dimensions that disagree with the card
+   * aspect ratio reintroduces anisotropy and should only be done in tests.
+   */
+  targetWidthOverride?: number,
+  targetHeightOverride?: number
 ): Promise<PipelineResult> {
   const { pixels, width, height } = await loadImagePixels(imageUrl);
+
+  // Square physical pixels: raster aspect ratio follows the card, capped so we never
+  // upscale beyond the resolution the photograph actually holds.
+  const quad = measureQuadSizePx(corners, width, height);
+  const planned = computeTargetRaster(
+    cardSizeMm.width,
+    cardSizeMm.height,
+    quad.widthPx,
+    quad.heightPx
+  );
+
+  const targetWidth = targetWidthOverride ?? planned.targetWidth;
+  const targetHeight = targetHeightOverride ?? planned.targetHeight;
 
   const reqId = `pipeline-${Date.now()}-${Math.random()}`;
 
@@ -161,6 +182,7 @@ export async function runImagePipeline(
         mmPerPixel: workerResult.mmPerPixel,
         rectWidthPx: targetWidth,
         rectHeightPx: targetHeight,
+        rasterLimitedBySource: planned.limitedBySource,
         binaryDataUrl,
         rectifiedDataUrl,
       };
@@ -194,6 +216,7 @@ export async function runImagePipeline(
     histogram: core.histogram,
     mm2PerPixel: core.mm2PerPixel,
     mmPerPixel: core.mmPerPixel,
+    rasterLimitedBySource: planned.limitedBySource,
     rectWidthPx: targetWidth,
     rectHeightPx: targetHeight,
     binaryDataUrl,

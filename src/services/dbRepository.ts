@@ -1,5 +1,5 @@
 import { PersistedAnalysis } from '../core/types';
-import { computeMetricsFromHistogram } from '../core/imageProcessor';
+import { computeMetricsFromHistogram, computeTargetRaster } from '../core/imageProcessor';
 
 const DB_NAME = 'SprayAnalysisDB';
 const DB_VERSION = 1;
@@ -125,9 +125,13 @@ export async function recalculateAnalysisQualityScore(id: string): Promise<Persi
   if (!analysis) return null;
 
   // Legacy records persisted before the calibration fix may lack raster dimensions.
-  // Fall back to the historical wizard default (760x260) rather than to a linear ratio.
-  const rectWidthPx = analysis.rectWidthPx || 760;
-  const rectHeightPx = analysis.rectHeightPx || 260;
+  // Derive them from the card so pixels stay square, instead of assuming 760x260.
+  const plannedRaster = computeTargetRaster(
+    analysis.cardSizeMm.width,
+    analysis.cardSizeMm.height
+  );
+  const rectWidthPx = analysis.rectWidthPx || plannedRaster.targetWidth;
+  const rectHeightPx = analysis.rectHeightPx || plannedRaster.targetHeight;
 
   const recalculatedMetrics = computeMetricsFromHistogram(
     analysis.histogram,

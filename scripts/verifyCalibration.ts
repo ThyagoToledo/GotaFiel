@@ -8,7 +8,11 @@
  * audit report, and prints old-formula vs new-formula results side by side.
  */
 import { runAnalysisCore } from '../src/core/analysisCore';
-import { computeMetricsFromHistogram } from '../src/core/imageProcessor';
+import {
+  computeMetricsFromHistogram,
+  computeTargetRaster,
+  TARGET_MM_PER_PIXEL,
+} from '../src/core/imageProcessor';
 import { AnalysisParams, CropCorners } from '../src/core/types';
 
 const RECT_W = 760;
@@ -79,7 +83,27 @@ function buggyCoverage(dropletPixels: number, widthMm: number, heightMm: number)
 
 const br = (n: number, d = 4) => n.toFixed(d).replace('.', ',');
 
-console.log('\n=== Pipeline real (runAnalysisCore) — mesma imagem, mesma máscara ===\n');
+console.log('\n=== Raster dinâmico: pixels físicos quadrados ===\n');
+console.log(`Alvo: ${TARGET_MM_PER_PIXEL} mm/pixel\n`);
+console.log('cartão        raster ideal   scaleX      scaleY      pixel quadrado?');
+for (const p of PRESETS) {
+  const planned = computeTargetRaster(p.widthMm, p.heightMm);
+  const sx = p.widthMm / planned.targetWidth;
+  const sy = p.heightMm / planned.targetHeight;
+  console.log(
+    `${p.label.padEnd(13)} ${String(planned.targetWidth).padStart(4)}x${String(planned.targetHeight).padEnd(5)}  ` +
+      `${br(sx, 6)}    ${br(sy, 6)}    ${Math.abs(sx - sy) < 1e-9 ? 'sim' : 'NÃO'}`
+  );
+}
+
+console.log('\nLimite de ampliação (quad de origem menor que o raster ideal):');
+const limited = computeTargetRaster(76, 52, 200, 120);
+console.log(
+  `  cartão 76x52 com quad 200x120 -> ${limited.targetWidth}x${limited.targetHeight} ` +
+    `(reduzido ${br(limited.appliedScale * 100, 1)} %, proporção preservada)`
+);
+
+console.log('\n=== Pipeline real (runAnalysisCore) — raster FIXO, mesma máscara ===\n');
 
 let sharedMaskSignature = '';
 let dropletPixels = 0;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Info, ArrowRight, AlertTriangle } from 'lucide-react';
 import { validateScale } from '../../core/scaleValidation';
+import { computeTargetRaster, TARGET_MM_PER_PIXEL } from '../../core/imageProcessor';
 
 interface Step3ScaleProps {
   cardSizeMm: { width: number; height: number };
@@ -13,8 +14,8 @@ interface Step3ScaleProps {
 export const Step3Scale: React.FC<Step3ScaleProps> = ({
   cardSizeMm,
   onChangeCardSize,
-  rectWidthPx = 760,
-  rectHeightPx = 260,
+  rectWidthPx,
+  rectHeightPx,
   onNext,
 }) => {
   const [selectedOption, setSelectedOption] = useState<'none' | '76x26' | '76x52' | '26x38' | 'custom'>('76x26');
@@ -29,7 +30,18 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
     else if (opt === 'custom') onChangeCardSize({ width: customW, height: customH });
   };
 
-  const scaleResult = validateScale(cardSizeMm.width, cardSizeMm.height, rectWidthPx, rectHeightPx);
+  // The raster follows the card so physical pixels stay square. Before the analysis has
+  // run there is no measured raster yet, so preview the planned one.
+  const plannedRaster = computeTargetRaster(cardSizeMm.width, cardSizeMm.height);
+  const effectiveRectWidthPx = rectWidthPx ?? plannedRaster.targetWidth;
+  const effectiveRectHeightPx = rectHeightPx ?? plannedRaster.targetHeight;
+
+  const scaleResult = validateScale(
+    cardSizeMm.width,
+    cardSizeMm.height,
+    effectiveRectWidthPx,
+    effectiveRectHeightPx
+  );
 
   return (
     <div className="flex-1 flex flex-col max-w-[1200px] mx-auto w-full pb-32 px-4 pt-4">
@@ -179,8 +191,12 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
           <div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant flex items-start gap-2.5">
             <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-xs text-on-surface-variant flex-1 leading-relaxed">
+              <p>
+                Resolução de análise:{' '}
+                <strong>{effectiveRectWidthPx} × {effectiveRectHeightPx} px</strong>
+                {' '}({TARGET_MM_PER_PIXEL} mm/pixel)
+              </p>
               <p>Área por pixel: <strong>{scaleResult.mm2PerPixel} mm²/pixel</strong></p>
-              <p>Equivalente linear: <strong>{scaleResult.mmPerPixel} mm/pixel</strong></p>
               <p>Área física total: <strong>{scaleResult.areaCm2} cm²</strong> ({scaleResult.areaMm2} mm²)</p>
               {scaleResult.isAnisotropic && (
                 <p className="mt-1 text-on-surface-variant">

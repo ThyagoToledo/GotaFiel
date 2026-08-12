@@ -1,6 +1,10 @@
 import { AnalysisData } from '../types';
 import { PersistedAnalysis } from '../core/types';
-import { computeMm2PerPixel, mmPerPixelEquivalent } from '../core/imageProcessor';
+import {
+  computeMm2PerPixel,
+  computeTargetRaster,
+  mmPerPixelEquivalent,
+} from '../core/imageProcessor';
 
 export function formatPtBrNumber(val: number, decimals = 2): string {
   if (!Number.isFinite(val)) return '0';
@@ -28,8 +32,9 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
   const discardBorder = isPersisted ? data.params.discardBorder : true;
   // Calibration is (cardSizeMm, raster dimensions). Derive the pixel AREA from those and
   // report the linear ratio only as sqrt(mm2PerPixel), for spreadsheet compatibility.
-  const rectWidthPx = data.rectWidthPx || 760;
-  const rectHeightPx = data.rectHeightPx || 260;
+  const plannedRaster = computeTargetRaster(data.cardSizeMm.width, data.cardSizeMm.height);
+  const rectWidthPx = data.rectWidthPx || plannedRaster.targetWidth;
+  const rectHeightPx = data.rectHeightPx || plannedRaster.targetHeight;
   const mm2PerPixel = computeMm2PerPixel(
     data.cardSizeMm.width,
     data.cardSizeMm.height,
