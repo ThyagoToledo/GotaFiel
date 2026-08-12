@@ -29,7 +29,10 @@ export interface AnalysisData {
   dpi: number;
   sensitivity: number; // -50 to +50
 
-  // Calibration & Resolution persistence
+  // Calibration & Resolution persistence.
+  // The calibration is (cardSizeMm, rectWidthPx, rectHeightPx). mm2PerPixel is derived
+  // from those; mmPerPixel is only sqrt(mm2PerPixel), kept for display and CSV.
+  mm2PerPixel?: number;
   mmPerPixel?: number;
   rectWidthPx?: number;
   rectHeightPx?: number;

@@ -1,5 +1,6 @@
 import { AnalysisData } from '../types';
 import { PersistedAnalysis } from '../core/types';
+import { computeMm2PerPixel, mmPerPixelEquivalent } from '../core/imageProcessor';
 
 export function formatPtBrNumber(val: number, decimals = 2): string {
   if (!Number.isFinite(val)) return '0';
@@ -25,7 +26,17 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
   const thresholdAdjustment = isPersisted ? data.params.thresholdAdjustment : (data.sensitivity || 0);
   const minAreaPx = isPersisted ? data.params.minAreaPx : 1;
   const discardBorder = isPersisted ? data.params.discardBorder : true;
-  const mmPerPixel = isPersisted ? data.mmPerPixel : (25.4 / (data.dpi || 300));
+  // Calibration is (cardSizeMm, raster dimensions). Derive the pixel AREA from those and
+  // report the linear ratio only as sqrt(mm2PerPixel), for spreadsheet compatibility.
+  const rectWidthPx = data.rectWidthPx || 760;
+  const rectHeightPx = data.rectHeightPx || 260;
+  const mm2PerPixel = computeMm2PerPixel(
+    data.cardSizeMm.width,
+    data.cardSizeMm.height,
+    rectWidthPx,
+    rectHeightPx
+  );
+  const mmPerPixel = mmPerPixelEquivalent(mm2PerPixel);
 
   // Check validity
   const numericValues = [
@@ -40,6 +51,7 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
     verdictScore,
     data.cardSizeMm.width,
     data.cardSizeMm.height,
+    mm2PerPixel,
     mmPerPixel,
   ];
 
@@ -55,6 +67,9 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
     'Titulo',
     'Largura_mm',
     'Altura_mm',
+    'Raster_largura_px',
+    'Raster_altura_px',
+    'mm2_por_pixel',
     'mm_por_pixel',
     'Metodo',
     'Ajuste_Limiar',
@@ -81,6 +96,9 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
     `"${(data.title || 'Amostra').replace(/"/g, '""')}"`,
     formatPtBrNumber(data.cardSizeMm.width, 1),
     formatPtBrNumber(data.cardSizeMm.height, 1),
+    rectWidthPx,
+    rectHeightPx,
+    formatPtBrNumber(mm2PerPixel, 9),
     formatPtBrNumber(mmPerPixel, 6),
     method,
     thresholdAdjustment,

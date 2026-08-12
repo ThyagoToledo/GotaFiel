@@ -40,6 +40,9 @@ export async function savePersistedAnalysis(analysis: PersistedAnalysis): Promis
       width: analysis.cardSizeMm.width,
       height: analysis.cardSizeMm.height,
     },
+    rectWidthPx: analysis.rectWidthPx,
+    rectHeightPx: analysis.rectHeightPx,
+    mm2PerPixel: analysis.mm2PerPixel,
     mmPerPixel: analysis.mmPerPixel,
     params: {
       method: analysis.params.method,
@@ -121,11 +124,17 @@ export async function recalculateAnalysisQualityScore(id: string): Promise<Persi
   const analysis = await getPersistedAnalysisById(id);
   if (!analysis) return null;
 
+  // Legacy records persisted before the calibration fix may lack raster dimensions.
+  // Fall back to the historical wizard default (760x260) rather than to a linear ratio.
+  const rectWidthPx = analysis.rectWidthPx || 760;
+  const rectHeightPx = analysis.rectHeightPx || 260;
+
   const recalculatedMetrics = computeMetricsFromHistogram(
     analysis.histogram,
     analysis.cardSizeMm.width,
     analysis.cardSizeMm.height,
-    analysis.mmPerPixel
+    rectWidthPx,
+    rectHeightPx
   );
 
   const updated: PersistedAnalysis = {

@@ -1,10 +1,8 @@
+import { runAnalysisCore } from './analysisCore';
 import {
-  binarizeImageBuffer,
   buildHistogramBins,
   computeMetricsFromHistogram,
   convertComponentsToDropletItems,
-  findConnectedComponents,
-  rectifyPixels,
 } from './imageProcessor';
 import { AnalysisParams, CropCorners } from './types';
 
@@ -29,6 +27,9 @@ export interface WorkerResponse {
   metrics: ReturnType<typeof computeMetricsFromHistogram>;
   droplets: ReturnType<typeof convertComponentsToDropletItems>;
   histogram: ReturnType<typeof buildHistogramBins>;
+  /** Área física de um pixel, em mm². Grandeza de calibração canônica. */
+  mm2PerPixel: number;
+  /** sqrt(mm2PerPixel). Exibição e CSV apenas. */
   mmPerPixel: number;
   error?: string;
 }
@@ -48,69 +49,36 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       params,
     } = req;
 
-    // 1. Rectify Perspective
-    const rectifiedPixels = rectifyPixels(
+    // Single shared pipeline — identical to the in-thread fallback in workerPipeline.ts.
+    const core = runAnalysisCore({
       pixels,
       srcWidth,
       srcHeight,
       corners,
       targetWidth,
-      targetHeight
-    );
-
-    // 2. Compute mmPerPixel
-    const mmPerPixelX = cardSizeMm.width / targetWidth;
-    const mmPerPixelY = cardSizeMm.height / targetHeight;
-    const mmPerPixel = (mmPerPixelX + mmPerPixelY) / 2;
-
-    // 3. Binarize Image
-    const { binaryMask, thresholdUsed } = binarizeImageBuffer(
-      rectifiedPixels,
-      targetWidth,
       targetHeight,
-      params.method,
-      params.thresholdAdjustment
-    );
-
-    // 4. Find Connected Components
-    const components = findConnectedComponents(
-      binaryMask,
-      targetWidth,
-      targetHeight,
-      {
-        discardBorder: params.discardBorder,
-        minAreaPx: params.minAreaPx,
-        minDropletUm: params.minDropletUm,
-        mmPerPixel,
-      }
-    );
-
-    // 5. Build Histogram & Compute Metrics
-    const histogram = buildHistogramBins(components);
-    const metrics = computeMetricsFromHistogram(
-      histogram,
-      cardSizeMm.width,
-      cardSizeMm.height,
-      mmPerPixel
-    );
-
-    // 6. Convert to Droplet Items
-    const droplets = convertComponentsToDropletItems(components, targetWidth, targetHeight);
+      cardSizeMm,
+      params,
+    });
 
     const response: WorkerResponse = {
       id,
       success: true,
-      rectifiedPixels,
-      binaryMask,
-      thresholdUsed,
-      metrics,
-      droplets,
-      histogram,
-      mmPerPixel,
+      rectifiedPixels: core.rectifiedPixels,
+      binaryMask: core.binaryMask,
+      thresholdUsed: core.thresholdUsed,
+      metrics: core.metrics,
+      droplets: core.droplets,
+      histogram: core.histogram,
+      mm2PerPixel: core.mm2PerPixel,
+      mmPerPixel: core.mmPerPixel,
     };
 
     // Use Transferable ArrayBuffers
-    (self as unknown as Worker).postMessage(response, [rectifiedPixels.buffer, binaryMask.buffer]);
+    (self as unknown as Worker).postMessage(response, [
+      core.rectifiedPixels.buffer,
+      core.binaryMask.buffer,
+    ]);
   } catch (err: any) {
     self.postMessage({
       id: req.id,

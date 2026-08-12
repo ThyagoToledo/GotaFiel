@@ -1,11 +1,4 @@
-import {
-  binarizeImageBuffer,
-  buildHistogramBins,
-  computeMetricsFromHistogram,
-  convertComponentsToDropletItems,
-  findConnectedComponents,
-  rectifyPixels,
-} from './imageProcessor';
+import { runAnalysisCore } from './analysisCore';
 import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
 import { DropletItem } from '../types';
 import { WorkerRequest, WorkerResponse } from './imageWorker';
@@ -17,6 +10,9 @@ export interface PipelineResult {
   metrics: ProcessedAnalysisMetrics;
   droplets: DropletItem[];
   histogram: SampleHistogramBin[];
+  /** Área física de um pixel, em mm². Grandeza de calibração canônica. */
+  mm2PerPixel: number;
+  /** sqrt(mm2PerPixel). Exibição e CSV apenas. */
   mmPerPixel: number;
   rectWidthPx: number;
   rectHeightPx: number;
@@ -161,6 +157,7 @@ export async function runImagePipeline(
         metrics: workerResult.metrics,
         droplets: workerResult.droplets,
         histogram: workerResult.histogram,
+        mm2PerPixel: workerResult.mm2PerPixel,
         mmPerPixel: workerResult.mmPerPixel,
         rectWidthPx: targetWidth,
         rectHeightPx: targetHeight,
@@ -172,42 +169,31 @@ export async function runImagePipeline(
     }
   }
 
-  // Fallback for environments without Worker constructor (e.g. Node test environments)
-  const rectifiedPixels = rectifyPixels(pixels, width, height, corners, targetWidth, targetHeight);
-  const mmPerPixelX = cardSizeMm.width / targetWidth;
-  const mmPerPixelY = cardSizeMm.height / targetHeight;
-  const mmPerPixel = (mmPerPixelX + mmPerPixelY) / 2;
-
-  const { binaryMask, thresholdUsed } = binarizeImageBuffer(
-    rectifiedPixels,
+  // Fallback for environments without a Worker constructor (e.g. Node test environments).
+  // Runs the exact same runAnalysisCore() the Worker runs, so results cannot diverge.
+  const core = runAnalysisCore({
+    pixels,
+    srcWidth: width,
+    srcHeight: height,
+    corners,
     targetWidth,
     targetHeight,
-    params.method,
-    params.thresholdAdjustment
-  );
-
-  const components = findConnectedComponents(binaryMask, targetWidth, targetHeight, {
-    discardBorder: params.discardBorder,
-    minAreaPx: params.minAreaPx,
-    minDropletUm: params.minDropletUm,
-    mmPerPixel,
+    cardSizeMm,
+    params,
   });
 
-  const histogram = buildHistogramBins(components);
-  const metrics = computeMetricsFromHistogram(histogram, cardSizeMm.width, cardSizeMm.height, mmPerPixel);
-  const droplets = convertComponentsToDropletItems(components, targetWidth, targetHeight);
-
-  const binaryDataUrl = createBinaryMaskDataUrl(binaryMask, targetWidth, targetHeight);
-  const rectifiedDataUrl = createRgbaDataUrl(rectifiedPixels, targetWidth, targetHeight);
+  const binaryDataUrl = createBinaryMaskDataUrl(core.binaryMask, targetWidth, targetHeight);
+  const rectifiedDataUrl = createRgbaDataUrl(core.rectifiedPixels, targetWidth, targetHeight);
 
   return {
-    rectifiedPixels,
-    binaryMask,
-    thresholdUsed,
-    metrics,
-    droplets,
-    histogram,
-    mmPerPixel,
+    rectifiedPixels: core.rectifiedPixels,
+    binaryMask: core.binaryMask,
+    thresholdUsed: core.thresholdUsed,
+    metrics: core.metrics,
+    droplets: core.droplets,
+    histogram: core.histogram,
+    mm2PerPixel: core.mm2PerPixel,
+    mmPerPixel: core.mmPerPixel,
     rectWidthPx: targetWidth,
     rectHeightPx: targetHeight,
     binaryDataUrl,

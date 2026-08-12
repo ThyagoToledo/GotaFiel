@@ -73,15 +73,17 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
             onClick={() => onImageSelected(SAMPLE_CARD_IMAGES.ideal)}
             className="flex flex-col items-center gap-1 p-1.5 bg-surface-container-lowest rounded border border-outline-variant hover:border-primary transition-colors text-xs text-center"
           >
-            <img src={SAMPLE_CARD_IMAGES.ideal} alt="Amostra Ideal" className="w-full h-12 object-cover rounded" />
-            <span className="font-medium text-[11px]">Cartão Ideal</span>
+            {/* Labels describe the IMAGE, never the outcome. The verdict must come only
+                from the real pipeline, so no preset may promise a result. */}
+            <img src={SAMPLE_CARD_IMAGES.ideal} alt="Cartão de demonstração" className="w-full h-12 object-cover rounded" />
+            <span className="font-medium text-[11px]">Cartão de demonstração</span>
           </button>
           <button
             onClick={() => onImageSelected(SAMPLE_CARD_IMAGES.runoff)}
             className="flex flex-col items-center gap-1 p-1.5 bg-surface-container-lowest rounded border border-outline-variant hover:border-primary transition-colors text-xs text-center"
           >
-            <img src={SAMPLE_CARD_IMAGES.runoff} alt="Excesso" className="w-full h-12 object-cover rounded" />
-            <span className="font-medium text-[11px]">Excesso</span>
+            <img src={SAMPLE_CARD_IMAGES.runoff} alt="Cartão denso" className="w-full h-12 object-cover rounded" />
+            <span className="font-medium text-[11px]">Cartão denso</span>
           </button>
           <button
             onClick={() => onImageSelected(SAMPLE_CARD_IMAGES.macro)}

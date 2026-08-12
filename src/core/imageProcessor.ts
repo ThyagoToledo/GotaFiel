@@ -9,6 +9,66 @@ import {
 import { ASABECategory, QualityVerdict, DropletItem } from '../types';
 
 /**
+ * Physical AREA of a single raster pixel, in mm².
+ *
+ * This is the ONLY correct way to convert pixel counts into physical area when the
+ * rectified raster and the physical card do not share the same aspect ratio.
+ *
+ *   scaleX = cardWidthMm  / rectWidthPx    (mm per pixel, horizontally)
+ *   scaleY = cardHeightMm / rectHeightPx   (mm per pixel, vertically)
+ *   mm2PerPixel = scaleX * scaleY
+ *
+ * Equivalent closed form: (cardWidthMm * cardHeightMm) / (rectWidthPx * rectHeightPx).
+ *
+ * NEVER use the arithmetic mean (scaleX + scaleY) / 2 as a stand-in for a linear scale
+ * and then square it. That was the calibration defect: squaring the arithmetic mean
+ * overestimates the pixel area whenever scaleX !== scaleY (AM-GM inequality), which made
+ * coverage — a purely raster-level quantity — drift with the declared card size.
+ */
+export function computeMm2PerPixel(
+  cardWidthMm: number,
+  cardHeightMm: number,
+  rectWidthPx: number,
+  rectHeightPx: number
+): number {
+  if (
+    !Number.isFinite(cardWidthMm) || cardWidthMm <= 0 ||
+    !Number.isFinite(cardHeightMm) || cardHeightMm <= 0 ||
+    !Number.isFinite(rectWidthPx) || rectWidthPx <= 0 ||
+    !Number.isFinite(rectHeightPx) || rectHeightPx <= 0
+  ) {
+    return 0;
+  }
+
+  const scaleX = cardWidthMm / rectWidthPx;
+  const scaleY = cardHeightMm / rectHeightPx;
+  return scaleX * scaleY;
+}
+
+/**
+ * Isotropic linear scale equivalent to a given pixel area, kept only for display and
+ * CSV compatibility: mmPerPixelEquivalent = sqrt(mm2PerPixel).
+ *
+ * It is deliberately NOT used in any area, diameter, coverage or volume computation —
+ * those all consume mm2PerPixel directly.
+ */
+export function mmPerPixelEquivalent(mm2PerPixel: number): number {
+  if (!Number.isFinite(mm2PerPixel) || mm2PerPixel <= 0) return 0;
+  return Math.sqrt(mm2PerPixel);
+}
+
+/**
+ * Stain diameter (µm) of the area-equivalent circle for a component of `pixelCount` pixels.
+ *   stainAreaMm2   = pixelCount * mm2PerPixel
+ *   stainDiameterUm = 2 * sqrt(stainAreaMm2 / PI) * 1000
+ */
+export function computeStainDiameterUm(pixelCount: number, mm2PerPixel: number): number {
+  if (pixelCount <= 0 || mm2PerPixel <= 0) return 0;
+  const stainAreaMm2 = pixelCount * mm2PerPixel;
+  return 2 * Math.sqrt(stainAreaMm2 / Math.PI) * 1000;
+}
+
+/**
  * Spreading factor formula (Fator de Espalhamento) for hydrosensitive paper:
  * DC = DL / (0.8419 + 0.000152 * DL + 0.1758 * ln(DL))
  * DL = stain diameter in micrometers (µm)
@@ -285,7 +345,7 @@ export function findConnectedComponents(
   binaryMask: Uint8Array,
   width: number,
   height: number,
-  params: { discardBorder: boolean; minAreaPx: number; minDropletUm: number; mmPerPixel: number }
+  params: { discardBorder: boolean; minAreaPx: number; minDropletUm: number; mm2PerPixel: number }
 ): DropletComponent[] {
   const visited = new Uint8Array(width * height);
   const rawComponents: Array<{
@@ -375,13 +435,14 @@ export function findConnectedComponents(
     }
   }
 
-  const mmPerPx = params.mmPerPixel || 0.1;
+  // Physical pixel AREA in mm². Never derived from a linear mm/px average.
+  const mm2PerPixel = params.mm2PerPixel > 0 ? params.mm2PerPixel : 0.01;
 
   const result: DropletComponent[] = [];
 
   for (const c of rawComponents) {
-    const areaMm2 = c.pixelCount * mmPerPx * mmPerPx;
-    const stainDiameterUm = 2000 * Math.sqrt(areaMm2 / Math.PI);
+    const areaMm2 = c.pixelCount * mm2PerPixel;
+    const stainDiameterUm = computeStainDiameterUm(c.pixelCount, mm2PerPixel);
     const correctedDiameterUm = calculateCorrectedDiameterUm(stainDiameterUm);
 
     // Apply min droplet size filter in µm
@@ -423,21 +484,43 @@ export function buildHistogramBins(components: Array<{ pixelCount: number; inclu
   return result;
 }
 
+/**
+ * Computes every published metric from a droplet histogram.
+ *
+ * Takes the RASTER dimensions (rectWidthPx / rectHeightPx) rather than a linear mm/px
+ * ratio. This is deliberate: the raster size plus the physical card size fully determine
+ * the calibration, and passing a pre-collapsed linear scale is exactly what allowed the
+ * anisotropic-scale defect to appear.
+ *
+ * Invariants enforced here:
+ *  - coveragePercent depends ONLY on the mask (droplet pixels / card pixels). It cannot
+ *    move when the declared card size changes.
+ *  - density scales as 1 / cardArea.
+ *  - diameters and volume scale with the physical pixel area.
+ */
 export function computeMetricsFromHistogram(
   histogram: SampleHistogramBin[],
   cardWidthMm: number,
   cardHeightMm: number,
-  mmPerPixel: number
+  rectWidthPx: number,
+  rectHeightPx: number
 ): ProcessedAnalysisMetrics {
   const cardAreaMm2 = cardWidthMm * cardHeightMm;
   const cardAreaCm2 = cardAreaMm2 / 100;
   const cardAreaHa = cardAreaMm2 / 1e10;
 
-  if (histogram.length === 0 || cardAreaMm2 <= 0 || mmPerPixel <= 0) {
+  const totalCardPixels = rectWidthPx * rectHeightPx;
+  const mm2PerPixel = computeMm2PerPixel(cardWidthMm, cardHeightMm, rectWidthPx, rectHeightPx);
+
+  if (histogram.length === 0 || cardAreaMm2 <= 0 || totalCardPixels <= 0 || mm2PerPixel <= 0) {
     return {
       totalDroplets: 0,
       density: 0,
       coveragePercent: 0,
+      coveragePercentExact: 0,
+      includedDropletPixelCount: 0,
+      totalCardPixels: Math.max(0, totalCardPixels),
+      mm2PerPixel: Math.max(0, mm2PerPixel),
       dv01Um: 0,
       dv05Um: 0,
       dv09Um: 0,
@@ -458,14 +541,16 @@ export function computeMetricsFromHistogram(
 
   const allDroplets: ExpandedDroplet[] = [];
   let totalDroplets = 0;
-  let totalAreaMm2 = 0;
   let totalVolumeL = 0;
+  // Raster-level accumulator: the exact number of mask pixels belonging to included
+  // droplets. Coverage is computed from this alone.
+  let includedDropletPixelCount = 0;
 
   for (const bin of histogram) {
     if (bin.pixelCount <= 0 || bin.quantity <= 0) continue;
 
-    const areaMm2 = bin.pixelCount * mmPerPixel * mmPerPixel;
-    const stainDiameterUm = 2000 * Math.sqrt(areaMm2 / Math.PI);
+    const areaMm2 = bin.pixelCount * mm2PerPixel;
+    const stainDiameterUm = computeStainDiameterUm(bin.pixelCount, mm2PerPixel);
     const correctedDiameterUm = calculateCorrectedDiameterUm(stainDiameterUm);
 
     // Volume in Liters: V = (pi/6) * d^3 (d in meters)
@@ -473,8 +558,8 @@ export function computeMetricsFromHistogram(
     const volumeL = (Math.PI / 6) * Math.pow(dMeters, 3) * 1000;
 
     totalDroplets += bin.quantity;
-    totalAreaMm2 += areaMm2 * bin.quantity;
     totalVolumeL += volumeL * bin.quantity;
+    includedDropletPixelCount += bin.pixelCount * bin.quantity;
 
     for (let q = 0; q < bin.quantity; q++) {
       allDroplets.push({ diameterUm: correctedDiameterUm, volumeL, areaMm2 });
@@ -486,6 +571,10 @@ export function computeMetricsFromHistogram(
       totalDroplets: 0,
       density: 0,
       coveragePercent: 0,
+      coveragePercentExact: 0,
+      includedDropletPixelCount: 0,
+      totalCardPixels,
+      mm2PerPixel,
       dv01Um: 0,
       dv05Um: 0,
       dv09Um: 0,
@@ -527,7 +616,13 @@ export function computeMetricsFromHistogram(
 
   const span = dv05Um > 0 ? Number(((dv09Um - dv01Um) / dv05Um).toFixed(2)) : 0;
   const density = Number((totalDroplets / cardAreaCm2).toFixed(1));
-  const coveragePercent = Number(Math.min(100, (totalAreaMm2 / cardAreaMm2) * 100).toFixed(1));
+
+  // Coverage is a RASTER ratio: droplet pixels over card pixels.
+  // It must not reference mm, DPI or any linear scale, so that declaring a different
+  // physical card size for the same mask cannot change it.
+  const coveragePercentExact = Math.min(100, (includedDropletPixelCount / totalCardPixels) * 100);
+  const coveragePercent = Number(coveragePercentExact.toFixed(1));
+
   const estimatedVolumeLha = cardAreaHa > 0 ? Number((totalVolumeL / cardAreaHa).toFixed(2)) : 0;
 
   const roundedVmd = Math.round(dv05Um);
@@ -541,6 +636,10 @@ export function computeMetricsFromHistogram(
     totalDroplets,
     density,
     coveragePercent,
+    coveragePercentExact,
+    includedDropletPixelCount,
+    totalCardPixels,
+    mm2PerPixel,
     dv01Um: roundedDv01,
     dv05Um: roundedVmd,
     dv09Um: roundedDv09,
