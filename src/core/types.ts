@@ -43,7 +43,15 @@ export interface DropletComponent {
 export interface ProcessedAnalysisMetrics {
   totalDroplets: number;
   density: number; // gotas/cm²
-  coveragePercent: number; // %
+  coveragePercent: number; // % (arredondado para exibição, 1 casa)
+  /** Cobertura sem arredondamento. Invariante à dimensão física declarada do cartão. */
+  coveragePercentExact: number;
+  /** Pixels da máscara pertencentes a gotas incluídas. Base da cobertura. */
+  includedDropletPixelCount: number;
+  /** rectWidthPx * rectHeightPx do raster retificado. */
+  totalCardPixels: number;
+  /** Área física de um pixel, em mm². Sempre scaleX * scaleY, nunca ((scaleX+scaleY)/2)². */
+  mm2PerPixel: number;
   dv01Um: number;
   dv05Um: number; // VMD (µm)
   dv09Um: number;
@@ -63,6 +71,16 @@ export interface PersistedAnalysis {
   fieldName?: string;
   date?: string;
   cardSizeMm: { width: number; height: number };
+  /**
+   * Raster dimensions of the rectified card. Persisted because the calibration is
+   * (cardSizeMm, rect dimensions) — storing only a collapsed linear ratio is what made
+   * results unreproducible.
+   */
+  rectWidthPx: number;
+  rectHeightPx: number;
+  /** Área física de um pixel, em mm². Derivável de cardSizeMm + rect*, persistido para auditoria. */
+  mm2PerPixel: number;
+  /** sqrt(mm2PerPixel). Exibição e CSV apenas. */
   mmPerPixel: number;
   params: AnalysisParams;
   histogram: SampleHistogramBin[];
@@ -75,7 +93,16 @@ export interface ScaleValidationResult {
   heightMm: number;
   rectWidthPx: number;
   rectHeightPx: number;
+  /** Área física de um pixel, em mm². Grandeza de calibração canônica. */
+  mm2PerPixel: number;
+  /** sqrt(mm2PerPixel). Apenas para exibição e compatibilidade de CSV. */
   mmPerPixel: number;
+  /** cardWidthMm / rectWidthPx */
+  scaleX: number;
+  /** cardHeightMm / rectHeightPx */
+  scaleY: number;
+  /** true quando scaleX !== scaleY, isto é, o pixel não é quadrado em espaço físico. */
+  isAnisotropic: boolean;
   areaCm2: number;
   areaMm2: number;
   errorReason?: string;

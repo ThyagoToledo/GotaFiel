@@ -144,7 +144,12 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   Sensibilidade do Limiar
                 </label>
                 <span className="text-[11px] text-on-surface-variant">
-                  Ajuste fino de Otsu (-50 a +50)
+                  {/* Otsu only exists in the chromatic path. The legacy path uses the
+                      historical GOTAS threshold ((max-min)+mean)/3, so naming Otsu there
+                      would misdescribe what the slider actually shifts. */}
+                  {localMethod === 'gotas-legacy'
+                    ? 'Ajuste do limiar histórico GOTAS (-50 a +50)'
+                    : 'Ajuste fino de Otsu (-50 a +50)'}
                 </span>
               </div>
               <span className="font-extrabold text-xl text-primary bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">

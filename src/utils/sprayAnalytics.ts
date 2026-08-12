@@ -1,5 +1,10 @@
 import { AnalysisData, ASABECategory, QualityVerdict } from '../types';
-import { calculateASABECategory, calculateVerdict, computeMetricsFromHistogram } from '../core/imageProcessor';
+import {
+  calculateASABECategory,
+  calculateVerdict,
+  computeMetricsFromHistogram,
+  computeMm2PerPixel,
+} from '../core/imageProcessor';
 
 /**
  * Recalculates AnalysisData metrics based on real droplet list and card dimensions.
@@ -7,10 +12,12 @@ import { calculateASABECategory, calculateVerdict, computeMetricsFromHistogram }
 export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
   const cardWidthMm = analysis.cardSizeMm?.width || 76;
   const cardHeightMm = analysis.cardSizeMm?.height || 26;
-  const targetWidthPx = analysis.rectWidthPx || 760;
+  const rectWidthPx = analysis.rectWidthPx || 760;
+  const rectHeightPx = analysis.rectHeightPx || 260;
 
-  // Use persisted mmPerPixel if available, or compute from cardWidthMm / rectWidthPx
-  const mmPerPixel = analysis.mmPerPixel || (cardWidthMm / targetWidthPx);
+  // Canonical calibration: physical AREA of one pixel. Derived from the card and the
+  // raster, never from a persisted linear mm/px average.
+  const mm2PerPixel = computeMm2PerPixel(cardWidthMm, cardHeightMm, rectWidthPx, rectHeightPx);
 
   // Filter active included droplets
   const activeDroplets = analysis.droplets.filter((d) => d.included !== false);
@@ -38,11 +45,15 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
   for (const drop of activeDroplets) {
     let pxCount = drop.pixelCount;
     if (pxCount === undefined || pxCount <= 0) {
-      if (drop.areaMm2 && drop.areaMm2 > 0) {
-        pxCount = Math.max(1, Math.round(drop.areaMm2 / (mmPerPixel * mmPerPixel)));
-      } else {
+      // Reconstruct the pixel count from physical area using the pixel AREA, not a
+      // squared linear scale.
+      if (drop.areaMm2 && drop.areaMm2 > 0 && mm2PerPixel > 0) {
+        pxCount = Math.max(1, Math.round(drop.areaMm2 / mm2PerPixel));
+      } else if (mm2PerPixel > 0) {
         const areaMm2 = Math.PI * Math.pow((drop.diameterUm || 100) / 2000, 2);
-        pxCount = Math.max(1, Math.round(areaMm2 / (mmPerPixel * mmPerPixel)));
+        pxCount = Math.max(1, Math.round(areaMm2 / mm2PerPixel));
+      } else {
+        pxCount = 1;
       }
     }
     binMap.set(pxCount, (binMap.get(pxCount) || 0) + 1);
@@ -53,7 +64,13 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     quantity,
   }));
 
-  const metrics = computeMetricsFromHistogram(histogramBins, cardWidthMm, cardHeightMm, mmPerPixel);
+  const metrics = computeMetricsFromHistogram(
+    histogramBins,
+    cardWidthMm,
+    cardHeightMm,
+    rectWidthPx,
+    rectHeightPx
+  );
 
   return {
     ...analysis,

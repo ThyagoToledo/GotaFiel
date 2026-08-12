@@ -179,8 +179,16 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
           <div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant flex items-start gap-2.5">
             <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-xs text-on-surface-variant flex-1 leading-relaxed">
-              <p>Razão calculada: <strong>{scaleResult.mmPerPixel} mm/pixel</strong></p>
+              <p>Área por pixel: <strong>{scaleResult.mm2PerPixel} mm²/pixel</strong></p>
+              <p>Equivalente linear: <strong>{scaleResult.mmPerPixel} mm/pixel</strong></p>
               <p>Área física total: <strong>{scaleResult.areaCm2} cm²</strong> ({scaleResult.areaMm2} mm²)</p>
+              {scaleResult.isAnisotropic && (
+                <p className="mt-1 text-on-surface-variant">
+                  Pixel não quadrado ({scaleResult.scaleX} × {scaleResult.scaleY} mm).
+                  Área, cobertura, diâmetros e volume permanecem exatos; apenas o formato
+                  desenhado das gotas aparece esticado.
+                </p>
+              )}
             </div>
           </div>
         ) : (

@@ -39,27 +39,27 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 10,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
     const comps2 = findConnectedComponents(mask2, width, height, {
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 10,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
 
     expect(comps1).toEqual(comps2);
   });
 
   // Test 2: Validação de escala com dimensões zero/negativas
-  it('2. Validação de escala: deve lidar graciosamente com dimensões ou mmPerPixel zero e negativos', () => {
-    const metricsZero = computeMetricsFromHistogram([], 0, 0, 0);
+  it('2. Validação de escala: deve lidar graciosamente com dimensões de cartão ou raster zero e negativas', () => {
+    const metricsZero = computeMetricsFromHistogram([], 0, 0, 0, 0);
     expect(metricsZero.totalDroplets).toBe(0);
     expect(metricsZero.density).toBe(0);
     expect(metricsZero.coveragePercent).toBe(0);
     expect(metricsZero.verdict).toBe('RUIM');
 
-    const metricsNeg = computeMetricsFromHistogram([{ pixelCount: 10, quantity: 2 }], -76, -26, -0.1);
+    const metricsNeg = computeMetricsFromHistogram([{ pixelCount: 10, quantity: 2 }], -76, -26, -760, -260);
     expect(metricsNeg.totalDroplets).toBe(0);
   });
 
@@ -104,7 +104,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 0,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
     expect(compsWithBorder.length).toBe(0);
 
@@ -112,7 +112,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: false,
       minAreaPx: 1,
       minDropletUm: 0,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
     expect(compsKeepBorder.length).toBe(1);
     expect(compsKeepBorder[0].touchesBorder).toBe(true);
@@ -130,7 +130,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 500, // Very large min threshold
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
 
     expect(comps.length).toBe(1);
@@ -145,7 +145,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       { pixelCount: 50, quantity: 10 },
     ];
 
-    const metrics = computeMetricsFromHistogram(histogram, 76, 26, 0.1);
+    const metrics = computeMetricsFromHistogram(histogram, 76, 26, 760, 260);
     expect(metrics.dv01Um).toBeGreaterThan(0);
     expect(metrics.dv05Um).toBeGreaterThanOrEqual(metrics.dv01Um);
     expect(metrics.dv09Um).toBeGreaterThanOrEqual(metrics.dv05Um);
@@ -157,17 +157,18 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
   it('8. Cobertura e Densidade: calcula densidade (gotas/cm²) e cobertura % corretamente', () => {
     // Card size 10mm x 10mm = 1 cm²
     const histogram = [{ pixelCount: 100, quantity: 50 }]; // 50 droplets
-    const mmPerPx = 0.1; // Area per pixel = 0.01 mm² -> 100 px = 1 mm² stain each -> 50 mm² total stain area out of 100 mm² card
-
-    const metrics = computeMetricsFromHistogram(histogram, 10, 10, mmPerPx);
+    // Raster 100x100 = 10.000 px for a 10x10 mm card -> mm2PerPixel = 0.01 mm².
+    // 100 px por gota = 1 mm² cada; 50 gotas = 5.000 px de 10.000 -> 50 % de cobertura.
+    const metrics = computeMetricsFromHistogram(histogram, 10, 10, 100, 100);
+    expect(metrics.mm2PerPixel).toBeCloseTo(0.01, 12);
     expect(metrics.totalDroplets).toBe(50);
     expect(metrics.density).toBe(50); // 50 droplets / 1 cm²
-    expect(metrics.coveragePercent).toBe(50); // 50 mm² / 100 mm² = 50%
+    expect(metrics.coveragePercent).toBe(50); // 5.000 px / 10.000 px = 50%
   });
 
   // Test 9: Descarte de amostras com zero gotas válidas
   it('9. Zero gotas válidas: retorna estrutura limpa sem NaN', () => {
-    const metrics = computeMetricsFromHistogram([], 76, 26, 0.1);
+    const metrics = computeMetricsFromHistogram([], 76, 26, 760, 260);
     expect(metrics.totalDroplets).toBe(0);
     expect(metrics.density).toBe(0);
     expect(metrics.coveragePercent).toBe(0);
@@ -250,7 +251,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 0,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
 
     expect(comps.length).toBe(1);
@@ -275,7 +276,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
       discardBorder: true,
       minAreaPx: 1,
       minDropletUm: 0,
-      mmPerPixel: 0.1,
+      mm2PerPixel: 0.01,
     });
 
     expect(comps[0].centerX).toBe(45);
@@ -301,7 +302,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
   // Test 18: Cálculo do Volume em L/ha
   it('18. Volume L/ha: deriva o volume acumulado projetado por hectare', () => {
     const histogram = [{ pixelCount: 50, quantity: 100 }];
-    const metrics = computeMetricsFromHistogram(histogram, 76, 26, 0.1);
+    const metrics = computeMetricsFromHistogram(histogram, 76, 26, 760, 260);
     expect(metrics.estimatedVolumeLha).toBeGreaterThan(0);
     expect(Number.isFinite(metrics.estimatedVolumeLha)).toBe(true);
   });

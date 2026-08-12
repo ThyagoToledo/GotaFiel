@@ -98,10 +98,13 @@ describe('Auditoria Corretiva - Spray Analysis Core Verification', () => {
   });
 
   // 5. Cobertura não muda quando somente a dimensão física do cartão muda
+  //    NOTA: este caso usa escalas isotrópicas em ambos os lados, então não detecta
+  //    o defeito da média aritmética. A cobertura de verdade é coberta em
+  //    calibrationInvariance.test.ts, que varia o cartão mantendo o raster fixo.
   it('Cobertura não muda quando somente a dimensão física do cartão muda com mesma proporção de píxeis', () => {
     const histogram = [{ pixelCount: 100, quantity: 10 }];
-    const metricsA = computeMetricsFromHistogram(histogram, 100, 100, 0.1);
-    const metricsB = computeMetricsFromHistogram(histogram, 200, 200, 0.2);
+    const metricsA = computeMetricsFromHistogram(histogram, 100, 100, 1000, 1000);
+    const metricsB = computeMetricsFromHistogram(histogram, 200, 200, 1000, 1000);
 
     expect(metricsA.coveragePercent).toBe(0.1);
     expect(metricsB.coveragePercent).toBe(0.1);
@@ -111,8 +114,8 @@ describe('Auditoria Corretiva - Spray Analysis Core Verification', () => {
   // 6. Densidade, diâmetros e volume respondem corretamente à mudança de escala
   it('Densidade, diâmetros e volume respondem corretamente à mudança de escala', () => {
     const histogram = [{ pixelCount: 100, quantity: 10 }];
-    const metricsA = computeMetricsFromHistogram(histogram, 10, 10, 0.1);
-    const metricsB = computeMetricsFromHistogram(histogram, 20, 20, 0.2);
+    const metricsA = computeMetricsFromHistogram(histogram, 10, 10, 100, 100);
+    const metricsB = computeMetricsFromHistogram(histogram, 20, 20, 100, 100);
 
     expect(metricsA.density).toBe(10);
     expect(metricsB.density).toBe(2.5);
