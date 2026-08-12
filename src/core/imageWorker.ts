@@ -109,7 +109,8 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       mmPerPixel,
     };
 
-    self.postMessage(response);
+    // Use Transferable ArrayBuffers
+    (self as unknown as Worker).postMessage(response, [rectifiedPixels.buffer, binaryMask.buffer]);
   } catch (err: any) {
     self.postMessage({
       id: req.id,

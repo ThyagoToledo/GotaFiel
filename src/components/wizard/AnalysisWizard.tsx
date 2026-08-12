@@ -106,6 +106,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           imageUrl: imgUrl,
           cardSizeMm: sizeMm,
           sensitivity: sens,
+          mmPerPixel: result.mmPerPixel,
+          rectWidthPx: result.rectWidthPx,
+          rectHeightPx: result.rectHeightPx,
+          histogram: result.histogram,
           totalDroplets: result.metrics.totalDroplets,
           density: result.metrics.density,
           coveragePercent: result.metrics.coveragePercent,
@@ -192,7 +196,19 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 1 && (
         <Step1Capture
           onImageSelected={(img) => {
-            setAnalysisState((prev) => ({ ...prev, imageUrl: img }));
+            setBinaryMaskDataUrl('');
+            setAnalysisState((prev) => ({
+              ...prev,
+              imageUrl: img,
+              droplets: [],
+              histogram: [],
+              mmPerPixel: undefined,
+              rectWidthPx: undefined,
+              rectHeightPx: undefined,
+              totalDroplets: 0,
+              density: 0,
+              coveragePercent: 0,
+            }));
             setCurrentStep(2);
           }}
         />

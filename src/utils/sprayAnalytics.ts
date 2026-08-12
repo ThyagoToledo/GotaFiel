@@ -5,13 +5,15 @@ import { calculateASABECategory, calculateVerdict, computeMetricsFromHistogram }
  * Recalculates AnalysisData metrics based on real droplet list and card dimensions.
  */
 export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
-  const cardWidthMm = analysis.cardSizeMm.width || 76;
-  const cardHeightMm = analysis.cardSizeMm.height || 26;
-  const dpi = analysis.dpi || 300;
-  const mmPerPixel = 25.4 / dpi;
+  const cardWidthMm = analysis.cardSizeMm?.width || 76;
+  const cardHeightMm = analysis.cardSizeMm?.height || 26;
+  const targetWidthPx = analysis.rectWidthPx || 760;
 
-  // Build histogram from active included droplets
-  const activeDroplets = analysis.droplets.filter((d) => d.included);
+  // Use persisted mmPerPixel if available, or compute from cardWidthMm / rectWidthPx
+  const mmPerPixel = analysis.mmPerPixel || (cardWidthMm / targetWidthPx);
+
+  // Filter active included droplets
+  const activeDroplets = analysis.droplets.filter((d) => d.included !== false);
 
   if (activeDroplets.length === 0) {
     return {
@@ -31,12 +33,19 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     };
   }
 
-  // Map droplets to pixel area count
+  // Build histogram directly from active droplets' pixel counts without roundtripping through diameter
   const binMap = new Map<number, number>();
   for (const drop of activeDroplets) {
-    const areaMm2 = Math.PI * Math.pow((drop.diameterUm || 100) / 2000, 2);
-    const pixelCount = Math.max(1, Math.round(areaMm2 / (mmPerPixel * mmPerPixel)));
-    binMap.set(pixelCount, (binMap.get(pixelCount) || 0) + 1);
+    let pxCount = drop.pixelCount;
+    if (pxCount === undefined || pxCount <= 0) {
+      if (drop.areaMm2 && drop.areaMm2 > 0) {
+        pxCount = Math.max(1, Math.round(drop.areaMm2 / (mmPerPixel * mmPerPixel)));
+      } else {
+        const areaMm2 = Math.PI * Math.pow((drop.diameterUm || 100) / 2000, 2);
+        pxCount = Math.max(1, Math.round(areaMm2 / (mmPerPixel * mmPerPixel)));
+      }
+    }
+    binMap.set(pxCount, (binMap.get(pxCount) || 0) + 1);
   }
 
   const histogramBins = Array.from(binMap.entries()).map(([pixelCount, quantity]) => ({

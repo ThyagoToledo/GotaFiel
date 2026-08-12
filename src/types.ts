@@ -1,3 +1,5 @@
+import { SampleHistogramBin } from './core/types';
+
 export type CardColor = 'Amarelo' | 'Branco' | 'Outro';
 
 export type QualityVerdict = 'GREET' | 'BOM' | 'REGULAR' | 'RUIM' | 'EXCESSO';
@@ -11,6 +13,8 @@ export interface DropletItem {
   sizePx: number; // diameter in pixels
   diameterUm: number; // diameter in micrometers (µm)
   included: boolean;
+  pixelCount?: number;
+  areaMm2?: number;
 }
 
 export interface AnalysisData {
@@ -24,7 +28,13 @@ export interface AnalysisData {
   cardSizeMm: { width: number; height: number };
   dpi: number;
   sensitivity: number; // -50 to +50
-  
+
+  // Calibration & Resolution persistence
+  mmPerPixel?: number;
+  rectWidthPx?: number;
+  rectHeightPx?: number;
+  histogram?: SampleHistogramBin[];
+
   // Results
   totalDroplets: number;
   density: number; // gotas/cm²
@@ -38,7 +48,7 @@ export interface AnalysisData {
   verdictScore: number; // 0 - 100
   verdictMessage?: string;
   asabeCategory: ASABECategory;
-  
+
   // Inspection droplets array
   droplets: DropletItem[];
 }

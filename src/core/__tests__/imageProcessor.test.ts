@@ -77,7 +77,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
   });
 
   // Test 4: Binarização Cromática vs GOTAS Legacy
-  it('4. Binarização: distingue método cromático B - max(R,G) vs GOTAS Legacy Luma', () => {
+  it('4. Binarização: distingue método cromático B - max(R,G) vs GOTAS Legacy RGB Media', () => {
     const pixels = new Uint8ClampedArray(4 * 4); // 1 pixel
     // Pure blue pixel: R=0, G=0, B=255
     pixels[0] = 0;
@@ -89,7 +89,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
     expect(binarizedChromatic.stainValues[0]).toBe(255); // 255 - max(0, 0) = 255
 
     const binarizedLegacy = binarizeImageBuffer(pixels, 1, 1, 'gotas-legacy', 0);
-    expect(binarizedLegacy.stainValues[0]).toBe(Math.round(0.114 * 255)); // Luma = 29
+    expect(binarizedLegacy.stainValues[0]).toBe(Math.round((0 + 0 + 255) / 3)); // Media RGB = 85
   });
 
   // Test 5: Filtragem de borda (discardBorder)
@@ -192,8 +192,8 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
   it('11. Limites do veredito: avalia pontuações para EXCESSO, BOM, REGULAR e RUIM', () => {
     expect(calculateVerdict(85, 100).verdict).toBe('EXCESSO');
     expect(calculateVerdict(20, 70).verdict).toBe('BOM');
-    expect(calculateVerdict(8, 35).verdict).toBe('REGULAR');
-    expect(calculateVerdict(2, 5).verdict).toBe('RUIM');
+    expect(calculateVerdict(2, 15).verdict).toBe('REGULAR');
+    expect(calculateVerdict(0.5, 5).verdict).toBe('RUIM');
   });
 
   // Test 12: Limiares das categorias ASABE

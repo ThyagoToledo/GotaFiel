@@ -8,6 +8,7 @@ import {
 } from './imageProcessor';
 import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
 import { DropletItem } from '../types';
+import { WorkerRequest, WorkerResponse } from './imageWorker';
 
 export interface PipelineResult {
   rectifiedPixels: Uint8ClampedArray;
@@ -53,7 +54,7 @@ export function loadImagePixels(
 }
 
 /**
- * Renders binary mask Uint8Array to a high-contrast data URL (black droplets on white background or vice-versa)
+ * Renders binary mask Uint8Array to a high-contrast data URL (black droplets on white background)
  */
 export function createBinaryMaskDataUrl(binaryMask: Uint8Array, width: number, height: number): string {
   const canvas = document.createElement('canvas');
@@ -95,7 +96,7 @@ export function createRgbaDataUrl(pixels: Uint8ClampedArray, width: number, heig
 }
 
 /**
- * Executes the full real image processing pipeline asynchronously off-thread.
+ * Executes the full image processing pipeline off-thread using a Web Worker.
  */
 export async function runImagePipeline(
   imageUrl: string,
@@ -107,9 +108,72 @@ export async function runImagePipeline(
 ): Promise<PipelineResult> {
   const { pixels, width, height } = await loadImagePixels(imageUrl);
 
-  // Synchronous calculation or Worker execution
-  const rectifiedPixels = rectifyPixels(pixels, width, height, corners, targetWidth, targetHeight);
+  const reqId = `pipeline-${Date.now()}-${Math.random()}`;
 
+  // Execute in Web Worker when available
+  if (typeof Worker !== 'undefined') {
+    try {
+      const worker = new Worker(
+        new URL('./imageWorker.ts', import.meta.url),
+        { type: 'module' }
+      );
+
+      const workerResult = await new Promise<WorkerResponse>((resolve, reject) => {
+        worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+          if (e.data.id === reqId) {
+            if (e.data.success) {
+              resolve(e.data);
+            } else {
+              reject(new Error(e.data.error || 'Erro no Web Worker.'));
+            }
+          }
+        };
+
+        worker.onerror = (err) => {
+          reject(new Error(`Worker error: ${err.message}`));
+        };
+
+        const requestPayload: WorkerRequest = {
+          id: reqId,
+          pixels,
+          srcWidth: width,
+          srcHeight: height,
+          corners,
+          targetWidth,
+          targetHeight,
+          cardSizeMm,
+          params,
+        };
+
+        // Post message transferring buffer
+        worker.postMessage(requestPayload, [pixels.buffer]);
+      });
+
+      worker.terminate();
+
+      const binaryDataUrl = createBinaryMaskDataUrl(workerResult.binaryMask, targetWidth, targetHeight);
+      const rectifiedDataUrl = createRgbaDataUrl(workerResult.rectifiedPixels, targetWidth, targetHeight);
+
+      return {
+        rectifiedPixels: workerResult.rectifiedPixels,
+        binaryMask: workerResult.binaryMask,
+        thresholdUsed: workerResult.thresholdUsed,
+        metrics: workerResult.metrics,
+        droplets: workerResult.droplets,
+        histogram: workerResult.histogram,
+        mmPerPixel: workerResult.mmPerPixel,
+        rectWidthPx: targetWidth,
+        rectHeightPx: targetHeight,
+        binaryDataUrl,
+        rectifiedDataUrl,
+      };
+    } catch (e) {
+      console.warn('Fallback to in-thread processing:', e);
+    }
+  }
+
+  // Fallback for environments without Worker constructor (e.g. Node test environments)
+  const rectifiedPixels = rectifyPixels(pixels, width, height, corners, targetWidth, targetHeight);
   const mmPerPixelX = cardSizeMm.width / targetWidth;
   const mmPerPixelY = cardSizeMm.height / targetHeight;
   const mmPerPixel = (mmPerPixelX + mmPerPixelY) / 2;

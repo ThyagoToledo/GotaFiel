@@ -56,7 +56,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
           <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-            <Award className="w-3.5 h-3.5 text-primary" /> Nº de Gotas
+            <Award className="w-3.5 h-3.5 text-primary" /> Densidade de Gotas
           </span>
           <div className="mt-2 flex items-baseline gap-1">
             <span className="font-extrabold text-2xl text-on-surface">{avgDensity}</span>

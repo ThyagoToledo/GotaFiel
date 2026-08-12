@@ -36,25 +36,25 @@ export function calculateVerdict(coverage: number, density: number): { verdict: 
     return { verdict: 'RUIM', score: 0, message: 'Métricas de análise inválidas.' };
   }
 
-  if (coverage >= 80) {
+  if (coverage >= 80 || density > 200) {
     return {
       verdict: 'EXCESSO',
       score: 45,
       message: `Cobertura de ${coverage.toFixed(1)}%. Indica excesso de volume ou gotas muito grandes. Risco de perda e escorrimento.`,
     };
   }
-  if (density >= 60 && coverage >= 10 && coverage <= 50) {
+  if (density >= 25 && coverage >= 3) {
     return {
       verdict: 'BOM',
-      score: Math.min(100, Math.max(70, Math.round(78 + Math.min(22, (density - 60) * 0.4)))),
-      message: 'Densidade e cobertura adequadas para aplicação eficiente.',
+      score: Math.min(100, Math.max(70, Math.round(78 + Math.min(22, (density - 25) * 0.4)))),
+      message: 'Densidade e cobertura adequadas para aplicação eficiente e controle no dossel.',
     };
   }
-  if (density >= 30 && coverage >= 5) {
+  if (density >= 12 && coverage >= 1.5) {
     return {
       verdict: 'REGULAR',
       score: 62,
-      message: 'Aplicações aceitáveis, mas recomenda-se atenção ao espaçamento dos bicos.',
+      message: 'Aplicações aceitáveis, mas recomenda-se atenção ao espaçamento e vazão dos bicos.',
     };
   }
   return {
@@ -99,7 +99,49 @@ export function computeOtsuThreshold(histogram256: number[], totalPixels: number
 }
 
 /**
- * Perspective homography / bilinear quad transformation to rectify quadrilateral selection.
+ * Calculates a 3x3 Homography matrix mapping unit square (u, v) in [0, 1]x[0, 1] to source quad coordinates.
+ * Target rectangle pixel (x', y') maps to normalized (u = x'/(targetWidth-1), v = y'/(targetHeight-1)).
+ */
+export function computeHomographyFromNormalizedQuad(
+  x0: number, y0: number,
+  x1: number, y1: number,
+  x2: number, y2: number,
+  x3: number, y3: number
+) {
+  const dx1 = x1 - x2;
+  const dx2 = x3 - x2;
+  const dy1 = y1 - y2;
+  const dy2 = y3 - y2;
+
+  const dx3 = x0 - x1 + x2 - x3;
+  const dy3 = y0 - y1 + y2 - y3;
+
+  let h20 = 0;
+  let h21 = 0;
+
+  const det = dx1 * dy2 - dy1 * dx2;
+  if (Math.abs(det) > 1e-10) {
+    h20 = (dx3 * dy2 - dy3 * dx2) / det;
+    h21 = (dx1 * dy3 - dy1 * dx3) / det;
+  }
+
+  const h00 = x1 - x0 + h20 * x1;
+  const h01 = x3 - x0 + h21 * x3;
+  const h02 = x0;
+
+  const h10 = y1 - y0 + h20 * y1;
+  const h11 = y3 - y0 + h21 * y3;
+  const h12 = y0;
+
+  return [
+    h00, h01, h02,
+    h10, h11, h12,
+    h20, h21, 1.0,
+  ];
+}
+
+/**
+ * True 3x3 Perspective Homography Rectification with Bilinear Interpolation.
  */
 export function rectifyPixels(
   srcPixels: Uint8ClampedArray | Uint8Array,
@@ -111,36 +153,60 @@ export function rectifyPixels(
 ): Uint8ClampedArray {
   const targetPixels = new Uint8ClampedArray(targetWidth * targetHeight * 4);
 
-  const tlX = (corners.tl.x / 100) * srcWidth;
-  const tlY = (corners.tl.y / 100) * srcHeight;
-  const trX = (corners.tr.x / 100) * srcWidth;
-  const trY = (corners.tr.y / 100) * srcHeight;
-  const brX = (corners.br.x / 100) * srcWidth;
-  const brY = (corners.br.y / 100) * srcHeight;
-  const blX = (corners.bl.x / 100) * srcWidth;
-  const blY = (corners.bl.y / 100) * srcHeight;
+  // Convert percentage corners to source image pixel coordinates
+  const x0 = (corners.tl.x / 100) * srcWidth;
+  const y0 = (corners.tl.y / 100) * srcHeight;
+  const x1 = (corners.tr.x / 100) * srcWidth;
+  const y1 = (corners.tr.y / 100) * srcHeight;
+  const x2 = (corners.br.x / 100) * srcWidth;
+  const y2 = (corners.br.y / 100) * srcHeight;
+  const x3 = (corners.bl.x / 100) * srcWidth;
+  const y3 = (corners.bl.y / 100) * srcHeight;
+
+  // 3x3 Homography matrix mapping (u, v) in [0, 1]x[0, 1] to (x, y) in source
+  const H = computeHomographyFromNormalizedQuad(x0, y0, x1, y1, x2, y2, x3, y3);
+
+  const maxU = Math.max(1, targetWidth - 1);
+  const maxV = Math.max(1, targetHeight - 1);
 
   for (let y = 0; y < targetHeight; y++) {
-    const v = y / Math.max(1, targetHeight - 1);
+    const v = y / maxV;
     for (let x = 0; x < targetWidth; x++) {
-      const u = x / Math.max(1, targetWidth - 1);
+      const u = x / maxU;
 
-      // Bilinear quad mapping
-      const topX = (1 - u) * tlX + u * trX;
-      const topY = (1 - u) * tlY + u * trY;
-      const botX = (1 - u) * blX + u * brX;
-      const botY = (1 - u) * blY + u * brY;
+      // Project (u, v, 1) using 3x3 Homography
+      const w = H[6] * u + H[7] * v + H[8];
+      const invW = w !== 0 ? 1.0 / w : 1.0;
 
-      const srcX = Math.min(srcWidth - 1, Math.max(0, Math.round((1 - v) * topX + v * botX)));
-      const srcY = Math.min(srcHeight - 1, Math.max(0, Math.round((1 - v) * topY + v * botY)));
+      const srcX = (H[0] * u + H[1] * v + H[2]) * invW;
+      const srcY = (H[3] * u + H[4] * v + H[5]) * invW;
 
-      const srcIdx = (srcY * srcWidth + srcX) * 4;
+      // Clamp coordinates to valid source bounds
+      const clampedX = Math.min(srcWidth - 1, Math.max(0, srcX));
+      const clampedY = Math.min(srcHeight - 1, Math.max(0, srcY));
+
+      // Bilinear Interpolation
+      const xFloor = Math.floor(clampedX);
+      const yFloor = Math.floor(clampedY);
+      const xCeil = Math.min(srcWidth - 1, xFloor + 1);
+      const yCeil = Math.min(srcHeight - 1, yFloor + 1);
+
+      const dx = clampedX - xFloor;
+      const dy = clampedY - yFloor;
+
+      const idx00 = (yFloor * srcWidth + xFloor) * 4;
+      const idx10 = (yFloor * srcWidth + xCeil) * 4;
+      const idx01 = (yCeil * srcWidth + xFloor) * 4;
+      const idx11 = (yCeil * srcWidth + xCeil) * 4;
+
       const tgtIdx = (y * targetWidth + x) * 4;
 
-      targetPixels[tgtIdx] = srcPixels[srcIdx];
-      targetPixels[tgtIdx + 1] = srcPixels[srcIdx + 1];
-      targetPixels[tgtIdx + 2] = srcPixels[srcIdx + 2];
-      targetPixels[tgtIdx + 3] = srcPixels[srcIdx + 3];
+      for (let c = 0; c < 4; c++) {
+        const top = (1 - dx) * srcPixels[idx00 + c] + dx * srcPixels[idx10 + c];
+        const bot = (1 - dx) * srcPixels[idx01 + c] + dx * srcPixels[idx11 + c];
+        const val = (1 - dy) * top + dy * bot;
+        targetPixels[tgtIdx + c] = Math.round(val);
+      }
     }
   }
 
@@ -156,40 +222,63 @@ export function binarizeImageBuffer(
 ): { binaryMask: Uint8Array; thresholdUsed: number; stainValues: Uint8Array } {
   const totalPixels = width * height;
   const stainValues = new Uint8Array(totalPixels);
-  const histogram = new Array(256).fill(0);
+  const binaryMask = new Uint8Array(totalPixels);
 
-  for (let i = 0; i < totalPixels; i++) {
-    const r = pixels[i * 4];
-    const g = pixels[i * 4 + 1];
-    const b = pixels[i * 4 + 2];
+  if (method === 'gotas-legacy') {
+    // Faithful GOTAS Compatibility:
+    // media = (R + G + B) / 3
+    // mediaTotal = sum(media) / totalPixels
+    // limiar = (((mediaCorMax - mediaCorMin) + mediaTotal) / 3) + ajuste
+    // gota = media <= limiar
+    let sumMedia = 0;
+    let mediaMax = 0;
+    let mediaMin = 255;
 
-    let val = 0;
-    if (method === 'chromatic') {
-      // Chromatic stain formula: B - max(R, G)
-      val = Math.max(0, Math.min(255, b - Math.max(r, g)));
-    } else {
-      // GOTAS legacy formula: luminance (0.299R + 0.587G + 0.114B)
-      val = Math.max(0, Math.min(255, Math.round(0.299 * r + 0.587 * g + 0.114 * b)));
+    for (let i = 0; i < totalPixels; i++) {
+      const r = pixels[i * 4];
+      const g = pixels[i * 4 + 1];
+      const b = pixels[i * 4 + 2];
+      const media = Math.round((r + g + b) / 3);
+
+      stainValues[i] = media;
+      sumMedia += media;
+      if (media > mediaMax) mediaMax = media;
+      if (media < mediaMin) mediaMin = media;
     }
 
-    stainValues[i] = val;
-    histogram[val]++;
-  }
+    const mediaTotal = totalPixels > 0 ? sumMedia / totalPixels : 128;
+    const baseLimiar = ((mediaMax - mediaMin) + mediaTotal) / 3;
+    const thresholdUsed = Math.max(0, Math.min(255, Math.round(baseLimiar + thresholdAdjustment)));
 
-  const otsuVal = computeOtsuThreshold(histogram, totalPixels);
-  const thresholdUsed = Math.max(0, Math.min(255, otsuVal + thresholdAdjustment));
-
-  const binaryMask = new Uint8Array(totalPixels);
-  for (let i = 0; i < totalPixels; i++) {
-    if (method === 'chromatic') {
-      binaryMask[i] = stainValues[i] >= thresholdUsed ? 1 : 0;
-    } else {
-      // Legacy GOTAS: dark stain droplets on lighter paper
+    for (let i = 0; i < totalPixels; i++) {
       binaryMask[i] = stainValues[i] <= thresholdUsed ? 1 : 0;
     }
-  }
 
-  return { binaryMask, thresholdUsed, stainValues };
+    return { binaryMask, thresholdUsed, stainValues };
+  } else {
+    // Default Chromatic Method: B - max(R, G)
+    const histogram = new Array(256).fill(0);
+
+    for (let i = 0; i < totalPixels; i++) {
+      const r = pixels[i * 4];
+      const g = pixels[i * 4 + 1];
+      const b = pixels[i * 4 + 2];
+      const stain = Math.max(0, Math.min(255, b - Math.max(r, g)));
+
+      stainValues[i] = stain;
+      histogram[stain]++;
+    }
+
+    const otsuVal = computeOtsuThreshold(histogram, totalPixels);
+    const thresholdUsed = Math.max(0, Math.min(255, otsuVal + thresholdAdjustment));
+
+    // STRICT inequality: stain > thresholdUsed (prevents background with stain=0 from becoming a droplet when thresholdUsed=0)
+    for (let i = 0; i < totalPixels; i++) {
+      binaryMask[i] = stainValues[i] > thresholdUsed ? 1 : 0;
+    }
+
+    return { binaryMask, thresholdUsed, stainValues };
+  }
 }
 
 export function findConnectedComponents(
@@ -465,7 +554,8 @@ export function computeMetricsFromHistogram(
 }
 
 /**
- * Converts DropletComponent list to DropletItem list for Step 6 inspection.
+ * Converts DropletComponent list to DropletItem list for Step 6 inspection,
+ * preserving exact pixel counts and mm² area.
  */
 export function convertComponentsToDropletItems(
   components: DropletComponent[],
@@ -481,6 +571,8 @@ export function convertComponentsToDropletItems(
       diameterUm: comp.diameterUm,
       sizePx,
       included: comp.included,
+      pixelCount: comp.pixelCount,
+      areaMm2: comp.areaMm2,
     };
   });
 }
