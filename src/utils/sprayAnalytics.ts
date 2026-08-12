@@ -1,84 +1,65 @@
-import { AnalysisData, DropletItem, QualityVerdict, ASABECategory } from '../types';
+import { AnalysisData, ASABECategory, QualityVerdict } from '../types';
+import { calculateASABECategory, calculateVerdict, computeMetricsFromHistogram } from '../core/imageProcessor';
 
-export function calculateASABECategory(vmdUm: number): ASABECategory {
-  if (vmdUm < 100) return 'Muito Fina';
-  if (vmdUm <= 175) return 'Fina';
-  if (vmdUm <= 250) return 'Média';
-  if (vmdUm <= 375) return 'Grossa';
-  if (vmdUm <= 450) return 'Muito Grossa';
-  return 'Extremamente Grossa';
-}
-
-export function calculateVerdict(coverage: number, density: number): { verdict: QualityVerdict; score: number; message?: string } {
-  if (coverage >= 80) {
-    return {
-      verdict: 'EXCESSO',
-      score: 45,
-      message: `Cobertura de ${coverage.toFixed(0)}%. Indica excesso de volume ou gotas muito grandes. Risco de perda e escorrimento.`,
-    };
-  }
-  if (density >= 60 && coverage >= 10 && coverage <= 50) {
-    return {
-      verdict: 'BOM',
-      score: 78 + Math.min(22, Math.round((density - 60) * 0.4)),
-      message: 'Densidade e cobertura adequadas para aplicação eficiente.',
-    };
-  }
-  if (density >= 30 && coverage >= 5) {
-    return {
-      verdict: 'REGULAR',
-      score: 62,
-      message: 'Aplicações aceitáveis, mas recomenda-se atenção ao espaçamento dos bicos.',
-    };
-  }
-  return {
-    verdict: 'RUIM',
-    score: 28,
-    message: 'Pouca densidade de gotas ou cobertura insuficiente para controle eficaz.',
-  };
-}
-
+/**
+ * Recalculates AnalysisData metrics based on real droplet list and card dimensions.
+ */
 export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
+  const cardWidthMm = analysis.cardSizeMm.width || 76;
+  const cardHeightMm = analysis.cardSizeMm.height || 26;
+  const dpi = analysis.dpi || 300;
+  const mmPerPixel = 25.4 / dpi;
+
+  // Build histogram from active included droplets
   const activeDroplets = analysis.droplets.filter((d) => d.included);
-  const activeCount = activeDroplets.length;
 
-  // Sensitivity multiplier offset: sensitivity range -50 to +50
-  const sensFactor = 1 + analysis.sensitivity / 100;
+  if (activeDroplets.length === 0) {
+    return {
+      ...analysis,
+      totalDroplets: 0,
+      density: 0,
+      coveragePercent: 0,
+      span: 0,
+      vmdUm: 0,
+      dv01Um: 0,
+      dv09Um: 0,
+      estimatedVolumeLha: 0,
+      verdict: 'RUIM',
+      verdictScore: 0,
+      verdictMessage: 'Nenhuma gota ativa selecionada para análise.',
+      asabeCategory: 'Muito Fina',
+    };
+  }
 
-  // Base card area is usually ~19.76 cm² (76x26mm = 1976 mm² = 19.76 cm²)
-  const cardAreaCm2 = (analysis.cardSizeMm.width * analysis.cardSizeMm.height) / 100;
+  // Map droplets to pixel area count
+  const binMap = new Map<number, number>();
+  for (const drop of activeDroplets) {
+    const areaMm2 = Math.PI * Math.pow((drop.diameterUm || 100) / 2000, 2);
+    const pixelCount = Math.max(1, Math.round(areaMm2 / (mmPerPixel * mmPerPixel)));
+    binMap.set(pixelCount, (binMap.get(pixelCount) || 0) + 1);
+  }
 
-  // Calculate density (gotas / cm²)
-  const calculatedDensity = Math.round((activeCount * 25 * sensFactor) / (cardAreaCm2 / 10));
+  const histogramBins = Array.from(binMap.entries()).map(([pixelCount, quantity]) => ({
+    pixelCount,
+    quantity,
+  }));
 
-  // Calculate coverage percent
-  const baseCoverage = (activeCount / analysis.droplets.length) * 18 * sensFactor;
-  const coveragePercent = Number(Math.min(99, Math.max(1, baseCoverage)).toFixed(1));
-
-  // Calculate Span
-  const span = Number((1.04 + (analysis.sensitivity < 0 ? Math.abs(analysis.sensitivity) * 0.01 : -analysis.sensitivity * 0.005)).toFixed(2));
-
-  // Calculate VMD (DV0.5)
-  const vmdUm = Math.round(346 + (coveragePercent > 50 ? 120 : 0) - analysis.sensitivity * 2);
-  const dv01Um = Math.round(vmdUm * 0.52);
-  const dv09Um = Math.round(vmdUm * 1.56);
-
-  const { verdict, score, message } = calculateVerdict(coveragePercent, calculatedDensity);
+  const metrics = computeMetricsFromHistogram(histogramBins, cardWidthMm, cardHeightMm, mmPerPixel);
 
   return {
     ...analysis,
-    totalDroplets: Math.round(activeCount * 45 * sensFactor),
-    density: calculatedDensity,
-    coveragePercent,
-    span,
-    vmdUm,
-    dv01Um,
-    dv09Um,
-    estimatedVolumeLha: Number(((coveragePercent * 0.125) + 0.01).toFixed(2)),
-    verdict,
-    verdictScore: score,
-    verdictMessage: message,
-    asabeCategory: calculateASABECategory(vmdUm),
+    totalDroplets: metrics.totalDroplets,
+    density: metrics.density,
+    coveragePercent: metrics.coveragePercent,
+    span: metrics.span,
+    vmdUm: metrics.dv05Um,
+    dv01Um: metrics.dv01Um,
+    dv09Um: metrics.dv09Um,
+    estimatedVolumeLha: metrics.estimatedVolumeLha,
+    verdict: metrics.verdict,
+    verdictScore: metrics.verdictScore,
+    verdictMessage: metrics.verdictMessage,
+    asabeCategory: metrics.asabeCategory,
   };
 }
 
@@ -96,7 +77,6 @@ export function calculateWeatherRisk(
   windKmh: number
 ): WeatherConditionResult {
   // Approximate Delta T calculation: T_dry - T_wet
-  // Standard agronomic empirical formula for Delta T
   const dewPoint = temperatureC - (100 - humidityPercent) / 5;
   const deltaT = Number((temperatureC - dewPoint).toFixed(1));
 

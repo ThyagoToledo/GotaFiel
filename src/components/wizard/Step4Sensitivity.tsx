@@ -12,6 +12,8 @@ interface Step4SensitivityProps {
   onChangeMinDropletUm?: (val: number) => void;
   discardBorder?: boolean;
   onChangeDiscardBorder?: (val: boolean) => void;
+  binaryMaskDataUrl?: string;
+  isProcessing?: boolean;
   onNext: () => void;
 }
 
@@ -24,6 +26,8 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   onChangeMinDropletUm,
   discardBorder = true,
   onChangeDiscardBorder,
+  binaryMaskDataUrl,
+  isProcessing = false,
   onNext,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(true);
@@ -79,14 +83,18 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
             </h2>
           </div>
           <div className="flex-1 relative w-full h-full p-2 flex items-center justify-center bg-black">
-            <img
-              src={SAMPLE_CARD_IMAGES.binary}
-              alt="Prévia de detecção de pulverização"
-              className="w-full h-full object-contain rounded-lg transition-all duration-200"
-              style={{
-                filter: `contrast(${100 + sensitivity * 1.5}%) brightness(${100 - sensitivity * 0.5}%)`,
-              }}
-            />
+            {isProcessing ? (
+              <div className="flex flex-col items-center justify-center gap-2 text-cyan-400">
+                <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs font-bold">Processando pixels...</span>
+              </div>
+            ) : (
+              <img
+                src={binaryMaskDataUrl || SAMPLE_CARD_IMAGES.binary}
+                alt="Prévia de detecção de pulverização"
+                className="w-full h-full object-contain rounded-lg transition-all duration-200"
+              />
+            )}
             {/* Live indicator tag */}
             <div className="absolute bottom-3 right-3 bg-primary text-on-primary text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md border border-white/20">
               Sensibilidade: {sensitivity > 0 ? `+${sensitivity}` : sensitivity}

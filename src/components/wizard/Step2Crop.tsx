@@ -14,7 +14,7 @@ interface Step2CropProps {
   imageUrl: string;
   cardColor: CardColor;
   onChangeCardColor: (color: CardColor) => void;
-  onNext: () => void;
+  onNext: (corners: Record<CornerKey, Point>) => void;
 }
 
 type CornerKey = 'tl' | 'tr' | 'br' | 'bl';
@@ -575,7 +575,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
         <div className="max-w-md mx-auto flex gap-2">
           <button
             type="button"
-            onClick={onNext}
+            onClick={() => onNext(corners)}
             className="w-full h-[52px] bg-primary text-on-primary font-bold text-sm rounded-xl hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
           >
             <span>Confirmar Corte do Cartão</span>

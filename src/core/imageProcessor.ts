@@ -3,14 +3,26 @@ import {
   BinarizationMethod,
   CropCorners,
   DropletComponent,
-  PersistedAnalysis,
   ProcessedAnalysisMetrics,
   SampleHistogramBin,
 } from './types';
-import { ASABECategory, QualityVerdict } from '../types';
+import { ASABECategory, QualityVerdict, DropletItem } from '../types';
+
+/**
+ * Spreading factor formula (Fator de Espalhamento) for hydrosensitive paper:
+ * DC = DL / (0.8419 + 0.000152 * DL + 0.1758 * ln(DL))
+ * DL = stain diameter in micrometers (µm)
+ * DC = corrected droplet diameter in micrometers (µm)
+ */
+export function calculateCorrectedDiameterUm(DL: number): number {
+  if (DL <= 0 || !Number.isFinite(DL)) return 0;
+  const denominator = 0.8419 + 0.000152 * DL + 0.1758 * Math.log(DL);
+  if (denominator <= 0 || !Number.isFinite(denominator)) return DL;
+  return DL / denominator;
+}
 
 export function calculateASABECategory(vmdUm: number): ASABECategory {
-  if (vmdUm <= 0) return 'Muito Fina';
+  if (vmdUm <= 0 || !Number.isFinite(vmdUm)) return 'Muito Fina';
   if (vmdUm < 100) return 'Muito Fina';
   if (vmdUm <= 175) return 'Fina';
   if (vmdUm <= 250) return 'Média';
@@ -28,7 +40,7 @@ export function calculateVerdict(coverage: number, density: number): { verdict: 
     return {
       verdict: 'EXCESSO',
       score: 45,
-      message: `Cobertura de ${coverage.toFixed(0)}%. Indica excesso de volume ou gotas muito grandes. Risco de perda e escorrimento.`,
+      message: `Cobertura de ${coverage.toFixed(1)}%. Indica excesso de volume ou gotas muito grandes. Risco de perda e escorrimento.`,
     };
   }
   if (density >= 60 && coverage >= 10 && coverage <= 50) {
@@ -86,6 +98,9 @@ export function computeOtsuThreshold(histogram256: number[], totalPixels: number
   return threshold;
 }
 
+/**
+ * Perspective homography / bilinear quad transformation to rectify quadrilateral selection.
+ */
 export function rectifyPixels(
   srcPixels: Uint8ClampedArray | Uint8Array,
   srcWidth: number,
@@ -110,7 +125,7 @@ export function rectifyPixels(
     for (let x = 0; x < targetWidth; x++) {
       const u = x / Math.max(1, targetWidth - 1);
 
-      // Bilinear corner interpolation
+      // Bilinear quad mapping
       const topX = (1 - u) * tlX + u * trX;
       const topY = (1 - u) * tlY + u * trY;
       const botX = (1 - u) * blX + u * brX;
@@ -153,7 +168,7 @@ export function binarizeImageBuffer(
       // Chromatic stain formula: B - max(R, G)
       val = Math.max(0, Math.min(255, b - Math.max(r, g)));
     } else {
-      // GOTAS legacy formula: luminance
+      // GOTAS legacy formula: luminance (0.299R + 0.587G + 0.114B)
       val = Math.max(0, Math.min(255, Math.round(0.299 * r + 0.587 * g + 0.114 * b)));
     }
 
@@ -181,7 +196,7 @@ export function findConnectedComponents(
   binaryMask: Uint8Array,
   width: number,
   height: number,
-  params: { discardBorder: boolean; minAreaPx: number; mmPerPixel: number }
+  params: { discardBorder: boolean; minAreaPx: number; minDropletUm: number; mmPerPixel: number }
 ): DropletComponent[] {
   const visited = new Uint8Array(width * height);
   const rawComponents: Array<{
@@ -202,7 +217,6 @@ export function findConnectedComponents(
     for (let x = 0; x < width; x++) {
       const idx = y * width + x;
       if (binaryMask[idx] === 1 && visited[idx] === 0) {
-        // BFS / Queue
         let pixelCount = 0;
         let minX = x;
         let maxX = x;
@@ -274,14 +288,21 @@ export function findConnectedComponents(
 
   const mmPerPx = params.mmPerPixel || 0.1;
 
-  return rawComponents.map((c) => {
+  const result: DropletComponent[] = [];
+
+  for (const c of rawComponents) {
     const areaMm2 = c.pixelCount * mmPerPx * mmPerPx;
-    const diameterUm = Math.round(2000 * Math.sqrt(areaMm2 / Math.PI));
-    return {
+    const stainDiameterUm = 2000 * Math.sqrt(areaMm2 / Math.PI);
+    const correctedDiameterUm = calculateCorrectedDiameterUm(stainDiameterUm);
+
+    // Apply min droplet size filter in µm
+    const included = correctedDiameterUm >= (params.minDropletUm || 0);
+
+    result.push({
       id: `drop-${c.id}`,
       pixelCount: c.pixelCount,
       areaMm2: Number(areaMm2.toFixed(6)),
-      diameterUm,
+      diameterUm: Math.round(correctedDiameterUm),
       centerX: Number(((c.sumX / c.pixelCount / width) * 100).toFixed(2)),
       centerY: Number(((c.sumY / c.pixelCount / height) * 100).toFixed(2)),
       minX: c.minX,
@@ -289,9 +310,11 @@ export function findConnectedComponents(
       minY: c.minY,
       maxY: c.maxY,
       touchesBorder: c.touchesBorder,
-      included: true,
-    };
-  });
+      included,
+    });
+  }
+
+  return result;
 }
 
 export function buildHistogramBins(components: Array<{ pixelCount: number; included?: boolean }>): SampleHistogramBin[] {
@@ -353,9 +376,11 @@ export function computeMetricsFromHistogram(
     if (bin.pixelCount <= 0 || bin.quantity <= 0) continue;
 
     const areaMm2 = bin.pixelCount * mmPerPixel * mmPerPixel;
-    const diameterUm = 2000 * Math.sqrt(areaMm2 / Math.PI);
+    const stainDiameterUm = 2000 * Math.sqrt(areaMm2 / Math.PI);
+    const correctedDiameterUm = calculateCorrectedDiameterUm(stainDiameterUm);
+
     // Volume in Liters: V = (pi/6) * d^3 (d in meters)
-    const dMeters = diameterUm * 1e-6;
+    const dMeters = correctedDiameterUm * 1e-6;
     const volumeL = (Math.PI / 6) * Math.pow(dMeters, 3) * 1000;
 
     totalDroplets += bin.quantity;
@@ -363,7 +388,7 @@ export function computeMetricsFromHistogram(
     totalVolumeL += volumeL * bin.quantity;
 
     for (let q = 0; q < bin.quantity; q++) {
-      allDroplets.push({ diameterUm, volumeL, areaMm2 });
+      allDroplets.push({ diameterUm: correctedDiameterUm, volumeL, areaMm2 });
     }
   }
 
@@ -437,4 +462,25 @@ export function computeMetricsFromHistogram(
     verdictMessage: message,
     asabeCategory,
   };
+}
+
+/**
+ * Converts DropletComponent list to DropletItem list for Step 6 inspection.
+ */
+export function convertComponentsToDropletItems(
+  components: DropletComponent[],
+  rectWidthPx: number,
+  rectHeightPx: number
+): DropletItem[] {
+  return components.map((comp) => {
+    const sizePx = Math.max(3, Math.round(Math.hypot(comp.maxX - comp.minX, comp.maxY - comp.minY)));
+    return {
+      id: comp.id,
+      x: comp.centerX,
+      y: comp.centerY,
+      diameterUm: comp.diameterUm,
+      sizePx,
+      included: comp.included,
+    };
+  });
 }

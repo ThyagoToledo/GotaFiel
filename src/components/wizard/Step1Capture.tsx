@@ -14,6 +14,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     if (file) {
       const url = URL.createObjectURL(file);
       onImageSelected(url);
+      e.target.value = '';
     }
   };
 

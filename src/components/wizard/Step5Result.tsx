@@ -146,10 +146,10 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           </h2>
 
           <div className="grid grid-cols-1 gap-2.5">
-            {/* Número de Gotas */}
+            {/* Densidade de Gotas */}
             <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-lowest shadow-sm">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-medium text-on-surface">Número de Gotas</span>
+                <span className="text-sm font-medium text-on-surface">Densidade de gotas</span>
                 <div className="flex gap-1">
                   <div className="w-2 h-2 rounded-full bg-quality-good" />
                   <div className="w-2 h-2 rounded-full bg-quality-good" />
@@ -158,7 +158,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 </div>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="font-bold text-3xl text-primary">{analysis.density}</span>
+                <span className="font-bold text-3xl text-primary">{analysis.density.toLocaleString('pt-BR')}</span>
                 <span className="text-xs text-on-surface-variant font-medium">gotas/cm²</span>
               </div>
             </div>
@@ -200,7 +200,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                     isRunoff ? 'text-quality-runoff' : 'text-primary'
                   }`}
                 >
-                  {analysis.coveragePercent}
+                  {analysis.coveragePercent.toLocaleString('pt-BR')}
                 </span>
                 <span
                   className={`text-xs font-medium ${
@@ -215,7 +215,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             {/* Span */}
             <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-lowest shadow-sm">
               <div className="flex justify-between items-start mb-2">
-                <span className="text-sm font-medium text-on-surface">Homogeneidade (Span)</span>
+                <span className="text-sm font-medium text-on-surface">Dispersão (Span)</span>
                 <div className="flex gap-1">
                   <div className="w-2 h-2 rounded-full bg-quality-great" />
                   <div className="w-2 h-2 rounded-full bg-quality-great" />
@@ -224,7 +224,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 </div>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="font-bold text-3xl text-primary">{analysis.span}</span>
+                <span className="font-bold text-3xl text-primary">{analysis.span.toLocaleString('pt-BR')}</span>
               </div>
             </div>
           </div>
@@ -237,30 +237,40 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           </h2>
           <div className="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm divide-y divide-outline-variant/60 text-sm">
             <div className="flex justify-between items-center p-3.5">
+              <span className="font-medium text-on-surface">Total de gotas</span>
+              <span className="font-semibold text-on-surface">{analysis.totalDroplets.toLocaleString('pt-BR')}</span>
+            </div>
+
+            <div className="flex justify-between items-center p-3.5">
               <span className="font-medium text-on-surface">DMV (DV0,5)</span>
               <div className="flex items-center gap-2">
                 <span className="bg-asabe-coarse text-white text-xs font-semibold px-2 py-0.5 rounded">
                   {analysis.asabeCategory}
                 </span>
-                <span className="font-semibold text-on-surface">{analysis.vmdUm} µm</span>
+                <span className="font-semibold text-on-surface">{analysis.vmdUm.toLocaleString('pt-BR')} µm</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center p-3.5">
               <span className="font-medium text-on-surface">Volume Estimado</span>
               <span className="font-semibold text-on-surface">
-                {analysis.estimatedVolumeLha} L/ha
+                {analysis.estimatedVolumeLha.toLocaleString('pt-BR')} L/ha
               </span>
             </div>
 
             <div className="flex justify-between items-center p-3.5">
               <span className="font-medium text-on-surface">DV0,1</span>
-              <span className="font-semibold text-on-surface">{analysis.dv01Um} µm</span>
+              <span className="font-semibold text-on-surface">{analysis.dv01Um.toLocaleString('pt-BR')} µm</span>
             </div>
 
             <div className="flex justify-between items-center p-3.5">
               <span className="font-medium text-on-surface">DV0,9</span>
-              <span className="font-semibold text-on-surface">{analysis.dv09Um} µm</span>
+              <span className="font-semibold text-on-surface">{analysis.dv09Um.toLocaleString('pt-BR')} µm</span>
+            </div>
+
+            <div className="flex justify-between items-center p-3.5">
+              <span className="font-medium text-on-surface">Dimensões do Cartão</span>
+              <span className="font-semibold text-on-surface">{analysis.cardSizeMm.width} × {analysis.cardSizeMm.height} mm</span>
             </div>
           </div>
         </section>

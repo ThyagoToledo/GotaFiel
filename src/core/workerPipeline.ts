@@ -1,0 +1,152 @@
+import {
+  binarizeImageBuffer,
+  buildHistogramBins,
+  computeMetricsFromHistogram,
+  convertComponentsToDropletItems,
+  findConnectedComponents,
+  rectifyPixels,
+} from './imageProcessor';
+import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
+import { DropletItem } from '../types';
+
+export interface PipelineResult {
+  rectifiedPixels: Uint8ClampedArray;
+  binaryMask: Uint8Array;
+  thresholdUsed: number;
+  metrics: ProcessedAnalysisMetrics;
+  droplets: DropletItem[];
+  histogram: SampleHistogramBin[];
+  mmPerPixel: number;
+  rectWidthPx: number;
+  rectHeightPx: number;
+  binaryDataUrl: string;
+  rectifiedDataUrl: string;
+}
+
+/**
+ * Loads an image URL into HTMLImageElement and extracts its raw RGBA pixels.
+ */
+export function loadImagePixels(
+  imageUrl: string
+): Promise<{ pixels: Uint8ClampedArray; width: number; height: number; imgElement: HTMLImageElement }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Canvas context unavailable'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, width, height);
+      resolve({ pixels: imgData.data, width, height, imgElement: img });
+    };
+    img.onerror = () => reject(new Error('Falha ao carregar imagem para processamento.'));
+    img.src = imageUrl;
+  });
+}
+
+/**
+ * Renders binary mask Uint8Array to a high-contrast data URL (black droplets on white background or vice-versa)
+ */
+export function createBinaryMaskDataUrl(binaryMask: Uint8Array, width: number, height: number): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  const imgData = ctx.createImageData(width, height);
+  const data = imgData.data;
+
+  for (let i = 0; i < binaryMask.length; i++) {
+    const val = binaryMask[i] === 1 ? 0 : 255; // 1 = droplet (black), 0 = paper (white)
+    const idx = i * 4;
+    data[idx] = val; // R
+    data[idx + 1] = val; // G
+    data[idx + 2] = val; // B
+    data[idx + 3] = 255; // Alpha
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Renders RGBA pixel buffer to data URL
+ */
+export function createRgbaDataUrl(pixels: Uint8ClampedArray, width: number, height: number): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  const imgData = ctx.createImageData(width, height);
+  imgData.data.set(pixels);
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * Executes the full real image processing pipeline asynchronously off-thread.
+ */
+export async function runImagePipeline(
+  imageUrl: string,
+  corners: CropCorners,
+  cardSizeMm: { width: number; height: number },
+  params: AnalysisParams,
+  targetWidth = 760,
+  targetHeight = 260
+): Promise<PipelineResult> {
+  const { pixels, width, height } = await loadImagePixels(imageUrl);
+
+  // Synchronous calculation or Worker execution
+  const rectifiedPixels = rectifyPixels(pixels, width, height, corners, targetWidth, targetHeight);
+
+  const mmPerPixelX = cardSizeMm.width / targetWidth;
+  const mmPerPixelY = cardSizeMm.height / targetHeight;
+  const mmPerPixel = (mmPerPixelX + mmPerPixelY) / 2;
+
+  const { binaryMask, thresholdUsed } = binarizeImageBuffer(
+    rectifiedPixels,
+    targetWidth,
+    targetHeight,
+    params.method,
+    params.thresholdAdjustment
+  );
+
+  const components = findConnectedComponents(binaryMask, targetWidth, targetHeight, {
+    discardBorder: params.discardBorder,
+    minAreaPx: params.minAreaPx,
+    minDropletUm: params.minDropletUm,
+    mmPerPixel,
+  });
+
+  const histogram = buildHistogramBins(components);
+  const metrics = computeMetricsFromHistogram(histogram, cardSizeMm.width, cardSizeMm.height, mmPerPixel);
+  const droplets = convertComponentsToDropletItems(components, targetWidth, targetHeight);
+
+  const binaryDataUrl = createBinaryMaskDataUrl(binaryMask, targetWidth, targetHeight);
+  const rectifiedDataUrl = createRgbaDataUrl(rectifiedPixels, targetWidth, targetHeight);
+
+  return {
+    rectifiedPixels,
+    binaryMask,
+    thresholdUsed,
+    metrics,
+    droplets,
+    histogram,
+    mmPerPixel,
+    rectWidthPx: targetWidth,
+    rectHeightPx: targetHeight,
+    binaryDataUrl,
+    rectifiedDataUrl,
+  };
+}

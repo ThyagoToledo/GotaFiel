@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from '../Header';
 import { Step1Capture } from './Step1Capture';
 import { Step2Crop } from './Step2Crop';
@@ -6,8 +6,9 @@ import { Step3Scale } from './Step3Scale';
 import { Step4Sensitivity } from './Step4Sensitivity';
 import { Step5Result } from './Step5Result';
 import { Step6Inspection } from './Step6Inspection';
-import { AnalysisData, CardColor, DropletItem, FieldExperiment } from '../../types';
-import { SAMPLE_CARD_IMAGES, generateMockDroplets } from '../../data/mockData';
+import { AnalysisData, DropletItem, FieldExperiment } from '../../types';
+import { CropCorners, BinarizationMethod, AnalysisParams } from '../../core/types';
+import { runImagePipeline, PipelineResult } from '../../core/workerPipeline';
 import { recalculateAnalysisData } from '../../utils/sprayAnalytics';
 
 interface AnalysisWizardProps {
@@ -17,6 +18,13 @@ interface AnalysisWizardProps {
   onSaveAnalysis: (analysis: AnalysisData) => void;
 }
 
+const DEFAULT_CORNERS: CropCorners = {
+  tl: { x: 5, y: 10 },
+  tr: { x: 95, y: 10 },
+  br: { x: 95, y: 90 },
+  bl: { x: 5, y: 90 },
+};
+
 export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   fieldExperiments,
   initialAnalysis,
@@ -25,35 +33,125 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(initialAnalysis ? 5 : 1);
 
+  const [corners, setCorners] = useState<CropCorners>(DEFAULT_CORNERS);
+  const [method, setMethod] = useState<BinarizationMethod>('chromatic');
+  const [minDropletUm, setMinDropletUm] = useState<number>(50);
+  const [discardBorder, setDiscardBorder] = useState<boolean>(true);
+
+  const [binaryMaskDataUrl, setBinaryMaskDataUrl] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
   const [analysisState, setAnalysisState] = useState<AnalysisData>(() => {
     if (initialAnalysis) return initialAnalysis;
 
-    const baseAnalysis: AnalysisData = {
+    return {
       id: `ana-${Date.now()}`,
-      title: 'Talhão 4 — Amostra 3',
+      title: 'Amostra de Pulverização',
       date: 'Hoje',
       timestamp: Date.now(),
-      imageUrl: SAMPLE_CARD_IMAGES.ideal,
+      imageUrl: '',
       cardColor: 'Amarelo',
       cardSizeMm: { width: 76, height: 26 },
       dpi: 300,
       sensitivity: 0,
-      totalDroplets: 1244,
-      density: 62,
-      coveragePercent: 18,
-      span: 1.04,
-      vmdUm: 346,
-      dv01Um: 180,
-      dv09Um: 540,
-      estimatedVolumeLha: 2.26,
-      verdict: 'BOM',
-      verdictScore: 78,
-      asabeCategory: 'Grossa',
-      droplets: generateMockDroplets(28),
+      totalDroplets: 0,
+      density: 0,
+      coveragePercent: 0,
+      span: 0,
+      vmdUm: 0,
+      dv01Um: 0,
+      dv09Um: 0,
+      estimatedVolumeLha: 0,
+      verdict: 'RUIM',
+      verdictScore: 0,
+      verdictMessage: 'Aguardando processamento de imagem...',
+      asabeCategory: 'Muito Fina',
+      droplets: [],
     };
-
-    return recalculateAnalysisData(baseAnalysis);
   });
+
+  const executePipeline = useCallback(
+    async (
+      imgUrl: string,
+      cropCorners: CropCorners,
+      sizeMm: { width: number; height: number },
+      sens: number,
+      binMethod: BinarizationMethod,
+      minUm: number,
+      discardBrd: boolean
+    ) => {
+      if (!imgUrl) return;
+      setIsProcessing(true);
+
+      try {
+        const params: AnalysisParams = {
+          method: binMethod,
+          thresholdAdjustment: sens,
+          minAreaPx: 1,
+          minDropletUm: minUm,
+          discardBorder: discardBrd,
+        };
+
+        const result: PipelineResult = await runImagePipeline(
+          imgUrl,
+          cropCorners,
+          sizeMm,
+          params
+        );
+
+        setBinaryMaskDataUrl(result.binaryDataUrl);
+
+        setAnalysisState((prev) => ({
+          ...prev,
+          imageUrl: imgUrl,
+          cardSizeMm: sizeMm,
+          sensitivity: sens,
+          totalDroplets: result.metrics.totalDroplets,
+          density: result.metrics.density,
+          coveragePercent: result.metrics.coveragePercent,
+          span: result.metrics.span,
+          vmdUm: result.metrics.dv05Um,
+          dv01Um: result.metrics.dv01Um,
+          dv09Um: result.metrics.dv09Um,
+          estimatedVolumeLha: result.metrics.estimatedVolumeLha,
+          verdict: result.metrics.verdict,
+          verdictScore: result.metrics.verdictScore,
+          verdictMessage: result.metrics.verdictMessage,
+          asabeCategory: result.metrics.asabeCategory,
+          droplets: result.droplets,
+        }));
+      } catch (err) {
+        console.error('Pipeline execution error:', err);
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    []
+  );
+
+  // Trigger processing when parameters or image change
+  useEffect(() => {
+    if (analysisState.imageUrl) {
+      executePipeline(
+        analysisState.imageUrl,
+        corners,
+        analysisState.cardSizeMm,
+        analysisState.sensitivity,
+        method,
+        minDropletUm,
+        discardBorder
+      );
+    }
+  }, [
+    analysisState.imageUrl,
+    corners,
+    analysisState.cardSizeMm,
+    analysisState.sensitivity,
+    method,
+    minDropletUm,
+    discardBorder,
+    executePipeline,
+  ]);
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -94,7 +192,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 1 && (
         <Step1Capture
           onImageSelected={(img) => {
-            setAnalysisState((prev) => recalculateAnalysisData({ ...prev, imageUrl: img }));
+            setAnalysisState((prev) => ({ ...prev, imageUrl: img }));
             setCurrentStep(2);
           }}
         />
@@ -104,19 +202,18 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         <Step2Crop
           imageUrl={analysisState.imageUrl}
           cardColor={analysisState.cardColor}
-          onChangeCardColor={(color) =>
-            setAnalysisState((prev) => recalculateAnalysisData({ ...prev, cardColor: color }))
-          }
-          onNext={() => setCurrentStep(3)}
+          onChangeCardColor={(color) => setAnalysisState((prev) => ({ ...prev, cardColor: color }))}
+          onNext={(selectedCorners) => {
+            setCorners(selectedCorners);
+            setCurrentStep(3);
+          }}
         />
       )}
 
       {currentStep === 3 && (
         <Step3Scale
           cardSizeMm={analysisState.cardSizeMm}
-          onChangeCardSize={(size) =>
-            setAnalysisState((prev) => recalculateAnalysisData({ ...prev, cardSizeMm: size }))
-          }
+          onChangeCardSize={(size) => setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }))}
           dpi={analysisState.dpi}
           onNext={() => setCurrentStep(4)}
         />
@@ -125,9 +222,15 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 4 && (
         <Step4Sensitivity
           sensitivity={analysisState.sensitivity}
-          onChangeSensitivity={(sens) =>
-            setAnalysisState((prev) => recalculateAnalysisData({ ...prev, sensitivity: sens }))
-          }
+          onChangeSensitivity={(sens) => setAnalysisState((prev) => ({ ...prev, sensitivity: sens }))}
+          method={method}
+          onChangeMethod={(m) => setMethod(m)}
+          minDropletUm={minDropletUm}
+          onChangeMinDropletUm={(val) => setMinDropletUm(val)}
+          discardBorder={discardBorder}
+          onChangeDiscardBorder={(val) => setDiscardBorder(val)}
+          binaryMaskDataUrl={binaryMaskDataUrl}
+          isProcessing={isProcessing}
           onNext={() => setCurrentStep(5)}
         />
       )}
