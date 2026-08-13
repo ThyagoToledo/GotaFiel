@@ -41,6 +41,15 @@
 
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-on-secondary: #ffffff;
+  /* Papéis "fixed" do Material 3: mantêm o mesmo tom nos dois temas, por isso não
+     aparecem no bloco .dark abaixo. */
+  --color-primary-fixed: #a8f3c1;
+  --color-secondary-fixed: #8bd9a8;
+
+  --font-corpo: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Custom dark mode overrides when .dark class is applied */
@@ -59,6 +68,10 @@
   --color-outline-variant: #3e4f41;
   --color-background: #121814;
   --color-on-background: #e1e7e2;
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
 }
 
 body {
