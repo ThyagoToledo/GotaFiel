@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Camera, ChevronRight, Search, Trash2, Activity, Award, Layers } from 'lucide-react';
 import { AnalysisData } from '../types';
 
@@ -30,8 +30,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
     ? Math.round(recentAnalyses.reduce((acc, a) => acc + a.density, 0) / totalCount)
     : 0;
 
+  // w-full no main é obrigatório: sem largura definida, `mx-auto` num item de
+  // flex-column faz o elemento virar fit-content e adotar o próprio min-content, o que
+  // esticava a página para 388px num aparelho de 360px e criava rolagem horizontal.
   return (
-    <main className="px-4 pt-5 max-w-[1200px] mx-auto pb-28 md:pl-[220px]">
+    <main className="px-4 pt-5 max-w-[1200px] mx-auto w-full pb-28 md:pl-[236px]">
       {/* Overview Dashboard Header Cards */}
       <div className="grid grid-cols-3 gap-2.5 mb-5">
         <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
@@ -126,7 +129,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       <span className="font-bold text-sm text-on-surface truncate">
                         {item.title}
                       </span>
-                      <span className="text-xs text-on-surface-variant">
+                      {/* truncate também aqui: sem ele o subtítulo era cortado no meio
+                          de um caractere pelo overflow do pai, sem reticências. */}
+                      <span className="text-xs text-on-surface-variant truncate">
                         {verdictLabel} · {item.density} gotas/cm² · {item.coveragePercent}% cobertura
                       </span>
                     </div>
@@ -140,8 +145,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           e.stopPropagation();
                           onDeleteAnalysis(item.id);
                         }}
-                        className="text-on-surface-variant/40 hover:text-error p-1 rounded transition-colors"
+                        className="text-on-surface-variant/40 hover:text-error w-10 h-10 -mr-2 flex items-center justify-center rounded-full transition-colors"
                         title="Excluir"
+                        aria-label="Excluir análise"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

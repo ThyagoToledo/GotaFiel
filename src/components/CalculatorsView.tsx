@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Calculator,
   Copy,
@@ -154,12 +154,12 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   };
 
   return (
-    <main className="flex-1 pb-28 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[220px]">
+    <main className="flex-1 pb-28 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
       {/* Subtabs Selector */}
       <div className="flex bg-surface-container rounded-xl p-1 border border-outline-variant mb-6 max-w-md mx-auto shadow-sm">
         <button
           onClick={() => setActiveSubTab('volume')}
-          className={`flex-1 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
             activeSubTab === 'volume'
               ? 'bg-surface text-primary shadow-sm font-extrabold'
               : 'text-on-surface-variant hover:text-on-surface'
@@ -169,7 +169,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
         </button>
         <button
           onClick={() => setActiveSubTab('afericao')}
-          className={`flex-1 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
             activeSubTab === 'afericao'
               ? 'bg-surface text-primary shadow-sm font-extrabold'
               : 'text-on-surface-variant hover:text-on-surface'
@@ -179,7 +179,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
         </button>
         <button
           onClick={() => setActiveSubTab('clima')}
-          className={`flex-1 py-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
             activeSubTab === 'clima'
               ? 'bg-surface text-primary shadow-sm font-extrabold'
               : 'text-on-surface-variant hover:text-on-surface'
@@ -425,7 +425,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
               </h2>
               <button
                 onClick={handleAddNozzle}
-                className="text-xs font-bold text-primary flex items-center gap-1 hover:underline cursor-pointer"
+                className="text-xs font-bold text-primary flex items-center gap-1 hover:underline cursor-pointer min-h-[40px] px-1"
               >
                 <Plus className="w-3.5 h-3.5" /> Adicionar Bico
               </button>
@@ -456,8 +456,10 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
 
                 return (
                   <div key={idx} className="relative pb-2 border-b border-outline-variant/40 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex items-center gap-2">
+                    {/* flex-wrap: em telas de 320px o rótulo + selo + campo + desvio +
+                        lixeira não cabem numa linha só e vazavam para fora do cartão. */}
+                    <div className="flex flex-wrap justify-between items-center gap-x-2 gap-y-1.5 mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="font-bold text-sm text-on-surface">
                           Bico {idx + 1}
                         </span>
@@ -473,14 +475,14 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0 ml-auto">
                         {/* Editable input for mL */}
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
                             value={vol}
                             onChange={(e) => handleUpdateNozzleVolume(idx, Number(e.target.value))}
-                            className="w-16 h-7 text-xs font-bold text-center border border-outline-variant rounded-lg bg-surface text-on-surface focus:border-primary"
+                            className="w-20 h-10 text-xs font-bold text-center border border-outline-variant rounded-lg bg-surface text-on-surface focus:border-primary"
                           />
                           <span className="text-[11px] text-on-surface-variant font-bold">mL</span>
                         </div>
@@ -492,8 +494,9 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
                         {nozzleVolumes.length > 1 && (
                           <button
                             onClick={() => handleRemoveNozzle(idx)}
-                            className="text-on-surface-variant/40 hover:text-error p-1 rounded transition-colors ml-1"
+                            className="text-on-surface-variant/40 hover:text-error w-10 h-10 shrink-0 flex items-center justify-center rounded-full transition-colors"
                             title="Remover bico"
+                            aria-label="Remover bico"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

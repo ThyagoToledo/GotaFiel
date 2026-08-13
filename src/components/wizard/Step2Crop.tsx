@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   CheckCircle2,
   ChevronDown,
@@ -356,8 +356,11 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
                   </div>
 
                   <span
+                    /* Rótulos voltados para DENTRO do cartão. Para fora (-left-8 /
+                       -right-8) eles ultrapassavam a viewport nos cantos a 5% e 95% e
+                       apareciam cortados em telas estreitas. */
                     className={`absolute text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-black/85 text-cyan-300 backdrop-blur-xs border border-cyan-400/40 pointer-events-none whitespace-nowrap shadow-sm ${
-                      cornerKey === 'tl' || cornerKey === 'bl' ? '-left-8' : '-right-8'
+                      cornerKey === 'tl' || cornerKey === 'bl' ? 'left-10' : 'right-10'
                     } ${cornerKey === 'tl' || cornerKey === 'tr' ? '-top-3' : '-bottom-3'}`}
                   >
                     {CORNER_LABELS[cornerKey]}
@@ -432,7 +435,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               <button
                 type="button"
                 onClick={handleAutoAlignCorners}
-                className="h-9 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                className="h-11 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                 title="Alinhar em retângulo perfeito"
               >
                 <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -442,7 +445,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               <button
                 type="button"
                 onClick={handleResetCorners}
-                className="h-9 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                className="h-11 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                 title="Redefinir para detecção automática"
               >
                 <RotateCcw className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -452,7 +455,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               <button
                 type="button"
                 onClick={handleMaximizeCorners}
-                className="h-9 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
+                className="h-11 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis"
                 title="Expandir seleção para bordas"
               >
                 <Maximize2 className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -476,7 +479,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
                       setIsManualAdjust(true);
                       setSelectedCornerForNudge(key);
                     }}
-                    className={`px-2 py-1.5 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer text-center truncate ${
+                    className={`px-2 py-2.5 min-h-[44px] rounded-lg text-[11px] font-extrabold transition-all cursor-pointer text-center truncate ${
                       selectedCornerForNudge === key
                         ? 'bg-primary text-on-primary shadow-xs'
                         : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/40'

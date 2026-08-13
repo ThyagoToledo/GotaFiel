@@ -115,7 +115,7 @@ export const Step6Inspection: React.FC<Step6InspectionProps> = ({
           <button
             onClick={restoreAllDroplets}
             disabled={excludedCount === 0}
-            className="text-sm font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline flex items-center gap-1 cursor-pointer"
+            className="text-sm font-semibold text-primary hover:underline disabled:opacity-40 disabled:no-underline flex items-center gap-1 cursor-pointer min-h-[40px] px-1"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Restaurar todas

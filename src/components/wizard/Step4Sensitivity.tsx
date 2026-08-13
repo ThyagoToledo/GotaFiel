@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2, AlertTriangle } from 'lucide-react';
 import { SAMPLE_CARD_IMAGES } from '../../data/mockData';
 import { BinarizationMethod } from '../../core/types';
@@ -133,7 +133,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
             <button
               type="button"
               onClick={() => handleMethodChange('chromatic')}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+              className={`py-3 min-h-[44px] px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
                 localMethod === 'chromatic'
                   ? 'bg-primary text-on-primary border-primary shadow-xs'
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
@@ -144,7 +144,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
             <button
               type="button"
               onClick={() => handleMethodChange('gotas-legacy')}
-              className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+              className={`py-3 min-h-[44px] px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
                 localMethod === 'gotas-legacy'
                   ? 'bg-primary text-on-primary border-primary shadow-xs'
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
@@ -221,7 +221,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   key={preset}
                   type="button"
                   onClick={() => onChangeSensitivity(preset)}
-                  className={`py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`py-3 min-h-[44px] rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     sensitivity === preset
                       ? 'bg-primary text-on-primary shadow-xs'
                       : 'bg-surface-container text-on-surface-variant hover:text-on-surface border border-outline-variant/60'
