@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw } from 'lucide-react';
 import { AnalysisData, DEFAULT_NOZZLE_CRITERIA, NozzleCriteria, NozzleCriteriaMode } from '../types';
 import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
@@ -52,7 +52,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
 
 
   return (
-    <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[240px]">
+    <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
       <div className="flex flex-col gap-5 max-w-md mx-auto">
         {/* Theme Settings */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">

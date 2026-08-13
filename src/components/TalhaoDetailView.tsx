@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -54,7 +54,7 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
   const poorCount = currentField?.samples.filter((s) => s.status === 'Ruim' || s.status === 'Excesso').length || 0;
 
   return (
-    <main className="flex-1 pb-36 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[220px]">
+    <main className="flex-1 pb-36 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
       {/* Field Selector Dropdown & Header Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 mb-4">
         <div className="relative flex-1 max-w-md">
@@ -191,8 +191,9 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
                     {onDeleteSample && (
                       <button
                         onClick={() => onDeleteSample(currentField.id, sample.id)}
-                        className="text-on-surface-variant/60 hover:text-error p-1 rounded transition-colors"
+                        className="text-on-surface-variant/60 hover:text-error w-10 h-10 -mr-2 flex items-center justify-center rounded-full transition-colors"
                         title="Remover amostra"
+                        aria-label="Remover amostra"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

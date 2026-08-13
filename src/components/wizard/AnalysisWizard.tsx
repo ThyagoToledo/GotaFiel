@@ -203,8 +203,11 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     }
   };
 
+  // O wizard ocupa a tela inteira e não renderiza a barra lateral, então não pode
+  // reservar a faixa dela (md:pl-[240px]): isso abria um vão vazio de 240px e jogava
+  // todo o conteúdo para a direita no desktop.
   return (
-    <div className="min-h-screen flex flex-col bg-surface dark:bg-background md:pl-[240px]">
+    <div className="min-h-screen flex flex-col bg-surface dark:bg-background">
       <Header
         title={getStepTitle()}
         stepText={`${currentStep} de 6`}
