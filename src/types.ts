@@ -24,6 +24,12 @@ export interface AnalysisData {
   date: string;
   timestamp: number;
   imageUrl: string;
+  /**
+   * Recorte retificado do cartão gerado pelo pipeline. É o espaço de coordenadas das
+   * gotas (x/y em % do raster), então a inspeção manual desenha sobre ele — desenhar
+   * sobre a foto original desalinha os marcadores.
+   */
+  rectifiedImageUrl?: string;
   cardColor: CardColor;
   cardSizeMm: { width: number; height: number };
   dpi: number;
