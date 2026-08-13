@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { HomeView } from './components/HomeView';
@@ -14,9 +15,12 @@ import { MoreView } from './components/MoreView';
 import {
   ActiveTab,
   AnalysisData,
+  DEFAULT_NOZZLE_CRITERIA,
   FieldExperiment,
   NozzleCalibrationSession,
+  NozzleCriteria,
 } from './types';
+import { sanitizeNozzleCriteria } from './utils/sprayAnalytics';
 import {
   INITIAL_RECENT_ANALYSES,
   INITIAL_FIELD_EXPERIMENTS,
@@ -36,6 +40,8 @@ export default function App() {
     return localStorage.getItem('spray_dark_mode') === 'true';
   });
 
+  const [storageError, setStorageError] = useState<string>('');
+
   // Data persistence state
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisData[]>(() => {
     const saved = localStorage.getItem('spray_recent_analyses');
@@ -50,6 +56,13 @@ export default function App() {
   const [nozzleSession, setNozzleSession] = useState<NozzleCalibrationSession>(() => {
     const saved = localStorage.getItem('spray_nozzle_session');
     return saved ? JSON.parse(saved) : INITIAL_NOZZLE_SESSION;
+  });
+
+  // Critérios de aferição de bicos: configuráveis na tela Mais. Passam pelo sanitize
+  // porque o valor gravado pode vir de uma versão anterior ou ter sido editado à mão.
+  const [nozzleCriteria, setNozzleCriteria] = useState<NozzleCriteria>(() => {
+    const saved = localStorage.getItem('spray_nozzle_criteria');
+    return sanitizeNozzleCriteria(saved ? JSON.parse(saved) : null);
   });
 
   // Apply dark mode class to html document
@@ -77,18 +90,40 @@ export default function App() {
     }, 120);
   };
 
-  // Sync state to localStorage
+  // Sync state to localStorage. A cota é de poucos MB e cada análise carrega a foto do
+  // cartão, então estourar é plausível em uso real — falhar em silêncio faria o usuário
+  // perder trabalho sem saber.
+  const persist = (key: string, value: unknown) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      console.error(`Falha ao gravar ${key}:`, err);
+      setStorageError(
+        'O armazenamento do navegador está cheio. Exporte suas análises em CSV e exclua as mais antigas para continuar salvando.'
+      );
+    }
+  };
+
   useEffect(() => {
-    localStorage.setItem('spray_recent_analyses', JSON.stringify(recentAnalyses));
+    // O recorte retificado é derivado: pesa centenas de KB e o wizard o regenera ao
+    // reabrir a análise. Persistir estouraria a cota em poucas dezenas de amostras.
+    persist(
+      'spray_recent_analyses',
+      recentAnalyses.map(({ rectifiedImageUrl: _omit, ...rest }) => rest)
+    );
   }, [recentAnalyses]);
 
   useEffect(() => {
-    localStorage.setItem('spray_field_experiments', JSON.stringify(fieldExperiments));
+    persist('spray_field_experiments', fieldExperiments);
   }, [fieldExperiments]);
 
   useEffect(() => {
-    localStorage.setItem('spray_nozzle_session', JSON.stringify(nozzleSession));
+    persist('spray_nozzle_session', nozzleSession);
   }, [nozzleSession]);
+
+  useEffect(() => {
+    persist('spray_nozzle_criteria', nozzleCriteria);
+  }, [nozzleCriteria]);
 
   // Handlers
   const handleStartNewAnalysis = (fieldId?: string) => {
@@ -176,6 +211,7 @@ export default function App() {
     setRecentAnalyses(INITIAL_RECENT_ANALYSES);
     setFieldExperiments(INITIAL_FIELD_EXPERIMENTS);
     setNozzleSession(INITIAL_NOZZLE_SESSION);
+    setNozzleCriteria(DEFAULT_NOZZLE_CRITERIA);
     // Remove apenas as chaves do app — localStorage.clear() apagaria dados de
     // qualquer outra coisa hospedada no mesmo domínio.
     for (const key of Object.keys(localStorage)) {
@@ -230,6 +266,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface dark:bg-background text-on-surface antialiased flex flex-col font-corpo selection:bg-primary-container selection:text-on-primary-container">
+      {storageError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] w-[min(92vw,26rem)] bg-error-container text-on-error-container border border-error/40 rounded-xl p-3 shadow-lg flex items-start gap-2.5">
+          <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+          <span className="text-[11px] leading-relaxed flex-1">{storageError}</span>
+          <button
+            onClick={() => setStorageError('')}
+            aria-label="Fechar aviso"
+            className="text-on-error-container/70 hover:text-on-error-container text-lg leading-none shrink-0"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* If Analysis Wizard is Open, render Wizard full screen */}
       {isWizardOpen ? (
         <AnalysisWizard
@@ -289,6 +339,7 @@ export default function App() {
             <CalculatorsView
               nozzleSession={nozzleSession}
               onSaveNozzleSession={(updatedSession) => setNozzleSession(updatedSession)}
+              nozzleCriteria={nozzleCriteria}
             />
           )}
 
@@ -298,6 +349,8 @@ export default function App() {
               onToggleDarkMode={toggleDarkMode}
               onClearData={handleClearData}
               recentAnalyses={recentAnalyses}
+              nozzleCriteria={nozzleCriteria}
+              onChangeNozzleCriteria={(criteria) => setNozzleCriteria(sanitizeNozzleCriteria(criteria))}
             />
           )}
 
