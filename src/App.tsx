@@ -62,6 +62,21 @@ export default function App() {
     localStorage.setItem('spray_dark_mode', String(isDarkMode));
   }, [isDarkMode]);
 
+  // Na troca de tema o Chrome congela transições de cor que dependem de variáveis CSS
+  // (elementos com transition-colors ficavam com a cor do tema anterior até um F5).
+  // A classe .theme-switching desliga transições durante o flip.
+  const toggleDarkMode = () => {
+    document.documentElement.classList.add('theme-switching');
+    setIsDarkMode((prev) => !prev);
+    window.setTimeout(() => {
+      // Recálculo síncrono de estilo ANTES de reabilitar transições: garante que as
+      // cores novas já estão aplicadas sem animação, mesmo se o navegador não pintou
+      // nenhum frame nesse intervalo (aba oculta / WebView pausada).
+      void document.documentElement.offsetHeight;
+      document.documentElement.classList.remove('theme-switching');
+    }, 120);
+  };
+
   // Sync state to localStorage
   useEffect(() => {
     localStorage.setItem('spray_recent_analyses', JSON.stringify(recentAnalyses));
@@ -161,8 +176,39 @@ export default function App() {
     setRecentAnalyses(INITIAL_RECENT_ANALYSES);
     setFieldExperiments(INITIAL_FIELD_EXPERIMENTS);
     setNozzleSession(INITIAL_NOZZLE_SESSION);
-    localStorage.clear();
+    // Remove apenas as chaves do app — localStorage.clear() apagaria dados de
+    // qualquer outra coisa hospedada no mesmo domínio.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('spray_')) localStorage.removeItem(key);
+    }
     alert('Dados restaurados para os valores padrão!');
+  };
+
+  // Compartilhamento real: Web Share API quando disponível (celular em campo),
+  // senão copia o resumo para a área de transferência.
+  const handleShareReport = async () => {
+    const lines = fieldExperiments.map((f) => {
+      const header = `${f.name} (${f.crop}) — ${f.samples.length} amostra(s)`;
+      const samples = f.samples
+        .map((s) => `  • ${s.name}: ${s.status}, ${s.density} gotas/cm², ${s.coverage}% cobertura, span ${s.span}`)
+        .join('\n');
+      return samples ? `${header}\n${samples}` : header;
+    });
+    const text = `Relatório de Talhões — Spray Analysis\n\n${lines.join('\n\n')}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Relatório de Talhões', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        alert('Relatório copiado para a área de transferência!');
+      }
+    } catch (err) {
+      // AbortError = usuário fechou o diálogo de compartilhar; não é falha.
+      if (err instanceof Error && err.name !== 'AbortError') {
+        alert('Não foi possível compartilhar o relatório.');
+      }
+    }
   };
 
   const getPageHeaderTitle = () => {
@@ -203,9 +249,9 @@ export default function App() {
           <Header
             title={getPageHeaderTitle()}
             isDarkMode={isDarkMode}
-            onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+            onToggleDarkMode={toggleDarkMode}
             showShare={activeTab === 'experiments'}
-            onShare={() => alert('Relatório compartilhado com sucesso!')}
+            onShare={handleShareReport}
           />
 
           {/* Main Content Body */}
@@ -249,8 +295,9 @@ export default function App() {
           {activeTab === 'more' && (
             <MoreView
               isDarkMode={isDarkMode}
-              onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+              onToggleDarkMode={toggleDarkMode}
               onClearData={handleClearData}
+              recentAnalyses={recentAnalyses}
             />
           )}
 

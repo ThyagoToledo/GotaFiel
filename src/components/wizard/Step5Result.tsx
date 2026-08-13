@@ -14,8 +14,6 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { AnalysisData, FieldExperiment } from '../../types';
-import { generateAnalysisPdfReport } from '../../utils/generatePdfReport';
-import { downloadAnalysisCsv } from '../../utils/generateCsvReport';
 
 interface Step5ResultProps {
   analysis: AnalysisData;
@@ -36,12 +34,18 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
 }) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   // Só aceita o talhão de origem se ele ainda existir na lista.
-  const [selectedFieldId, setSelectedFieldId] = useState(
-    fieldExperiments.some((f) => f.id === preselectedFieldId)
-      ? (preselectedFieldId as string)
-      : fieldExperiments[0]?.id || ''
-  );
-  const [sampleNameInput, setSampleNameInput] = useState(`Amostra ${Math.floor(Math.random() * 10) + 1}`);
+  const initialFieldId = fieldExperiments.some((f) => f.id === preselectedFieldId)
+    ? (preselectedFieldId as string)
+    : fieldExperiments[0]?.id || '';
+  const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
+
+  // Próximo número de amostra do talhão, em vez de um número aleatório que sugeria
+  // uma sequência inexistente ("Amostra 7" num talhão com 2 amostras).
+  const defaultSampleName = (fieldId: string) => {
+    const field = fieldExperiments.find((f) => f.id === fieldId);
+    return `Amostra ${(field?.samples.length ?? 0) + 1}`;
+  };
+  const [sampleNameInput, setSampleNameInput] = useState(defaultSampleName(initialFieldId));
   const [pdfGeneratedToast, setPdfGeneratedToast] = useState(false);
   const [csvGeneratedToast, setCsvGeneratedToast] = useState(false);
 
@@ -49,8 +53,11 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   const isGood = analysis.verdict === 'BOM';
   const isRegular = analysis.verdict === 'REGULAR';
 
-  const handleGeneratePdf = () => {
+  // Import dinâmico: o jsPDF (~200 kB gzip com dependências) só carrega quando o
+  // usuário pede um relatório, não no carregamento inicial do app.
+  const handleGeneratePdf = async () => {
     try {
+      const { generateAnalysisPdfReport } = await import('../../utils/generatePdfReport');
       generateAnalysisPdfReport(analysis);
       setPdfGeneratedToast(true);
       setTimeout(() => setPdfGeneratedToast(false), 3500);
@@ -60,8 +67,9 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
     }
   };
 
-  const handleGenerateCsv = () => {
+  const handleGenerateCsv = async () => {
     try {
+      const { downloadAnalysisCsv } = await import('../../utils/generateCsvReport');
       downloadAnalysisCsv(analysis);
       setCsvGeneratedToast(true);
       setTimeout(() => setCsvGeneratedToast(false), 3500);
@@ -418,7 +426,14 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
               <label className="text-xs font-semibold text-on-surface-variant">Selecione o Talhão</label>
               <select
                 value={selectedFieldId}
-                onChange={(e) => setSelectedFieldId(e.target.value)}
+                onChange={(e) => {
+                  setSelectedFieldId(e.target.value);
+                  // Segue a numeração do talhão escolhido, sem sobrescrever um nome
+                  // que o usuário já digitou manualmente.
+                  setSampleNameInput((prev) =>
+                    /^Amostra \d+$/.test(prev) ? defaultSampleName(e.target.value) : prev
+                  );
+                }}
                 className="w-full h-11 border border-outline-variant rounded-lg px-3 bg-surface text-on-surface text-sm"
               >
                 {fieldExperiments.map((f) => (

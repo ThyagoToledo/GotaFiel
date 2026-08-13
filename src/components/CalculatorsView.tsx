@@ -341,7 +341,8 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-on-surface uppercase tracking-wider">Cronômetro de Coleta (60s)</span>
                 <span className="text-2xl font-black text-primary">
-                  00:{timerSeconds < 10 ? `0${timerSeconds}` : timerSeconds}
+                  {String(Math.floor(timerSeconds / 60)).padStart(2, '0')}:
+                  {String(timerSeconds % 60).padStart(2, '0')}
                 </span>
               </div>
             </div>

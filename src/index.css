@@ -38,6 +38,7 @@
   --color-asabe-medium: #FFD600;
   --color-asabe-coarse: #2492FF;
   --color-asabe-very-coarse: #009124;
+  --color-asabe-extremely-coarse: #1A1A2E;
 
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
@@ -72,6 +73,17 @@
   --color-on-error: #690005;
   --color-error-container: #93000a;
   --color-on-error-container: #ffdad6;
+  /* Ponto quase-preto da classe "Extremamente Grossa" sumiria sobre fundo escuro. */
+  --color-asabe-extremely-coarse: #d9d9e3;
+}
+
+/* Durante a troca de tema o Chrome não retarget-eia transições de cor baseadas em
+   variáveis CSS e o texto fica preso na cor do tema anterior. O App aplica esta
+   classe por ~120ms enquanto alterna a classe .dark. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 body {
