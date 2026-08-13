@@ -1,16 +1,20 @@
 import React from 'react';
 import { Moon, Sun, Info, Download, Trash2, Shield, Sliders } from 'lucide-react';
+import { AnalysisData } from '../types';
+import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
 
 interface MoreViewProps {
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   onClearData: () => void;
+  recentAnalyses: AnalysisData[];
 }
 
 export const MoreView: React.FC<MoreViewProps> = ({
   isDarkMode,
   onToggleDarkMode,
   onClearData,
+  recentAnalyses,
 }) => {
   return (
     <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[240px]">
@@ -94,6 +98,13 @@ export const MoreView: React.FC<MoreViewProps> = ({
               </span>
               <span className="font-medium">375 – 450 µm</span>
             </div>
+            <div className="flex justify-between p-2.5 items-center">
+              <span className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-asabe-extremely-coarse" />
+                Extremamente Grossa
+              </span>
+              <span className="font-medium">&gt; 450 µm</span>
+            </div>
           </div>
         </section>
 
@@ -105,27 +116,25 @@ export const MoreView: React.FC<MoreViewProps> = ({
 
           <button
             onClick={() => {
-              const headers = ['Amostra', 'Status', 'Numero_Gotas_cm2', 'Cobertura_pct', 'Span_Homogeneidade'];
-              const rows = [
-                ['Amostra 1', 'Ideal', '266', '13.5', '1.04'],
-                ['Amostra 2', 'Ideal', '248', '12.8', '1.08'],
-                ['Amostra 3', 'Razoavel', '180', '9.2', '1.25'],
-                ['Amostra 4', 'Ideal', '280', '14.1', '1.02'],
-              ];
-              const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-              const encodedUri = encodeURI(csvContent);
-              const link = document.createElement('a');
-              link.setAttribute('href', encodedUri);
-              link.setAttribute('download', `relatorio_gotas_${new Date().toISOString().slice(0,10)}.csv`);
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              // Exporta as análises REAIS salvas no app — antes aqui saía uma tabela
+              // fixa de demonstração que não tinha relação com os dados do usuário.
+              try {
+                downloadAllAnalysesCsv(recentAnalyses);
+              } catch (err) {
+                alert(err instanceof Error ? err.message : 'Não há análises para exportar.');
+              }
             }}
-            className="w-full flex items-center justify-between p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer text-sm font-medium text-on-surface"
+            disabled={recentAnalyses.length === 0}
+            className="w-full flex items-center justify-between p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer text-sm font-medium text-on-surface disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-2.5">
               <Download className="w-4 h-4 text-primary" />
-              <span>Exportar Todos os Dados (CSV)</span>
+              <span>
+                Exportar Todos os Dados (CSV)
+                {recentAnalyses.length > 0 && (
+                  <span className="text-on-surface-variant font-normal"> · {recentAnalyses.length} análise{recentAnalyses.length > 1 ? 's' : ''}</span>
+                )}
+              </span>
             </div>
           </button>
 
@@ -143,7 +152,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
         {/* About App */}
         <div className="text-center py-2 text-xs text-on-surface-variant">
           <p className="font-semibold text-primary">Spray Analysis — Agro-Precision System</p>
-          <p className="mt-0.5">Versão 2.4.0 · Offline Ready</p>
+          <p className="mt-0.5">Versão 2.5.0 · Offline Ready</p>
         </div>
       </div>
     </main>

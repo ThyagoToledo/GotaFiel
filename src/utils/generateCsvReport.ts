@@ -11,7 +11,34 @@ export function formatPtBrNumber(val: number, decimals = 2): string {
   return val.toFixed(decimals).replace('.', ',');
 }
 
-export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis): string {
+const CSV_HEADERS = [
+  'ID',
+  'Data',
+  'Titulo',
+  'Largura_mm',
+  'Altura_mm',
+  'Raster_largura_px',
+  'Raster_altura_px',
+  'mm2_por_pixel',
+  'mm_por_pixel',
+  'Metodo',
+  'Ajuste_Limiar',
+  'Min_Area_px',
+  'Descartar_Borda',
+  'Total_Gotas',
+  'Densidade_gotas_cm2',
+  'Cobertura_pct',
+  'DV01_um',
+  'DV05_VMD_um',
+  'DV09_um',
+  'Span',
+  'Volume_Lha',
+  'Veredito',
+  'Score',
+  'ASABE',
+];
+
+function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
   const isPersisted = 'metrics' in data;
 
   const totalDroplets = isPersisted ? data.metrics.totalDroplets : data.totalDroplets;
@@ -66,33 +93,6 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
     }
   }
 
-  const headers = [
-    'ID',
-    'Data',
-    'Titulo',
-    'Largura_mm',
-    'Altura_mm',
-    'Raster_largura_px',
-    'Raster_altura_px',
-    'mm2_por_pixel',
-    'mm_por_pixel',
-    'Metodo',
-    'Ajuste_Limiar',
-    'Min_Area_px',
-    'Descartar_Borda',
-    'Total_Gotas',
-    'Densidade_gotas_cm2',
-    'Cobertura_pct',
-    'DV01_um',
-    'DV05_VMD_um',
-    'DV09_um',
-    'Span',
-    'Volume_Lha',
-    'Veredito',
-    'Score',
-    'ASABE',
-  ];
-
   const dateStr = 'date' in data && data.date ? data.date : new Date(data.timestamp || Date.now()).toLocaleDateString('pt-BR');
 
   const row = [
@@ -122,19 +122,51 @@ export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis
     asabeCategory,
   ];
 
-  return `${headers.join(';')}\n${row.join(';')}`;
+  return row.join(';');
 }
 
-export function downloadAnalysisCsv(data: AnalysisData | PersistedAnalysis): void {
-  const csvContent = generateAnalysisCsvString(data);
+export function generateAnalysisCsvString(data: AnalysisData | PersistedAnalysis): string {
+  return `${CSV_HEADERS.join(';')}\n${buildAnalysisCsvRow(data)}`;
+}
+
+/**
+ * CSV consolidado com uma linha por an\u00E1lise salva \u2014 \u00E9 o que o "Exportar Todos os
+ * Dados" da tela Mais baixa. An\u00E1lises com m\u00E9tricas inv\u00E1lidas s\u00E3o puladas em vez de
+ * derrubar a exporta\u00E7\u00E3o inteira.
+ */
+export function generateAllAnalysesCsvString(analyses: AnalysisData[]): string {
+  const rows: string[] = [];
+  for (const analysis of analyses) {
+    try {
+      rows.push(buildAnalysisCsvRow(analysis));
+    } catch {
+      // pulada: mant\u00E9m as demais an\u00E1lises export\u00E1veis
+    }
+  }
+  if (rows.length === 0) {
+    throw new Error('Nenhuma an\u00E1lise com dados v\u00E1lidos para exportar.');
+  }
+  return `${CSV_HEADERS.join(';')}\n${rows.join('\n')}`;
+}
+
+function triggerCsvDownload(csvContent: string, filename: string): void {
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  const cleanTitle = (data.title || 'amostra').toLowerCase().replace(/[^a-z0-9]/g, '_');
-  link.setAttribute('download', `${cleanTitle}_gotas.csv`);
+  link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+export function downloadAnalysisCsv(data: AnalysisData | PersistedAnalysis): void {
+  const cleanTitle = (data.title || 'amostra').toLowerCase().replace(/[^a-z0-9]/g, '_');
+  triggerCsvDownload(generateAnalysisCsvString(data), `${cleanTitle}_gotas.csv`);
+}
+
+export function downloadAllAnalysesCsv(analyses: AnalysisData[]): void {
+  const dateSlug = new Date().toISOString().slice(0, 10);
+  triggerCsvDownload(generateAllAnalysesCsvString(analyses), `relatorio_gotas_${dateSlug}.csv`);
 }
