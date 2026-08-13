@@ -10,3 +10,6 @@ coverage/
 # bun.lock é o único lockfile. .npmrc já impede a criação deste arquivo; esta linha
 # garante que ele nunca seja commitado caso alguém sobrescreva aquela configuração.
 package-lock.json
+
+.vercel
+.env*
