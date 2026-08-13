@@ -103,14 +103,31 @@ export interface WeatherConditionResult {
   recommendation: string;
 }
 
+/**
+ * Temperatura de bulbo úmido pela aproximação de Stull (2011), válida para
+ * -20–50 °C e UR 5–99% — a faixa de qualquer aplicação real.
+ */
+export function calculateWetBulbC(temperatureC: number, humidityPercent: number): number {
+  const T = temperatureC;
+  const RH = Math.min(99, Math.max(5, humidityPercent));
+  return (
+    T * Math.atan(0.151977 * Math.sqrt(RH + 8.313659)) +
+    Math.atan(T + RH) -
+    Math.atan(RH - 1.676331) +
+    0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) -
+    4.686035
+  );
+}
+
 export function calculateWeatherRisk(
   temperatureC: number,
   humidityPercent: number,
   windKmh: number
 ): WeatherConditionResult {
-  // Approximate Delta T calculation: T_dry - T_wet
-  const dewPoint = temperatureC - (100 - humidityPercent) / 5;
-  const deltaT = Number((temperatureC - dewPoint).toFixed(1));
+  // Delta T é bulbo seco − bulbo úmido. A versão anterior usava a depressão do ponto
+  // de orvalho, que superestima o valor e disparava alerta de evaporação cedo demais.
+  const wetBulbC = calculateWetBulbC(temperatureC, humidityPercent);
+  const deltaT = Number((temperatureC - wetBulbC).toFixed(1));
 
   if (windKmh < 2) {
     return {
