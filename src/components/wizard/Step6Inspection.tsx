@@ -49,17 +49,37 @@ export const Step6Inspection: React.FC<Step6InspectionProps> = ({
         </div>
       </div>
 
-      {/* Main Inspection Canvas Area */}
-      <div className="w-full relative bg-surface-variant h-72 border-b border-outline-variant shadow-inner overflow-hidden select-none">
+      {/* Main Inspection Canvas Area.
+          As coordenadas das gotas são % do recorte RETIFICADO, então o pano de fundo
+          precisa ser esse recorte, ocupando exatamente a caixa do overlay — a foto
+          original com object-cover deslocava todos os marcadores. */}
+      <div className="w-full bg-surface-variant border-b border-outline-variant shadow-inner select-none py-3">
+        <div
+          className="relative mx-auto overflow-hidden"
+          style={{
+            aspectRatio: `${analysis.cardSizeMm.width} / ${analysis.cardSizeMm.height}`,
+            width: `min(100%, calc(288px * ${analysis.cardSizeMm.width} / ${analysis.cardSizeMm.height}))`,
+          }}
+        >
         <img
-          src={analysis.imageUrl}
+          src={analysis.rectifiedImageUrl || analysis.imageUrl}
           alt="Cartão para inspeção de gotas"
-          className="w-full h-full object-cover"
+          className="w-full h-full"
+          style={{ objectFit: 'fill' }}
         />
 
         {/* Overlay Droplets */}
         <div className="absolute inset-0">
           {analysis.droplets.map((drop) => {
+            // sizePx é medido no raster da análise; em % do container o marcador
+            // acompanha o redimensionamento da imagem em qualquer largura de tela.
+            const containerAspect = analysis.cardSizeMm.width / analysis.cardSizeMm.height;
+            const widthPct = analysis.rectWidthPx
+              ? Math.max((drop.sizePx / analysis.rectWidthPx) * 100, 1.2)
+              : 0;
+            const sizeStyle = widthPct
+              ? { width: `${widthPct}%`, height: `${widthPct * containerAspect}%` }
+              : { width: `${drop.sizePx}px`, height: `${drop.sizePx}px` };
             return (
               <div
                 key={drop.id}
@@ -67,8 +87,7 @@ export const Step6Inspection: React.FC<Step6InspectionProps> = ({
                 style={{
                   left: `${drop.x}%`,
                   top: `${drop.y}%`,
-                  width: `${drop.sizePx}px`,
-                  height: `${drop.sizePx}px`,
+                  ...sizeStyle,
                 }}
                 title={`Gota ${drop.diameterUm}µm - ${drop.included ? 'Incluída' : 'Excluída'}`}
                 className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full cursor-pointer transition-transform hover:scale-125 flex items-center justify-center ${
@@ -81,6 +100,7 @@ export const Step6Inspection: React.FC<Step6InspectionProps> = ({
               </div>
             );
           })}
+        </div>
         </div>
       </div>
 
@@ -143,7 +163,7 @@ export const Step6Inspection: React.FC<Step6InspectionProps> = ({
             className="w-full h-11 bg-primary text-on-primary font-semibold text-sm rounded-lg flex items-center justify-center gap-2 mt-1 hover:bg-primary-container active:scale-95 transition-all cursor-pointer shadow-sm"
           >
             <Check className="w-4 h-4" />
-            Concluir e Salvar
+            Concluir Inspeção
           </button>
         </div>
       </div>

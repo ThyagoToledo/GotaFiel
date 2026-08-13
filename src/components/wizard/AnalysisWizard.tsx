@@ -114,6 +114,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         setAnalysisState((prev) => ({
           ...prev,
           imageUrl: imgUrl,
+          rectifiedImageUrl: result.rectifiedDataUrl,
           cardSizeMm: sizeMm,
           sensitivity: sens,
           mm2PerPixel: result.mm2PerPixel,
@@ -231,6 +232,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
             setAnalysisState((prev) => ({
               ...prev,
               imageUrl: img,
+              rectifiedImageUrl: undefined,
               droplets: [],
               histogram: [],
               mm2PerPixel: undefined,
@@ -308,10 +310,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onUpdateDroplets={(updated) => {
             setAnalysisState((prev) => recalculateAnalysisData({ ...prev, droplets: updated }));
           }}
-          onFinish={() => {
-            onSaveAnalysis(analysisState);
-            onCloseWizard();
-          }}
+          // Salvar direto daqui pulava o modal do passo 5 e a amostra perdia o talhão e o
+          // nome. A inspeção termina voltando ao resultado, onde o salvamento é único.
+          onFinish={() => setCurrentStep(5)}
         />
       )}
     </div>
