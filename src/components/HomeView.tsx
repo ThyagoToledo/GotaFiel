@@ -25,10 +25,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const totalCount = recentAnalyses.length;
   const avgCoverage = totalCount
     ? (recentAnalyses.reduce((acc, a) => acc + a.coveragePercent, 0) / totalCount).toFixed(1)
-    : '0.0';
+    : '—';
   const avgDensity = totalCount
     ? Math.round(recentAnalyses.reduce((acc, a) => acc + a.density, 0) / totalCount)
-    : 0;
+    : '—';
 
   // w-full no main é obrigatório: sem largura definida, `mx-auto` num item de
   // flex-column faz o elemento virar fit-content e adotar o próprio min-content, o que

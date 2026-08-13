@@ -10,6 +10,8 @@ interface MoreViewProps {
   recentAnalyses: AnalysisData[];
   nozzleCriteria: NozzleCriteria;
   onChangeNozzleCriteria: (criteria: NozzleCriteria) => void;
+  userName?: string;
+  onLogout?: () => Promise<void> | void;
 }
 
 const MODE_DESCRIPTIONS: Record<NozzleCriteriaMode, string> = {
@@ -26,6 +28,8 @@ export const MoreView: React.FC<MoreViewProps> = ({
   recentAnalyses,
   nozzleCriteria,
   onChangeNozzleCriteria,
+  userName,
+  onLogout,
 }) => {
   // Rascunho local para os campos numéricos: deixa o usuário apagar e redigitar sem
   // que a normalização reescreva o valor a cada tecla.
@@ -54,6 +58,16 @@ export const MoreView: React.FC<MoreViewProps> = ({
   return (
     <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
       <div className="flex flex-col gap-5 max-w-md mx-auto">
+        {userName && (
+          <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">USUÁRIO</h2>
+              <p className="text-sm font-bold text-on-surface mt-1">{userName}</p>
+              <p className="text-[11px] text-on-surface-variant mt-1">As análises recentes desta conta vêm do Neon.</p>
+            </div>
+            {onLogout && <button onClick={onLogout} className="h-10 px-3 rounded-lg border border-outline-variant text-xs font-bold text-error hover:bg-error-container/20">Sair</button>}
+          </section>
+        )}
         {/* Theme Settings */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
@@ -304,7 +318,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <Trash2 className="w-4 h-4" />
-              <span>Resetar Dados para Amostras Iniciais</span>
+              <span>Limpar preferências locais</span>
             </div>
           </button>
         </section>

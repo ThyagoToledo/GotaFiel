@@ -13,6 +13,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "jspdf": "^4.2.1",
@@ -23,6 +24,7 @@
     "vite": "^6.2.3"
   },
   "devDependencies": {
+    "@vercel/node": "^5.3.25",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",

@@ -21,6 +21,9 @@ export interface AnalysisData {
   id: string;
   title: string; // e.g. "Talhão 4 — Amostra 3"
   fieldId?: string; // linked Talhão id
+  fieldName?: string;
+  crop?: string;
+  remoteOnly?: boolean;
   date: string;
   timestamp: number;
   imageUrl: string;
