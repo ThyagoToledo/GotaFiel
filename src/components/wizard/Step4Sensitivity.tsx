@@ -1,6 +1,5 @@
 ﻿import React, { useState } from 'react';
 import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2, AlertTriangle } from 'lucide-react';
-import { SAMPLE_CARD_IMAGES } from '../../data/mockData';
 import { BinarizationMethod } from '../../core/types';
 
 interface Step4SensitivityProps {
@@ -92,12 +91,10 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                 <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-bold">Processando pixels...</span>
               </div>
+            ) : binaryMaskDataUrl ? (
+              <img src={binaryMaskDataUrl} alt="Prévia real de detecção de pulverização" className="w-full h-full object-contain rounded-lg transition-all duration-200" />
             ) : (
-              <img
-                src={binaryMaskDataUrl || SAMPLE_CARD_IMAGES.binary}
-                alt="Prévia de detecção de pulverização"
-                className="w-full h-full object-contain rounded-lg transition-all duration-200"
-              />
+              <div className="px-5 text-center text-xs leading-relaxed text-white/80">A prévia real aparecerá depois que uma foto for processada.</div>
             )}
             {/* Live indicator tag */}
             <div className="absolute bottom-3 right-3 bg-primary text-on-primary text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md border border-white/20">

@@ -17,7 +17,7 @@ interface AnalysisWizardProps {
   initialAnalysis?: AnalysisData | null;
   preselectedFieldId?: string;
   onCloseWizard: () => void;
-  onSaveAnalysis: (analysis: AnalysisData) => void;
+  onSaveAnalysis: (analysis: AnalysisData) => Promise<void> | void;
 }
 
 const DEFAULT_CORNERS: CropCorners = {
@@ -299,9 +299,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           preselectedFieldId={preselectedFieldId}
           onViewDroplets={() => setCurrentStep(6)}
           onAdjustCalibration={() => setCurrentStep(4)}
-          onSaveToSample={(fieldId, sampleName) => {
-            const final = { ...analysisState, fieldId, title: sampleName };
-            onSaveAnalysis(final);
+          onSaveToSample={async (fieldId, sampleName) => {
+            const selectedField = fieldExperiments.find((field) => field.id === fieldId);
+            const final = { ...analysisState, fieldId: fieldId || undefined, fieldName: selectedField?.name, crop: selectedField?.crop, title: sampleName };
+            await onSaveAnalysis(final);
             onCloseWizard();
           }}
         />

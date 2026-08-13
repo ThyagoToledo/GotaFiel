@@ -20,7 +20,7 @@ interface Step5ResultProps {
   fieldExperiments: FieldExperiment[];
   preselectedFieldId?: string;
   onViewDroplets: () => void;
-  onSaveToSample: (fieldId: string, sampleName: string) => void;
+  onSaveToSample: (fieldId: string, sampleName: string) => Promise<void> | void;
   onAdjustCalibration: () => void;
 }
 
@@ -48,10 +48,12 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   const [sampleNameInput, setSampleNameInput] = useState(defaultSampleName(initialFieldId));
   const [pdfGeneratedToast, setPdfGeneratedToast] = useState(false);
   const [csvGeneratedToast, setCsvGeneratedToast] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isRunoff = analysis.verdict === 'EXCESSO';
   const isGood = analysis.verdict === 'BOM';
   const isRegular = analysis.verdict === 'REGULAR';
+  const hasSourceImage = Boolean(analysis.imageUrl);
 
   // Import dinâmico: o jsPDF (~200 kB gzip com dependências) só carrega quando o
   // usuário pede um relatório, não no carregamento inicial do app.
@@ -138,7 +140,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
         )}
 
         {/* Analyzed Image Preview (If runoff or standard) */}
-        {isRunoff && (
+        {isRunoff && hasSourceImage && (
           <section className="mt-1">
             <div
               className="w-full aspect-[4/3] bg-cover bg-center rounded-lg border border-outline-variant relative overflow-hidden shadow-sm"
@@ -368,7 +370,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
         </section>
 
         {/* Expandable Action: Ver gotas detectadas */}
-        <section>
+        {hasSourceImage && <section>
           <button
             type="button"
             onClick={onViewDroplets}
@@ -380,7 +382,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             </div>
             <ChevronRight className="w-5 h-5 text-on-surface-variant" />
           </button>
-        </section>
+        </section>}
       </div>
 
       {/* Bottom Action Area */}
@@ -399,6 +401,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           <button
             type="button"
             onClick={onAdjustCalibration}
+            disabled={!hasSourceImage || Boolean(analysis.remoteOnly)}
             className="flex-1 h-[52px] bg-transparent text-primary font-bold text-xs sm:text-sm rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors cursor-pointer"
           >
             <SlidersHorizontal className="w-4 h-4" />
@@ -408,6 +411,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           <button
             type="button"
             onClick={() => setShowSaveModal(true)}
+            disabled={Boolean(analysis.remoteOnly)}
             className="flex-[2] h-[52px] bg-primary text-on-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-xs"
           >
             <Save className="w-4 h-4" />
@@ -417,7 +421,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
       </div>
 
       {/* Modal to Save to Sample Field */}
-      {showSaveModal && (
+      {showSaveModal && !analysis.remoteOnly && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-surface rounded-xl p-5 max-w-sm w-full border border-outline-variant shadow-xl flex flex-col gap-4">
             <h3 className="font-bold text-lg text-on-surface">Salvar Amostra no Talhão</h3>
@@ -436,6 +440,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 }}
                 className="w-full h-11 border border-outline-variant rounded-lg px-3 bg-surface text-on-surface text-sm"
               >
+                <option value="">Sem talhão</option>
                 {fieldExperiments.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name} ({f.crop})
@@ -462,13 +467,19 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 Cancelar
               </button>
               <button
-                onClick={() => {
-                  onSaveToSample(selectedFieldId, sampleNameInput);
-                  setShowSaveModal(false);
+                onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    await onSaveToSample(selectedFieldId, sampleNameInput);
+                    setShowSaveModal(false);
+                  } finally {
+                    setIsSaving(false);
+                  }
                 }}
+                disabled={isSaving}
                 className="px-5 py-2 text-sm bg-primary text-on-primary font-medium rounded-lg hover:bg-primary-container"
               >
-                Salvar
+                {isSaving ? 'Salvando…' : 'Salvar'}
               </button>
             </div>
           </div>
