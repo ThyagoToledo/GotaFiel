@@ -1,3 +1,4 @@
+import { del } from '@vercel/blob';
 import { getSql } from './_db.js';
 import { readJson, sendJson } from './_http.js';
 import { getCurrentUser } from './_security.js';
@@ -24,6 +25,8 @@ type AnalysisInput = {
   verdictScore?: unknown;
   verdictMessage?: unknown;
   asabeCategory?: unknown;
+  imageUrl?: unknown;
+  rectifiedImageUrl?: unknown;
 };
 
 function text(value: unknown, max: number) {
@@ -36,6 +39,9 @@ function number(value: unknown, min = 0, max = Number.MAX_SAFE_INTEGER) {
 }
 
 function mapRow(row: Record<string, unknown>) {
+  const id = String(row.id);
+  const imageUrl = typeof row.image_url === 'string' && row.image_url.length > 0 ? `/api/image?id=${encodeURIComponent(id)}&kind=original` : '';
+  const rectifiedImageUrl = typeof row.rectified_image_url === 'string' && row.rectified_image_url.length > 0 ? `/api/image?id=${encodeURIComponent(id)}&kind=rectified` : undefined;
   return {
     id: row.id,
     title: row.title,
@@ -59,7 +65,8 @@ function mapRow(row: Record<string, unknown>) {
     verdictScore: Number(row.verdict_score),
     verdictMessage: row.verdict_message,
     asabeCategory: row.asabe_category,
-    imageUrl: '',
+    imageUrl,
+    rectifiedImageUrl,
     droplets: [],
     remoteOnly: true,
   };
@@ -85,9 +92,20 @@ function values(input: AnalysisInput) {
   if (Object.values(metrics).some((value) => value === null)) return null;
   return {
     title: text(input.title, 160), fieldId: text(input.fieldId, 120), fieldName: text(input.fieldName, 160), crop: text(input.crop, 80),
+    imageUrl: blobUrl(input.imageUrl), rectifiedImageUrl: blobUrl(input.rectifiedImageUrl),
     cardWidth, cardHeight, sensitivity: number(input.sensitivity, -50, 50), method: text(input.method, 30) ?? 'chromatic',
     ...metrics, verdict, verdictMessage: text(input.verdictMessage, 500), asabeCategory: text(input.asabeCategory, 40) ?? 'Não classificada',
   };
+}
+
+function blobUrl(value: unknown) {
+  if (typeof value !== 'string' || !value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.endsWith('.blob.vercel-storage.com') ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
@@ -99,7 +117,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (req.method === 'GET') {
       const rows = (await sql`
-        SELECT id, title, field_id, field_name, crop, created_at, card_width_mm, card_height_mm,
+        SELECT id, title, field_id, field_name, crop, image_url, rectified_image_url, created_at, card_width_mm, card_height_mm,
           sensitivity, method, total_droplets, density, coverage_percent, span, vmd_um, dv01_um,
           dv09_um, volume_l_ha, verdict, verdict_score, verdict_message, asabe_category
         FROM gotas_analyses WHERE user_id = ${user.id} ORDER BY created_at DESC LIMIT 200
@@ -110,7 +128,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (req.method === 'DELETE') {
       const id = typeof req.query?.id === 'string' ? req.query.id : '';
       if (!id) return sendJson(res, 400, { error: 'ID_INVALIDO' });
-      const deleted = (await sql`DELETE FROM gotas_analyses WHERE id = ${id} AND user_id = ${user.id} RETURNING id`) as unknown as Array<Record<string, unknown>>;
+      const deleted = (await sql`DELETE FROM gotas_analyses WHERE id = ${id} AND user_id = ${user.id} RETURNING id, image_url, rectified_image_url`) as unknown as Array<Record<string, unknown>>;
+      if (deleted.length) {
+        const urls = [deleted[0].image_url, deleted[0].rectified_image_url].filter((value): value is string => typeof value === 'string' && value.length > 0);
+        if (urls.length) await del(urls);
+      }
       return sendJson(res, deleted.length ? 200 : 404, deleted.length ? { ok: true } : { error: 'ANALISE_NAO_ENCONTRADA' });
     }
 
@@ -119,15 +141,15 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (!row) return sendJson(res, 400, { error: 'DADOS_DA_ANALISE_INVALIDOS' });
     const rows = (await sql`
       INSERT INTO gotas_analyses (
-        user_id, client_id, title, field_id, field_name, crop, card_width_mm, card_height_mm, sensitivity, method,
+        user_id, client_id, title, field_id, field_name, crop, image_url, rectified_image_url, card_width_mm, card_height_mm, sensitivity, method,
         total_droplets, density, coverage_percent, span, vmd_um, dv01_um, dv09_um, volume_l_ha,
         verdict, verdict_score, verdict_message, asabe_category
       ) VALUES (
-        ${user.id}, ${text(body.id, 120)}, ${row.title}, ${row.fieldId}, ${row.fieldName}, ${row.crop}, ${row.cardWidth}, ${row.cardHeight},
+        ${user.id}, ${text(body.id, 120)}, ${row.title}, ${row.fieldId}, ${row.fieldName}, ${row.crop}, ${row.imageUrl}, ${row.rectifiedImageUrl}, ${row.cardWidth}, ${row.cardHeight},
         ${row.sensitivity}, ${row.method}, ${row.totalDroplets}, ${row.density}, ${row.coveragePercent}, ${row.span}, ${row.vmdUm},
         ${row.dv01Um}, ${row.dv09Um}, ${row.volumeLHa}, ${row.verdict}, ${row.verdictScore}, ${row.verdictMessage}, ${row.asabeCategory}
       )
-      RETURNING id, title, field_id, field_name, crop, created_at, card_width_mm, card_height_mm, sensitivity, method,
+      RETURNING id, title, field_id, field_name, crop, image_url, rectified_image_url, created_at, card_width_mm, card_height_mm, sensitivity, method,
         total_droplets, density, coverage_percent, span, vmd_um, dv01_um, dv09_um, volume_l_ha, verdict,
         verdict_score, verdict_message, asabe_category
     `) as unknown as Array<Record<string, unknown>>;

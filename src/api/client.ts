@@ -32,6 +32,7 @@ export const api = {
   listAnalyses: () => request<{ analyses: ApiAnalysis[] }>('/api/analyses'),
   createAnalysis: (analysis: AnalysisData) => request<{ analysis: ApiAnalysis }>('/api/analyses', { method: 'POST', body: JSON.stringify(toPersistedAnalysis(analysis)) }),
   deleteAnalysis: (id: string) => request<{ ok: true }>(`/api/analyses?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  uploadImage: (dataUrl: string, analysisId: string, kind: 'original' | 'rectified') => request<{ url: string }>('/api/images', { method: 'POST', body: JSON.stringify({ dataUrl, analysisId, kind }) }),
 };
 
 /** Nunca inclui foto, recorte, máscara, histograma ou a lista de gotas. */
@@ -42,6 +43,8 @@ function toPersistedAnalysis(analysis: AnalysisData) {
     fieldId: analysis.fieldId,
     fieldName: analysis.fieldName,
     crop: analysis.crop,
+    imageUrl: analysis.imageUrl.startsWith('https://') ? analysis.imageUrl : undefined,
+    rectifiedImageUrl: analysis.rectifiedImageUrl?.startsWith('https://') ? analysis.rectifiedImageUrl : undefined,
     cardSizeMm: analysis.cardSizeMm,
     sensitivity: analysis.sensitivity,
     method: 'chromatic',
