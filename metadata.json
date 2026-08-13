@@ -1,6 +1,5 @@
 {
   "name": "Spray Analysis",
   "description": "Sistema de análise de pulverização agrícola com detecção de gotas, medição de cobertura, calibradores de calda e aferição de bicos.",
-  "requestFramePermissions": ["camera"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "requestFramePermissions": ["camera"]
 }
