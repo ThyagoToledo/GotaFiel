@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS gotas_analyses (
   field_id TEXT,
   field_name TEXT,
   crop TEXT,
+  image_url TEXT,
+  rectified_image_url TEXT,
   card_width_mm NUMERIC(10, 3) NOT NULL,
   card_height_mm NUMERIC(10, 3) NOT NULL,
   sensitivity NUMERIC(5, 2) NOT NULL DEFAULT 0,
@@ -46,3 +48,6 @@ CREATE TABLE IF NOT EXISTS gotas_analyses (
 );
 CREATE INDEX IF NOT EXISTS gotas_analyses_user_created_idx ON gotas_analyses(user_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS gotas_analyses_client_user_idx ON gotas_analyses(user_id, client_id) WHERE client_id IS NOT NULL;
+
+ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS rectified_image_url TEXT;

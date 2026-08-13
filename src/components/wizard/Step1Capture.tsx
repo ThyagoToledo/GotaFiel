@@ -10,7 +10,9 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      onImageSelected(URL.createObjectURL(file));
+      const reader = new FileReader();
+      reader.onload = () => onImageSelected(typeof reader.result === 'string' ? reader.result : '');
+      reader.readAsDataURL(file);
       event.target.value = '';
     }
   };
