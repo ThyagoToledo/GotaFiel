@@ -13,3 +13,6 @@ package-lock.json
 
 .vercel
 .env*
+
+# Artefatos locais de benchmark e imagens reconstruídas; não fazem parte do produto.
+tmp/

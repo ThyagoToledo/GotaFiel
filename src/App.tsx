@@ -24,8 +24,15 @@ function experimentsFromAnalyses(analyses: ApiAnalysis[]): FieldExperiment[] {
     field.samples.push({
       id: analysis.id,
       name: analysis.title,
-      status: analysis.verdict === 'BOM' || analysis.verdict === 'GREET' ? 'Ideal' : analysis.verdict === 'REGULAR' ? 'Razoável' : analysis.verdict === 'EXCESSO' ? 'Excesso' : 'Ruim',
+      status: analysis.measurementQuality?.status === 'ADEQUADA'
+        ? 'Adequada'
+        : analysis.measurementQuality?.status === 'LIMITADA'
+          ? 'Limitada'
+          : 'Inconclusiva',
       density: analysis.density, coverage: analysis.coveragePercent, span: analysis.span,
+      coverageReliable: analysis.measurementQuality?.coverageReliable,
+      countDensityReliable: analysis.measurementQuality?.countDensityReliable,
+      sizeVolumeReliable: analysis.measurementQuality?.sizeVolumeReliable,
     });
     grouped.set(field.id, field);
   }
@@ -106,7 +113,21 @@ export default function App() {
       if (!newAnalysis.fieldId) return previous;
       const source = previous.find((field) => field.id === newAnalysis.fieldId);
       if (!source) return previous;
-      const sample = { id: analysis.id, name: analysis.title, status: analysis.verdict === 'BOM' ? 'Ideal' as const : analysis.verdict === 'REGULAR' ? 'Razoável' as const : analysis.verdict === 'EXCESSO' ? 'Excesso' as const : 'Ruim' as const, density: analysis.density, coverage: analysis.coveragePercent, span: analysis.span };
+      const sample = {
+        id: analysis.id,
+        name: analysis.title,
+        status: analysis.measurementQuality?.status === 'ADEQUADA'
+          ? 'Adequada' as const
+          : analysis.measurementQuality?.status === 'LIMITADA'
+            ? 'Limitada' as const
+            : 'Inconclusiva' as const,
+        density: analysis.density,
+        coverage: analysis.coveragePercent,
+        span: analysis.span,
+        coverageReliable: analysis.measurementQuality?.coverageReliable,
+        countDensityReliable: analysis.measurementQuality?.countDensityReliable,
+        sizeVolumeReliable: analysis.measurementQuality?.sizeVolumeReliable,
+      };
       return previous.map((field) => field.id === source.id ? { ...field, samples: [sample, ...field.samples] } : field);
     });
   };

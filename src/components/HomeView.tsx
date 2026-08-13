@@ -23,11 +23,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
   // Compute stats across recent analyses
   const totalCount = recentAnalyses.length;
-  const avgCoverage = totalCount
-    ? (recentAnalyses.reduce((acc, a) => acc + a.coveragePercent, 0) / totalCount).toFixed(1)
+  const coverageAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.coverageReliable);
+  const densityAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.countDensityReliable);
+  const avgCoverage = coverageAnalyses.length
+    ? (coverageAnalyses.reduce((acc, a) => acc + a.coveragePercent, 0) / coverageAnalyses.length).toFixed(1)
     : '—';
-  const avgDensity = totalCount
-    ? Math.round(recentAnalyses.reduce((acc, a) => acc + a.density, 0) / totalCount)
+  const avgDensity = densityAnalyses.length
+    ? Math.round(densityAnalyses.reduce((acc, a) => acc + a.density, 0) / densityAnalyses.length)
     : '—';
 
   // w-full no main é obrigatório: sem largura definida, `mx-auto` num item de
@@ -105,14 +107,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
         ) : (
           <div className="flex flex-col gap-2.5">
             {filteredAnalyses.map((item) => {
-              let dotColorClass = 'bg-quality-good';
-              let verdictLabel = 'Bom';
-              if (item.verdict === 'REGULAR') {
+              let dotColorClass = 'bg-quality-poor';
+              let qualityLabel = 'Inconclusiva';
+              if (item.measurementQuality?.status === 'ADEQUADA') {
+                dotColorClass = 'bg-quality-good';
+                qualityLabel = 'Leitura adequada';
+              } else if (item.measurementQuality?.status === 'LIMITADA') {
                 dotColorClass = 'bg-quality-regular';
-                verdictLabel = 'Regular';
-              } else if (item.verdict === 'RUIM' || item.verdict === 'EXCESSO') {
-                dotColorClass = 'bg-quality-poor';
-                verdictLabel = item.verdict === 'EXCESSO' ? 'Excesso' : 'Ruim';
+                qualityLabel = 'Leitura limitada';
               }
 
               return (
@@ -132,7 +134,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       {/* truncate também aqui: sem ele o subtítulo era cortado no meio
                           de um caractere pelo overflow do pai, sem reticências. */}
                       <span className="text-xs text-on-surface-variant truncate">
-                        {verdictLabel} · {item.density} gotas/cm² · {item.coveragePercent}% cobertura
+                        {qualityLabel} · {item.density} gotas/cm² · {item.coveragePercent}% cobertura
                       </span>
                     </div>
                   </div>

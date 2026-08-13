@@ -38,20 +38,23 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
 
   // Calculate field averages
   const sampleCount = currentField?.samples.length || 0;
-  const avgDensity = sampleCount
-    ? (currentField.samples.reduce((acc, s) => acc + s.density, 0) / sampleCount).toFixed(1)
-    : '0.0';
-  const avgCoverage = sampleCount
-    ? (currentField.samples.reduce((acc, s) => acc + s.coverage, 0) / sampleCount).toFixed(1)
-    : '0.0';
-  const avgSpan = sampleCount
-    ? (currentField.samples.reduce((acc, s) => acc + s.span, 0) / sampleCount).toFixed(1)
-    : '0.0';
+  const densitySamples = currentField?.samples.filter((sample) => sample.countDensityReliable) ?? [];
+  const coverageSamples = currentField?.samples.filter((sample) => sample.coverageReliable) ?? [];
+  const spanSamples = currentField?.samples.filter((sample) => sample.sizeVolumeReliable) ?? [];
+  const avgDensity = densitySamples.length
+    ? (densitySamples.reduce((acc, s) => acc + s.density, 0) / densitySamples.length).toFixed(1)
+    : '—';
+  const avgCoverage = coverageSamples.length
+    ? (coverageSamples.reduce((acc, s) => acc + s.coverage, 0) / coverageSamples.length).toFixed(1)
+    : '—';
+  const avgSpan = spanSamples.length
+    ? (spanSamples.reduce((acc, s) => acc + s.span, 0) / spanSamples.length).toFixed(1)
+    : '—';
 
-  // Quality Breakdown
-  const idealCount = currentField?.samples.filter((s) => s.status === 'Ideal').length || 0;
-  const regularCount = currentField?.samples.filter((s) => s.status === 'Razoável').length || 0;
-  const poorCount = currentField?.samples.filter((s) => s.status === 'Ruim' || s.status === 'Excesso').length || 0;
+  // Qualidade técnica da leitura, sem inferir a eficiência agronômica da aplicação.
+  const adequateCount = currentField?.samples.filter((s) => s.status === 'Adequada').length || 0;
+  const limitedCount = currentField?.samples.filter((s) => s.status === 'Limitada').length || 0;
+  const inconclusiveCount = currentField?.samples.filter((s) => s.status === 'Inconclusiva').length || 0;
 
   return (
     <main className="flex-1 pb-36 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
@@ -115,19 +118,19 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
 
           {sampleCount > 0 && (
             <div className="flex items-center gap-1.5 text-[11px] font-bold">
-              {idealCount > 0 && (
+              {adequateCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-quality-good/15 text-quality-good border border-quality-good/30">
-                  {idealCount} Ideais
+                  {adequateCount} Adequadas
                 </span>
               )}
-              {regularCount > 0 && (
+              {limitedCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-quality-regular/15 text-quality-regular border border-quality-regular/30">
-                  {regularCount} Razoáveis
+                  {limitedCount} Limitadas
                 </span>
               )}
-              {poorCount > 0 && (
+              {inconclusiveCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-quality-poor/15 text-quality-poor border border-quality-poor/30">
-                  {poorCount} Insuficientes
+                  {inconclusiveCount} Inconclusivas
                 </span>
               )}
             </div>
@@ -160,11 +163,11 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
             let textColor = 'text-quality-great';
             let Icon = CheckCircle2;
 
-            if (sample.status === 'Razoável') {
+            if (sample.status === 'Limitada') {
               sideBorderColor = 'bg-quality-regular';
               textColor = 'text-quality-regular';
               Icon = AlertTriangle;
-            } else if (sample.status === 'Ruim' || sample.status === 'Excesso') {
+            } else if (sample.status === 'Inconclusiva') {
               sideBorderColor = 'bg-quality-poor';
               textColor = 'text-quality-poor';
               Icon = XCircle;

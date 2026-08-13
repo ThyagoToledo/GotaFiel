@@ -22,6 +22,8 @@ const CSV_HEADERS = [
   'mm2_por_pixel',
   'mm_por_pixel',
   'Metodo',
+  'Filtro_media_passes',
+  'Preencher_buracos',
   'Ajuste_Limiar',
   'Min_Area_px',
   'Descartar_Borda',
@@ -33,9 +35,13 @@ const CSV_HEADERS = [
   'DV09_um',
   'Span',
   'Volume_Lha',
-  'Veredito',
-  'Score',
-  'ASABE',
+  'Qualidade_leitura',
+  'DPI_efetivo',
+  'Cobertura_confiavel',
+  'Contagem_densidade_confiaveis',
+  'Tamanho_volume_confiaveis',
+  'Versao_algoritmo',
+  'Avisos',
 ];
 
 function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
@@ -49,11 +55,13 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
   const dv09Um = isPersisted ? data.metrics.dv09Um : data.dv09Um;
   const span = isPersisted ? data.metrics.span : data.span;
   const estimatedVolumeLha = isPersisted ? data.metrics.estimatedVolumeLha : data.estimatedVolumeLha;
-  const verdict = isPersisted ? data.metrics.verdict : data.verdict;
-  const verdictScore = isPersisted ? data.metrics.verdictScore : data.verdictScore;
-  const asabeCategory = isPersisted ? data.metrics.asabeCategory : data.asabeCategory;
+  const quality = data.measurementQuality;
 
-  const method = isPersisted ? data.params.method : 'chromatic';
+  const method = isPersisted ? data.params.method : (data.analysisMethod ?? 'chromatic');
+  const meanFilterPasses = isPersisted
+    ? (data.params.meanFilterPasses ?? 0)
+    : (data.meanFilterPasses ?? 0);
+  const fillHoles = isPersisted ? (data.params.fillHoles ?? false) : (data.fillHoles ?? false);
   const thresholdAdjustment = isPersisted ? data.params.thresholdAdjustment : (data.sensitivity || 0);
   const minAreaPx = isPersisted ? data.params.minAreaPx : 1;
   const discardBorder = isPersisted ? data.params.discardBorder : true;
@@ -80,7 +88,7 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
     dv09Um,
     span,
     estimatedVolumeLha,
-    verdictScore,
+    quality?.effectiveDpi ?? 0,
     data.cardSizeMm.width,
     data.cardSizeMm.height,
     mm2PerPixel,
@@ -106,6 +114,8 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
     formatPtBrNumber(mm2PerPixel, 9),
     formatPtBrNumber(mmPerPixel, 6),
     method,
+    meanFilterPasses,
+    fillHoles ? 'SIM' : 'NAO',
     thresholdAdjustment,
     minAreaPx,
     discardBorder ? 'SIM' : 'NAO',
@@ -117,9 +127,13 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
     Math.round(dv09Um),
     formatPtBrNumber(span, 2),
     formatPtBrNumber(estimatedVolumeLha, 2),
-    verdict,
-    verdictScore,
-    asabeCategory,
+    quality?.status ?? 'INCONCLUSIVA',
+    quality?.effectiveDpi ?? 0,
+    quality?.coverageReliable ? 'SIM' : 'NAO',
+    quality?.countDensityReliable ? 'SIM' : 'NAO',
+    quality?.sizeVolumeReliable ? 'SIM' : 'NAO',
+    quality?.algorithmVersion ?? 'legacy',
+    `"${(quality?.warnings ?? ['Sem metadados de confiabilidade.']).join(' | ').replace(/"/g, '""')}"`,
   ];
 
   return row.join(';');

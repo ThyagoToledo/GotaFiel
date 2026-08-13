@@ -6,7 +6,7 @@ import {
   ProcessedAnalysisMetrics,
   SampleHistogramBin,
 } from './types';
-import { ASABECategory, QualityVerdict, DropletItem } from '../types';
+import { DropletItem } from '../types';
 
 /**
  * Target physical resolution of the rectified raster: 0.0423 mm per pixel (600 dpi).
@@ -121,6 +121,56 @@ export function measureQuadSizePx(
   };
 }
 
+export interface OrientedCrop {
+  corners: CropCorners;
+  orientationCorrected: boolean;
+}
+
+/**
+ * Faz o lado horizontal do raster corresponder ao `cardWidthMm`.
+ *
+ * Quando um cartão 76 × 26 mm é fotografado em retrato, a aresta superior do quad é
+ * a de 26 mm. Mapear esse quad diretamente para um raster 76 × 26 estica a aresta
+ * curta e reduz a resolução efetiva. A rotação lógica dos cantos corrige a associação
+ * sem alterar a foto original.
+ */
+export function orientCropCornersForCard(
+  corners: CropCorners,
+  srcWidth: number,
+  srcHeight: number,
+  cardWidthMm: number,
+  cardHeightMm: number
+): OrientedCrop {
+  if (cardWidthMm <= 0 || cardHeightMm <= 0) {
+    return { corners, orientationCorrected: false };
+  }
+
+  const quad = measureQuadSizePx(corners, srcWidth, srcHeight);
+  if (quad.widthPx <= 0 || quad.heightPx <= 0) {
+    return { corners, orientationCorrected: false };
+  }
+
+  const cardAspect = cardWidthMm / cardHeightMm;
+  const directAspect = quad.widthPx / quad.heightPx;
+  const directError = Math.abs(Math.log(directAspect / cardAspect));
+  const rotatedError = Math.abs(Math.log((1 / directAspect) / cardAspect));
+
+  if (rotatedError + 1e-9 >= directError) {
+    return { corners, orientationCorrected: false };
+  }
+
+  return {
+    // Rotação lógica de 90° anti-horária: a antiga aresta esquerda vira o topo.
+    corners: {
+      tl: corners.bl,
+      tr: corners.tl,
+      br: corners.tr,
+      bl: corners.br,
+    },
+    orientationCorrected: true,
+  };
+}
+
 /**
  * Physical AREA of a single raster pixel, in mm².
  *
@@ -192,49 +242,6 @@ export function calculateCorrectedDiameterUm(DL: number): number {
   const denominator = 0.8419 + 0.000152 * DL + 0.1758 * Math.log(DL);
   if (denominator <= 0 || !Number.isFinite(denominator)) return DL;
   return DL / denominator;
-}
-
-export function calculateASABECategory(vmdUm: number): ASABECategory {
-  if (vmdUm <= 0 || !Number.isFinite(vmdUm)) return 'Muito Fina';
-  if (vmdUm < 100) return 'Muito Fina';
-  if (vmdUm <= 175) return 'Fina';
-  if (vmdUm <= 250) return 'Média';
-  if (vmdUm <= 375) return 'Grossa';
-  if (vmdUm <= 450) return 'Muito Grossa';
-  return 'Extremamente Grossa';
-}
-
-export function calculateVerdict(coverage: number, density: number): { verdict: QualityVerdict; score: number; message?: string } {
-  if (!Number.isFinite(coverage) || !Number.isFinite(density)) {
-    return { verdict: 'RUIM', score: 0, message: 'Métricas de análise inválidas.' };
-  }
-
-  if (coverage >= 80 || density > 200) {
-    return {
-      verdict: 'EXCESSO',
-      score: 45,
-      message: `Cobertura de ${coverage.toFixed(1)}%. Indica excesso de volume ou gotas muito grandes. Risco de perda e escorrimento.`,
-    };
-  }
-  if (density >= 25 && coverage >= 3) {
-    return {
-      verdict: 'BOM',
-      score: Math.min(100, Math.max(70, Math.round(78 + Math.min(22, (density - 25) * 0.4)))),
-      message: 'Densidade e cobertura adequadas para aplicação eficiente e controle no dossel.',
-    };
-  }
-  if (density >= 12 && coverage >= 1.5) {
-    return {
-      verdict: 'REGULAR',
-      score: 62,
-      message: 'Aplicações aceitáveis, mas recomenda-se atenção ao espaçamento e vazão dos bicos.',
-    };
-  }
-  return {
-    verdict: 'RUIM',
-    score: density === 0 && coverage === 0 ? 0 : 28,
-    message: 'Pouca densidade de gotas ou cobertura insuficiente para controle eficaz.',
-  };
 }
 
 export function computeOtsuThreshold(histogram256: number[], totalPixels: number): number {
@@ -454,6 +461,97 @@ export function binarizeImageBuffer(
   }
 }
 
+/** Filtro caixa 3 × 3, não destrutivo, com no máximo três passagens. */
+export function boxBlurRgba(
+  pixels: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  passes = 1
+): Uint8ClampedArray {
+  const expectedLength = width * height * 4;
+  if (width <= 0 || height <= 0 || pixels.length < expectedLength) {
+    return new Uint8ClampedArray(pixels);
+  }
+
+  let current = new Uint8ClampedArray(pixels);
+  const safePasses = Math.min(3, Math.max(0, Math.floor(passes)));
+
+  for (let pass = 0; pass < safePasses; pass++) {
+    const next = new Uint8ClampedArray(current);
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const target = (y * width + x) * 4;
+        for (let channel = 0; channel < 3; channel++) {
+          let sum = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              sum += current[((y + dy) * width + (x + dx)) * 4 + channel];
+            }
+          }
+          next[target + channel] = Math.round(sum / 9);
+        }
+        next[target + 3] = current[target + 3];
+      }
+    }
+    current = next;
+  }
+
+  return current;
+}
+
+/**
+ * Preenche regiões de fundo totalmente cercadas por primeiro plano.
+ * O fundo conectado à borda é encontrado com vizinhança de oito pixels.
+ */
+export function fillBinaryHoles(binaryMask: Uint8Array, width: number, height: number): Uint8Array {
+  const total = width * height;
+  if (width <= 0 || height <= 0 || binaryMask.length < total) {
+    return new Uint8Array(binaryMask);
+  }
+
+  const externalBackground = new Uint8Array(total);
+  const queue = new Int32Array(total);
+  let head = 0;
+  let tail = 0;
+
+  const enqueueBackground = (index: number) => {
+    if (binaryMask[index] === 0 && externalBackground[index] === 0) {
+      externalBackground[index] = 1;
+      queue[tail++] = index;
+    }
+  };
+
+  for (let x = 0; x < width; x++) {
+    enqueueBackground(x);
+    enqueueBackground((height - 1) * width + x);
+  }
+  for (let y = 1; y < height - 1; y++) {
+    enqueueBackground(y * width);
+    enqueueBackground(y * width + width - 1);
+  }
+
+  while (head < tail) {
+    const index = queue[head++];
+    const x = index % width;
+    const y = Math.floor(index / width);
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+        enqueueBackground(ny * width + nx);
+      }
+    }
+  }
+
+  const output = new Uint8Array(binaryMask);
+  for (let index = 0; index < total; index++) {
+    if (binaryMask[index] === 0 && externalBackground[index] === 0) output[index] = 1;
+  }
+  return output;
+}
+
 export function findConnectedComponents(
   binaryMask: Uint8Array,
   width: number,
@@ -598,6 +696,51 @@ export function buildHistogramBins(components: Array<{ pixelCount: number; inclu
 }
 
 /**
+ * Percentil ponderado por volume com interpolação linear entre os diâmetros vizinhos.
+ * A entrada deve estar ordenada por diâmetro crescente.
+ */
+export function interpolateVolumePercentile(
+  sortedDroplets: Array<{ diameterUm: number; volumeL: number }>,
+  percentile: number
+): number {
+  if (sortedDroplets.length === 0 || !Number.isFinite(percentile)) return 0;
+
+  const p = Math.min(1, Math.max(0, percentile));
+  const totalVolume = sortedDroplets.reduce(
+    (sum, droplet) => sum + Math.max(0, droplet.volumeL),
+    0
+  );
+  if (totalVolume <= 0) return 0;
+
+  const targetVolume = totalVolume * p;
+  let cumulativeVolume = 0;
+  let previousCumulative = 0;
+  let previousDiameter = sortedDroplets[0].diameterUm;
+
+  for (const droplet of sortedDroplets) {
+    const currentVolume = Math.max(0, droplet.volumeL);
+    cumulativeVolume += currentVolume;
+
+    if (cumulativeVolume >= targetVolume) {
+      const intervalVolume = cumulativeVolume - previousCumulative;
+      if (intervalVolume <= 0 || droplet.diameterUm === previousDiameter) {
+        return droplet.diameterUm;
+      }
+      const fraction = Math.min(
+        1,
+        Math.max(0, (targetVolume - previousCumulative) / intervalVolume)
+      );
+      return previousDiameter + fraction * (droplet.diameterUm - previousDiameter);
+    }
+
+    previousCumulative = cumulativeVolume;
+    previousDiameter = droplet.diameterUm;
+  }
+
+  return sortedDroplets[sortedDroplets.length - 1].diameterUm;
+}
+
+/**
  * Computes every published metric from a droplet histogram.
  *
  * Takes the RASTER dimensions (rectWidthPx / rectHeightPx) rather than a linear mm/px
@@ -639,10 +782,10 @@ export function computeMetricsFromHistogram(
       dv09Um: 0,
       span: 0,
       estimatedVolumeLha: 0,
-      verdict: 'RUIM',
+      verdict: 'NAO_AVALIADO',
       verdictScore: 0,
-      verdictMessage: 'Nenhuma gota detectada na amostra.',
-      asabeCategory: 'Muito Fina',
+      verdictMessage: 'A adequação agronômica não é avaliada automaticamente.',
+      asabeCategory: 'Não classificada',
     };
   }
 
@@ -693,39 +836,20 @@ export function computeMetricsFromHistogram(
       dv09Um: 0,
       span: 0,
       estimatedVolumeLha: 0,
-      verdict: 'RUIM',
+      verdict: 'NAO_AVALIADO',
       verdictScore: 0,
-      verdictMessage: 'Nenhuma gota válida detectada.',
-      asabeCategory: 'Muito Fina',
+      verdictMessage: 'A adequação agronômica não é avaliada automaticamente.',
+      asabeCategory: 'Não classificada',
     };
   }
 
   allDroplets.sort((a, b) => a.diameterUm - b.diameterUm);
 
-  // Calculate volumetric percentiles DV0.1, DV0.5, DV0.9
-  let cumVol = 0;
-  let dv01Um = 0;
-  let dv05Um = 0;
-  let dv09Um = 0;
-
-  for (const d of allDroplets) {
-    cumVol += d.volumeL;
-    const frac = cumVol / totalVolumeL;
-
-    if (dv01Um === 0 && frac >= 0.1) {
-      dv01Um = d.diameterUm;
-    }
-    if (dv05Um === 0 && frac >= 0.5) {
-      dv05Um = d.diameterUm;
-    }
-    if (dv09Um === 0 && frac >= 0.9) {
-      dv09Um = d.diameterUm;
-    }
-  }
-
-  if (dv01Um === 0) dv01Um = allDroplets[0].diameterUm;
-  if (dv05Um === 0) dv05Um = allDroplets[Math.floor(allDroplets.length / 2)].diameterUm;
-  if (dv09Um === 0) dv09Um = allDroplets[allDroplets.length - 1].diameterUm;
+  // Percentis volumétricos interpolados. Selecionar somente o primeiro degrau que
+  // cruza o alvo cria saltos artificiais quando poucas classes de tamanho dominam.
+  const dv01Um = interpolateVolumePercentile(allDroplets, 0.1);
+  const dv05Um = interpolateVolumePercentile(allDroplets, 0.5);
+  const dv09Um = interpolateVolumePercentile(allDroplets, 0.9);
 
   const span = dv05Um > 0 ? Number(((dv09Um - dv01Um) / dv05Um).toFixed(2)) : 0;
   const density = Number((totalDroplets / cardAreaCm2).toFixed(1));
@@ -742,9 +866,6 @@ export function computeMetricsFromHistogram(
   const roundedDv01 = Math.round(dv01Um);
   const roundedDv09 = Math.round(dv09Um);
 
-  const { verdict, score, message } = calculateVerdict(coveragePercent, density);
-  const asabeCategory = calculateASABECategory(roundedVmd);
-
   return {
     totalDroplets,
     density,
@@ -758,10 +879,10 @@ export function computeMetricsFromHistogram(
     dv09Um: roundedDv09,
     span,
     estimatedVolumeLha,
-    verdict,
-    verdictScore: score,
-    verdictMessage: message,
-    asabeCategory,
+    verdict: 'NAO_AVALIADO',
+    verdictScore: 0,
+    verdictMessage: 'A adequação agronômica depende do alvo, cultura, produto e condições de aplicação.',
+    asabeCategory: 'Não classificada',
   };
 }
 

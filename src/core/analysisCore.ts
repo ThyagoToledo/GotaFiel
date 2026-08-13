@@ -1,10 +1,12 @@
 import {
   binarizeImageBuffer,
+  boxBlurRgba,
   buildHistogramBins,
   computeMetricsFromHistogram,
   computeMm2PerPixel,
   convertComponentsToDropletItems,
   findConnectedComponents,
+  fillBinaryHoles,
   mmPerPixelEquivalent,
   rectifyPixels,
 } from './imageProcessor';
@@ -88,16 +90,25 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
   );
   const mmPerPixel = mmPerPixelEquivalent(mm2PerPixel);
 
-  // 3. Binarize.
-  const { binaryMask, thresholdUsed } = binarizeImageBuffer(
-    rectifiedPixels,
+  // 3. Compatibilidade em cinza: suavização opcional antes do limiar.
+  const pixelsForBinarization = params.method === 'gotas-legacy'
+    ? boxBlurRgba(rectifiedPixels, targetWidth, targetHeight, params.meanFilterPasses ?? 1)
+    : rectifiedPixels;
+
+  // 4. Binarize.
+  const binarized = binarizeImageBuffer(
+    pixelsForBinarization,
     targetWidth,
     targetHeight,
     params.method,
     params.thresholdAdjustment
   );
+  const binaryMask = params.method === 'gotas-legacy' && (params.fillHoles ?? true)
+    ? fillBinaryHoles(binarized.binaryMask, targetWidth, targetHeight)
+    : binarized.binaryMask;
+  const { thresholdUsed } = binarized;
 
-  // 4. Connected components.
+  // 5. Connected components.
   const components = findConnectedComponents(binaryMask, targetWidth, targetHeight, {
     discardBorder: params.discardBorder,
     minAreaPx: params.minAreaPx,
@@ -105,7 +116,7 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
     mm2PerPixel,
   });
 
-  // 5. Histogram + metrics.
+  // 6. Histogram + metrics.
   const histogram = buildHistogramBins(components);
   const metrics = computeMetricsFromHistogram(
     histogram,
@@ -115,7 +126,7 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
     targetHeight
   );
 
-  // 6. Droplet items for the inspection screen.
+  // 7. Droplet items for the inspection screen.
   const droplets = convertComponentsToDropletItems(components, targetWidth, targetHeight);
 
   return {

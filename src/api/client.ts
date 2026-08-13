@@ -47,7 +47,9 @@ function toPersistedAnalysis(analysis: AnalysisData) {
     rectifiedImageUrl: analysis.rectifiedImageUrl?.startsWith('https://') ? analysis.rectifiedImageUrl : undefined,
     cardSizeMm: analysis.cardSizeMm,
     sensitivity: analysis.sensitivity,
-    method: 'chromatic',
+    method: analysis.analysisMethod ?? 'chromatic',
+    meanFilterPasses: analysis.meanFilterPasses ?? 0,
+    fillHoles: analysis.fillHoles ?? false,
     totalDroplets: analysis.totalDroplets,
     density: analysis.density,
     coveragePercent: analysis.coveragePercent,
@@ -60,5 +62,6 @@ function toPersistedAnalysis(analysis: AnalysisData) {
     verdictScore: analysis.verdictScore,
     verdictMessage: analysis.verdictMessage,
     asabeCategory: analysis.asabeCategory,
+    measurementQuality: analysis.measurementQuality,
   };
 }

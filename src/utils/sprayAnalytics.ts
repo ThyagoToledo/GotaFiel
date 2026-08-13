@@ -7,12 +7,11 @@ import {
   QualityVerdict,
 } from '../types';
 import {
-  calculateASABECategory,
-  calculateVerdict,
   computeMetricsFromHistogram,
   computeMm2PerPixel,
   computeTargetRaster,
 } from '../core/imageProcessor';
+import { assessMeasurementQuality } from '../core/measurementQuality';
 
 /**
  * Recalculates AnalysisData metrics based on real droplet list and card dimensions.
@@ -46,10 +45,10 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
       dv01Um: 0,
       dv09Um: 0,
       estimatedVolumeLha: 0,
-      verdict: 'RUIM',
+      verdict: 'NAO_AVALIADO',
       verdictScore: 0,
-      verdictMessage: 'Nenhuma gota ativa selecionada para análise.',
-      asabeCategory: 'Muito Fina',
+      verdictMessage: 'A adequação agronômica não é avaliada automaticamente.',
+      asabeCategory: 'Não classificada',
     };
   }
 
@@ -84,6 +83,16 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     rectWidthPx,
     rectHeightPx
   );
+  const measurementQuality = analysis.measurementQuality
+    ? assessMeasurementQuality({
+        quadWidthPx: (cardWidthMm / 25.4) * analysis.measurementQuality.effectiveDpi,
+        quadHeightPx: (cardHeightMm / 25.4) * analysis.measurementQuality.effectiveDpi,
+        cardWidthMm,
+        cardHeightMm,
+        coveragePercent: metrics.coveragePercent,
+        orientationCorrected: analysis.measurementQuality.orientationCorrected,
+      })
+    : undefined;
 
   return {
     ...analysis,
@@ -99,6 +108,7 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     verdictScore: metrics.verdictScore,
     verdictMessage: metrics.verdictMessage,
     asabeCategory: metrics.asabeCategory,
+    measurementQuality,
   };
 }
 

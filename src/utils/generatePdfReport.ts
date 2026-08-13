@@ -10,7 +10,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
     analysis.dv01Um,
     analysis.dv09Um,
     analysis.estimatedVolumeLha,
-    analysis.verdictScore,
+    analysis.measurementQuality?.effectiveDpi ?? 0,
   ];
 
   for (const m of metrics) {
@@ -29,6 +29,16 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
   let y = 15;
+  const quality = analysis.measurementQuality ?? {
+    status: 'INCONCLUSIVA' as const,
+    effectiveDpi: 0,
+    orientationCorrected: false,
+    coverageReliable: false,
+    countDensityReliable: false,
+    sizeVolumeReliable: false,
+    warnings: ['Análise anterior sem metadados suficientes para avaliar a confiabilidade.'],
+    algorithmVersion: 'legacy',
+  };
 
   // --- HEADER SECTION ---
   // Background header bar
@@ -39,11 +49,11 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
-  doc.text('RELATÓRIO TÉCNICO DE ANÁLISE DE PULVERIZAÇÃO', margin + 6, y + 9);
+  doc.text('RELATÓRIO DE MEDIÇÃO DE CARTÃO HIDROSSENSÍVEL', margin + 6, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('SprayCheck AI — Diagnóstico e Monitoramento Agrícola', margin + 6, y + 17);
+  doc.text('Gotas2 — processamento experimental e rastreável', margin + 6, y + 17);
 
   y += 30;
 
@@ -80,15 +90,12 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
 
   y += 24;
 
-  // --- VERDICT BANNER ---
-  let verdictBgColor: [number, number, number] = [34, 139, 34]; // BOM (Green)
-  if (analysis.verdict === 'EXCESSO') {
-    verdictBgColor = [186, 26, 26]; // Red
-  } else if (analysis.verdict === 'REGULAR') {
-    verdictBgColor = [217, 119, 6]; // Amber
-  } else if (analysis.verdict === 'RUIM') {
-    verdictBgColor = [186, 26, 26]; // Red
-  }
+  // --- QUALIDADE TÉCNICA DA LEITURA ---
+  const verdictBgColor: [number, number, number] = quality.status === 'ADEQUADA'
+    ? [34, 139, 34]
+    : quality.status === 'LIMITADA'
+      ? [217, 119, 6]
+      : [186, 26, 26];
 
   doc.setFillColor(...verdictBgColor);
   doc.rect(margin, y, contentWidth, 20, 'F');
@@ -96,23 +103,23 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text(`VEREDITO: ${analysis.verdict}`, margin + 6, y + 9);
+  doc.text(`QUALIDADE TÉCNICA: ${quality.status}`, margin + 6, y + 9);
 
   doc.setFontSize(10);
-  doc.text(`Pontuação de Qualidade: ${analysis.verdictScore} / 100`, margin + 110, y + 9);
+  doc.text(`Resolução efetiva: ${quality.effectiveDpi || 'não registrada'} dpi`, margin + 110, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const msg = analysis.verdictMessage || `Cobertura obtida de ${analysis.coveragePercent}%. Densidade de ${analysis.density} gotas/cm².`;
+  const msg = `Algoritmo ${quality.algorithmVersion}. Este status avalia a leitura da imagem, não a eficácia agronômica.`;
   doc.text(msg, margin + 6, y + 16);
 
   y += 26;
 
-  // --- SECTION: QUALIDADE DA APLICAÇÃO ---
+  // --- SECTION: MEDIÇÕES ---
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('1. MÉTRICAS PRINCIPAIS DE QUALIDADE', margin, y);
+  doc.text('1. MEDIÇÕES PRINCIPAIS DO CARTÃO', margin, y);
   doc.setLineWidth(0.4);
   doc.setDrawColor(0, 100, 57);
   doc.line(margin, y + 2, margin + contentWidth, y + 2);
@@ -166,7 +173,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('HOMOGENEIDADE (SPAN)', c3X + 4, y + 6);
+  doc.text('DISPERSÃO (SPAN)', c3X + 4, y + 6);
 
   doc.setTextColor(0, 100, 57);
   doc.setFontSize(16);
@@ -185,9 +192,8 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
 
   // Table structure
   const tableData = [
-    ['Diâmetro Médio Volumétrico (DMV / DV0,5)', `${analysis.vmdUm} µm`],
-    ['Classificação ASABE (Tamanho do Pingo)', analysis.asabeCategory],
-    ['Volume Estimado da Aplicação', `${analysis.estimatedVolumeLha} L/ha`],
+    ['Diâmetro volumétrico estimado (DV0,5)', `${analysis.vmdUm} µm`],
+    ['Volume estimado pela relação de espalhamento', `${analysis.estimatedVolumeLha} L/ha`],
     ['DV0,1 (10% do volume acumulado)', `${analysis.dv01Um} µm`],
     ['DV0,9 (90% do volume acumulado)', `${analysis.dv09Um} µm`],
     ['Total de Gotas Mapeadas', `${analysis.totalDroplets} gotas`],
@@ -214,7 +220,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
 
   y += tableData.length * 8 + 12;
 
-  // --- DIAGNOSTIC & RECOMMENDATION BOX ---
+  // --- LIMITAÇÕES E AVISOS ---
   doc.setFillColor(240, 247, 242);
   doc.rect(margin, y, contentWidth, 32, 'F');
   doc.setDrawColor(0, 100, 57);
@@ -223,29 +229,13 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
-  doc.text('DIAGNOSTICO TÉCNICO E RECOMENDAÇÕES:', margin + 5, y + 7);
+  doc.text('LIMITAÇÕES DESTA MEDIÇÃO:', margin + 5, y + 7);
 
   doc.setTextColor(50, 50, 50);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
 
-  let recommendationText = '';
-  if (analysis.verdict === 'EXCESSO') {
-    recommendationText =
-      '• Risco elevado de escorrimento foliar e desperdício de produto químico.\n' +
-      '• Recomendado: Reduzir a taxa de aplicação (L/ha), trocar as pontas por vazão menor ou aumentar a velocidade de deslocamento.\n' +
-      '• Ajustar a pressão de trabalho do pulverizador para obter gotas no espectro desejado sem sobreposição.';
-  } else if (analysis.verdict === 'BOM') {
-    recommendationText =
-      '• A aplicação apresenta excelente uniformidade de cobertura e densidade adequada de gotas.\n' +
-      '• O espectro de gotas está equilibrado para o alvo biológico com baixo risco de deriva e escorrimento.\n' +
-      '• Recomendado: Manter a regulagem atual de velocidade, pressão e modelo de ponta de pulverização.';
-  } else {
-    recommendationText =
-      '• A aplicação necessita de pequenos ajustes para otimizar o alvo biológico.\n' +
-      '• Verifique a calibração individual dos bicos, pressão na barra e velocidade da máquina.\n' +
-      '• Caso o vento esteja acima de 10 km/h, utilize pontas de indução de ar para mitigar perdas por deriva.';
-  }
+  const recommendationText = quality.warnings.map((warning) => `• ${warning}`).join('\n');
 
   const splitLines = doc.splitTextToSize(recommendationText, contentWidth - 10);
   doc.text(splitLines, margin + 5, y + 14);
@@ -259,7 +249,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(120, 120, 120);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('SprayCheck AI — Sistema de Calibração e Inspeção de Pulverização Agrícola', margin, 284);
+  doc.text('Gotas2 — relatório de medição; não substitui avaliação agronômica profissional', margin, 284);
   doc.text('Página 1 de 1', margin + contentWidth - 20, 284);
 
   // Save the generated PDF
