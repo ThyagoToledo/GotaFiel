@@ -14,7 +14,9 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
   const cardWidthMm = analysis.cardSizeMm?.width || 76;
   const cardHeightMm = analysis.cardSizeMm?.height || 26;
   // Registros gravados antes do raster dinâmico podem não trazer as dimensões. Derivar
-  // do cartão mantém o pixel quadrado; um 760x260 fixo distorceria um cartão 26x38.
+  // do cartão mantém o pixel quadrado; um raster fixo distorceria um cartão 26x38.
+  // Quem tem raster gravado usa o seu, então mudar a resolução alvo não reescreve o
+  // resultado de análises antigas.
   const plannedRaster = computeTargetRaster(cardWidthMm, cardHeightMm);
   const rectWidthPx = analysis.rectWidthPx || plannedRaster.targetWidth;
   const rectHeightPx = analysis.rectHeightPx || plannedRaster.targetHeight;

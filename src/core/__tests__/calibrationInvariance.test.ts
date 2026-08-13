@@ -216,6 +216,28 @@ describe('Invariância da calibração — cobertura não pode depender do taman
     expect(iso.scaleX).toBeCloseTo(iso.scaleY, 9);
   });
 
+  it('o raster planejado nunca é reportado como anisotrópico', () => {
+    // Regressão: o raster é arredondado para pixels inteiros, então scaleX e scaleY não
+    // são bit a bit iguais nem quando o pixel é quadrado por construção. Com um teste de
+    // igualdade exata, todo preset passava a exibir o aviso de "pixel não quadrado" por
+    // uma diferença de 0,04 %.
+    for (const preset of CARD_PRESETS) {
+      const planned = computeTargetRaster(preset.widthMm, preset.heightMm);
+      const r = validateScale(
+        preset.widthMm,
+        preset.heightMm,
+        planned.targetWidth,
+        planned.targetHeight
+      );
+
+      expect(r.isValid).toBe(true);
+      expect(r.isAnisotropic).toBe(false);
+      // E o pixel é de fato quadrado dentro do erro de arredondamento.
+      const relative = Math.abs(r.scaleX - r.scaleY) / Math.max(r.scaleX, r.scaleY);
+      expect(relative).toBeLessThan(0.005);
+    }
+  });
+
   it('reproduz o defeito relatado: a fórmula antiga MUDARIA a cobertura', () => {
     // Demonstra que a suíte falharia contra o código anterior.
     const coverageWithBuggyFormula = (widthMm: number, heightMm: number) => {
@@ -369,17 +391,20 @@ describe('Invariância no pipeline real do Worker (runAnalysisCore)', () => {
       return { preset, planned, run };
     });
 
-    // 1. O raster segue exatamente card / 0,1 mm.
-    expect(runs[0].planned.targetWidth).toBe(760);
-    expect(runs[0].planned.targetHeight).toBe(260);
-    expect(runs[1].planned.targetWidth).toBe(760);
-    expect(runs[1].planned.targetHeight).toBe(520);
-    expect(runs[2].planned.targetWidth).toBe(260);
-    expect(runs[2].planned.targetHeight).toBe(380);
+    // 1. O raster segue o cartão na resolução alvo. Derivado da constante, e não fixado
+    //    em números, para que a propriedade continue sendo verificada se a resolução
+    //    mudar (foi o que travou a migração de 254 para 600 dpi).
+    for (const { preset, planned } of runs) {
+      expect(planned.targetWidth).toBe(Math.round(preset.widthMm / TARGET_MM_PER_PIXEL));
+      expect(planned.targetHeight).toBe(Math.round(preset.heightMm / TARGET_MM_PER_PIXEL));
+    }
 
-    // 2. Pixels quadrados: scaleX === scaleY, logo mm2PerPixel === 0,1².
+    // 2. Pixels quadrados: mm2PerPixel ~ resolução². A igualdade não é exata porque o
+    //    raster é arredondado para pixels inteiros; o que importa é o erro relativo.
     for (const { run } of runs) {
-      expect(run.mm2PerPixel).toBeCloseTo(TARGET_MM_PER_PIXEL * TARGET_MM_PER_PIXEL, 12);
+      const ratio = run.mm2PerPixel / (TARGET_MM_PER_PIXEL * TARGET_MM_PER_PIXEL);
+      expect(ratio).toBeGreaterThan(0.99);
+      expect(ratio).toBeLessThan(1.01);
     }
 
     // 3. Cobertura estável entre os três, dentro da tolerância de reamostragem.
@@ -426,7 +451,8 @@ describe('Invariância no pipeline real do Worker (runAnalysisCore)', () => {
   });
 
   it('o raster nunca amplia além da resolução da fotografia', () => {
-    // Um cartão 76x52 pediria 760x520, mas a foto só oferece um quad de 200x120.
+    // Na resolução alvo o cartão 76x52 pediria um raster bem maior, mas a foto só
+    // oferece um quad de 200x120 — e resolução que a foto não tem não se inventa.
     const planned = computeTargetRaster(76, 52, 200, 120);
 
     expect(planned.limitedBySource).toBe(true);
@@ -445,7 +471,7 @@ describe('Invariância no pipeline real do Worker (runAnalysisCore)', () => {
     expect(scaleX).toBeCloseTo(scaleY, 2);
   });
 
-  it('sem limitação de fonte, o raster é exatamente card / 0,1 mm', () => {
+  it('sem limitação de fonte, o raster é exatamente card / resolução alvo', () => {
     for (const preset of CARD_PRESETS) {
       const planned = computeTargetRaster(preset.widthMm, preset.heightMm);
       expect(planned.limitedBySource).toBe(false);
