@@ -1,4 +1,4 @@
-import type { ApiRequest, ApiResponse } from './_types';
+import type { ApiRequest, ApiResponse } from './_types.js';
 
 export async function readJson<T>(req: ApiRequest): Promise<T> {
   if (req.body && typeof req.body === 'object') return req.body as T;

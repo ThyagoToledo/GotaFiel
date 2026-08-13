@@ -1,7 +1,7 @@
-import { getSql } from './_db';
-import { readJson, sendJson } from './_http';
-import { getCurrentUser } from './_security';
-import type { ApiRequest, ApiResponse } from './_types';
+import { getSql } from './_db.js';
+import { readJson, sendJson } from './_http.js';
+import { getCurrentUser } from './_security.js';
+import type { ApiRequest, ApiResponse } from './_types.js';
 
 type AnalysisInput = {
   id?: unknown;

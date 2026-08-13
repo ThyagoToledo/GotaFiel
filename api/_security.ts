@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import { getCookie } from './_http';
-import { getSql } from './_db';
-import type { ApiRequest } from './_types';
+import { getCookie } from './_http.js';
+import { getSql } from './_db.js';
+import type { ApiRequest } from './_types.js';
 
 const PASSWORD_KEY_LENGTH = 64;
 

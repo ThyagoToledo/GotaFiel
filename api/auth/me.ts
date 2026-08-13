@@ -1,7 +1,7 @@
-import { databaseIsConfigured } from '../_db';
-import { sendJson } from '../_http';
-import { getCurrentUser } from '../_security';
-import type { ApiRequest, ApiResponse } from '../_types';
+import { databaseIsConfigured } from '../_db.js';
+import { sendJson } from '../_http.js';
+import { getCurrentUser } from '../_security.js';
+import type { ApiRequest, ApiResponse } from '../_types.js';
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'GET') return sendJson(res, 405, { error: 'METODO_NAO_PERMITIDO' });

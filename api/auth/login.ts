@@ -1,7 +1,7 @@
-import { getSql } from '../_db';
-import { readJson, sendJson, setSessionCookie } from '../_http';
-import { createSessionToken, hashSessionToken, normalizeName, sessionExpiry, verifyPassword } from '../_security';
-import type { ApiRequest, ApiResponse } from '../_types';
+import { getSql } from '../_db.js';
+import { readJson, sendJson, setSessionCookie } from '../_http.js';
+import { createSessionToken, hashSessionToken, normalizeName, sessionExpiry, verifyPassword } from '../_security.js';
+import type { ApiRequest, ApiResponse } from '../_types.js';
 
 type Credentials = { name?: unknown; password?: unknown };
 

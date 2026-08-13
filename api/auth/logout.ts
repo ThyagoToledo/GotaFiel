@@ -1,7 +1,7 @@
-import { getSql } from '../_db';
-import { clearSessionCookie, getCookie, sendJson } from '../_http';
-import { hashSessionToken } from '../_security';
-import type { ApiRequest, ApiResponse } from '../_types';
+import { getSql } from '../_db.js';
+import { clearSessionCookie, getCookie, sendJson } from '../_http.js';
+import { hashSessionToken } from '../_security.js';
+import type { ApiRequest, ApiResponse } from '../_types.js';
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'METODO_NAO_PERMITIDO' });
