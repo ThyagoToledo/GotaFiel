@@ -1,4 +1,11 @@
-import { AnalysisData, ASABECategory, QualityVerdict } from '../types';
+import {
+  AnalysisData,
+  ASABECategory,
+  DEFAULT_NOZZLE_CRITERIA,
+  NozzleCriteria,
+  NozzleCriteriaMode,
+  QualityVerdict,
+} from '../types';
 import {
   calculateASABECategory,
   calculateVerdict,
@@ -176,17 +183,66 @@ export function calculateVolumeDeCalda(vazaoLmin: number, espacamentoCm: number,
   return Number(volume.toFixed(1));
 }
 
+export type NozzleAction = 'SUBSTITUIR' | 'LIMPAR' | 'OK';
+
+/**
+ * Normaliza critérios vindos do localStorage (podem estar ausentes, fora de faixa ou
+ * invertidos) para valores utilizáveis, sem nunca deixar limpar >= substituir.
+ */
+export function sanitizeNozzleCriteria(criteria?: Partial<NozzleCriteria> | null): NozzleCriteria {
+  const mode: NozzleCriteriaMode =
+    criteria?.mode === 'direcional' ? 'direcional' : DEFAULT_NOZZLE_CRITERIA.mode;
+
+  const clampPercent = (value: unknown, fallback: number) =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0
+      ? Math.min(100, Math.round(value * 10) / 10)
+      : fallback;
+
+  const clean = clampPercent(
+    criteria?.cleanThresholdPercent,
+    DEFAULT_NOZZLE_CRITERIA.cleanThresholdPercent
+  );
+  let replace = clampPercent(
+    criteria?.replaceThresholdPercent,
+    DEFAULT_NOZZLE_CRITERIA.replaceThresholdPercent
+  );
+
+  // Substituir abaixo de limpar deixaria a faixa "LIMPAR" inalcançável.
+  if (replace <= clean) replace = clean;
+
+  return { mode, cleanThresholdPercent: clean, replaceThresholdPercent: replace };
+}
+
+/** Ação recomendada para um único bico, dado o desvio percentual assinado. */
+export function resolveNozzleAction(deviationPercent: number, criteria: NozzleCriteria): NozzleAction {
+  const magnitude = Math.abs(deviationPercent);
+  if (magnitude < criteria.cleanThresholdPercent) return 'OK';
+
+  if (criteria.mode === 'direcional') {
+    // Acima da média: orifício desgastado/alargado — limpar não recupera a vazão.
+    if (deviationPercent > 0) return 'SUBSTITUIR';
+    // Abaixo da média: obstrução. Vira troca quando o desvio passa do limite maior.
+    return magnitude >= criteria.replaceThresholdPercent ? 'SUBSTITUIR' : 'LIMPAR';
+  }
+
+  return magnitude >= criteria.replaceThresholdPercent ? 'SUBSTITUIR' : 'LIMPAR';
+}
+
 // Nozzle flow rate evaluation
-export function evaluateNozzles(volumesMl: number[]): {
+export function evaluateNozzles(
+  volumesMl: number[],
+  criteria: NozzleCriteria = DEFAULT_NOZZLE_CRITERIA
+): {
   overallAvgMl: number;
   flowAvgLmin: number;
   maxDevPercent: number;
-  nozzleDeviations: Array<{ volumeMl: number; deviationPercent: number; actionRequired: 'SUBSTITUIR' | 'LIMPAR' | 'OK' }>;
+  nozzleDeviations: Array<{ volumeMl: number; deviationPercent: number; actionRequired: NozzleAction }>;
 } {
   if (!volumesMl || volumesMl.length === 0) {
     return { overallAvgMl: 0, flowAvgLmin: 0, maxDevPercent: 0, nozzleDeviations: [] };
   }
 
+  const activeCriteria = sanitizeNozzleCriteria(criteria);
   const validVolumes = volumesMl.map((v) => Math.max(0, Number.isFinite(v) ? v : 0));
   const sum = validVolumes.reduce((acc, curr) => acc + curr, 0);
   const overallAvgMl = Math.round(sum / validVolumes.length);
@@ -200,17 +256,10 @@ export function evaluateNozzles(volumesMl: number[]): {
     }
     if (Math.abs(dev) > maxDev) maxDev = Math.abs(dev);
 
-    let actionRequired: 'SUBSTITUIR' | 'LIMPAR' | 'OK' = 'OK';
-    if (Math.abs(dev) >= 10) {
-      actionRequired = 'SUBSTITUIR';
-    } else if (Math.abs(dev) >= 6) {
-      actionRequired = 'LIMPAR';
-    }
-
     return {
       volumeMl: vol,
       deviationPercent: Number.isFinite(dev) ? dev : 0,
-      actionRequired,
+      actionRequired: resolveNozzleAction(Number.isFinite(dev) ? dev : 0, activeCriteria),
     };
   });
 
