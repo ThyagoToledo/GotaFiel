@@ -140,18 +140,21 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
         )}
 
         {/* Analyzed Image Preview (If runoff or standard) */}
-        {isRunoff && hasSourceImage && (
+        {hasSourceImage && (
           <section className="mt-1">
+            <span className="mb-2 block text-xs font-semibold text-on-surface-variant uppercase tracking-widest">
+              Imagem analisada
+            </span>
             <div
               className="w-full aspect-[4/3] bg-cover bg-center rounded-lg border border-outline-variant relative overflow-hidden shadow-sm"
               style={{ backgroundImage: `url('${analysis.imageUrl}')` }}
             >
-              <div className="absolute inset-2 border border-quality-runoff/40 rounded flex items-center justify-center">
+              {isRunoff && <div className="absolute inset-2 border border-quality-runoff/40 rounded flex items-center justify-center">
                 <div className="w-6 h-6 border-t-2 border-l-2 border-quality-runoff absolute top-0 left-0" />
                 <div className="w-6 h-6 border-t-2 border-r-2 border-quality-runoff absolute top-0 right-0" />
                 <div className="w-6 h-6 border-b-2 border-l-2 border-quality-runoff absolute bottom-0 left-0" />
                 <div className="w-6 h-6 border-b-2 border-r-2 border-quality-runoff absolute bottom-0 right-0" />
-              </div>
+              </div>}
             </div>
           </section>
         )}

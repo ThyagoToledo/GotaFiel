@@ -91,7 +91,16 @@ export default function App() {
   };
 
   const handleSaveNewAnalysis = async (newAnalysis: AnalysisData) => {
-    const { analysis } = await api.createAnalysis(newAnalysis);
+    let analysisToSave = newAnalysis;
+    if (newAnalysis.imageUrl.startsWith('data:image/')) {
+      const { url } = await api.uploadImage(newAnalysis.imageUrl, newAnalysis.id, 'original');
+      analysisToSave = { ...analysisToSave, imageUrl: url };
+    }
+    if (newAnalysis.rectifiedImageUrl?.startsWith('data:image/')) {
+      const { url } = await api.uploadImage(newAnalysis.rectifiedImageUrl, newAnalysis.id, 'rectified');
+      analysisToSave = { ...analysisToSave, rectifiedImageUrl: url };
+    }
+    const { analysis } = await api.createAnalysis(analysisToSave);
     setRecentAnalyses((previous) => [analysis, ...previous.filter((item) => item.id !== analysis.id)]);
     setFieldExperiments((previous) => {
       if (!newAnalysis.fieldId) return previous;
