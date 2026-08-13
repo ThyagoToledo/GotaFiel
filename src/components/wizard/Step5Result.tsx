@@ -20,6 +20,7 @@ import { downloadAnalysisCsv } from '../../utils/generateCsvReport';
 interface Step5ResultProps {
   analysis: AnalysisData;
   fieldExperiments: FieldExperiment[];
+  preselectedFieldId?: string;
   onViewDroplets: () => void;
   onSaveToSample: (fieldId: string, sampleName: string) => void;
   onAdjustCalibration: () => void;
@@ -28,12 +29,18 @@ interface Step5ResultProps {
 export const Step5Result: React.FC<Step5ResultProps> = ({
   analysis,
   fieldExperiments,
+  preselectedFieldId,
   onViewDroplets,
   onSaveToSample,
   onAdjustCalibration,
 }) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [selectedFieldId, setSelectedFieldId] = useState(fieldExperiments[0]?.id || '');
+  // Só aceita o talhão de origem se ele ainda existir na lista.
+  const [selectedFieldId, setSelectedFieldId] = useState(
+    fieldExperiments.some((f) => f.id === preselectedFieldId)
+      ? (preselectedFieldId as string)
+      : fieldExperiments[0]?.id || ''
+  );
   const [sampleNameInput, setSampleNameInput] = useState(`Amostra ${Math.floor(Math.random() * 10) + 1}`);
   const [pdfGeneratedToast, setPdfGeneratedToast] = useState(false);
   const [csvGeneratedToast, setCsvGeneratedToast] = useState(false);
@@ -135,6 +142,25 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 <div className="w-6 h-6 border-b-2 border-l-2 border-quality-runoff absolute bottom-0 left-0" />
                 <div className="w-6 h-6 border-b-2 border-r-2 border-quality-runoff absolute bottom-0 right-0" />
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Acima de ~20% de cobertura as manchas se encostam com frequência, e um
+            aglomerado é lido como uma única gota grande. A cobertura em si continua
+            válida (é razão de pixels); contagem, DMV e span é que degradam. */}
+        {analysis.coveragePercent > 20 && (
+          <section className="rounded-2xl border border-quality-regular/40 bg-quality-regular/10 p-4 flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-quality-regular shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold text-on-surface">
+                Cobertura alta: contagem e espectro pouco confiáveis
+              </span>
+              <span className="text-[11px] text-on-surface-variant leading-relaxed">
+                Com {analysis.coveragePercent}% de cobertura, muitas gotas se sobrepõem e são
+                contadas como uma só. A cobertura continua confiável; já a densidade, o DMV e o
+                span tendem a ficar, respectivamente, subestimada e superestimados.
+              </span>
             </div>
           </section>
         )}

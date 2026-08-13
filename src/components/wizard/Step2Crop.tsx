@@ -546,6 +546,12 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
           <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
             COR DO PAPEL HIDROSSENSÍVEL
           </label>
+          {/* A detecção é cromática (azul contra o papel) e não consulta este campo;
+              ele existe para constar no relatório. Dizer isso evita que o usuário
+              tente corrigir uma detecção ruim trocando a cor aqui. */}
+          <span className="text-[11px] text-on-surface-variant leading-relaxed -mt-0.5">
+            Registrado no relatório. Não altera a detecção — o ajuste fino é feito no passo 4.
+          </span>
           <div className="relative">
             <select
               value={cardColor}

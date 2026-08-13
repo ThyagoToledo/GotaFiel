@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Header } from '../Header';
 import { Step1Capture } from './Step1Capture';
 import { Step2Crop } from './Step2Crop';
@@ -14,6 +15,7 @@ import { recalculateAnalysisData } from '../../utils/sprayAnalytics';
 interface AnalysisWizardProps {
   fieldExperiments: FieldExperiment[];
   initialAnalysis?: AnalysisData | null;
+  preselectedFieldId?: string;
   onCloseWizard: () => void;
   onSaveAnalysis: (analysis: AnalysisData) => void;
 }
@@ -28,6 +30,7 @@ const DEFAULT_CORNERS: CropCorners = {
 export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   fieldExperiments,
   initialAnalysis,
+  preselectedFieldId,
   onCloseWizard,
   onSaveAnalysis,
 }) => {
@@ -40,6 +43,11 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
 
   const [binaryMaskDataUrl, setBinaryMaskDataUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [pipelineError, setPipelineError] = useState<string>('');
+  // O raster que a análise REALMENTE usou. Pode ser menor que o ideal quando a foto não
+  // tem resolução para ele, e nesse caso o passo 3 precisa dizer isso em vez de anunciar
+  // uma resolução que não foi aplicada.
+  const [rasterLimitedBySource, setRasterLimitedBySource] = useState<boolean>(false);
 
   const [analysisState, setAnalysisState] = useState<AnalysisData>(() => {
     if (initialAnalysis) return initialAnalysis;
@@ -82,6 +90,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     ) => {
       if (!imgUrl) return;
       setIsProcessing(true);
+      setPipelineError('');
 
       try {
         const params: AnalysisParams = {
@@ -100,6 +109,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         );
 
         setBinaryMaskDataUrl(result.binaryDataUrl);
+        setRasterLimitedBySource(result.rasterLimitedBySource);
 
         setAnalysisState((prev) => ({
           ...prev,
@@ -126,7 +136,14 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           droplets: result.droplets,
         }));
       } catch (err) {
+        // Sem isto a falha ficava só no console: a tela seguia mostrando métricas
+        // zeradas, indistinguíveis de um cartão sem gotas.
         console.error('Pipeline execution error:', err);
+        setPipelineError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Não foi possível processar esta imagem.'
+        );
       } finally {
         setIsProcessing(false);
       }
@@ -194,6 +211,19 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         onBack={handleBack}
       />
 
+      {pipelineError && (
+        <div className="mx-4 mt-3 bg-error-container text-on-error-container border border-error/40 rounded-xl p-3 flex items-start gap-2.5 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+            <span className="text-xs font-bold">Falha ao processar a imagem</span>
+            <span className="text-[11px] leading-relaxed break-words">{pipelineError}</span>
+            <span className="text-[11px] leading-relaxed opacity-80">
+              Os valores exibidos não correspondem a esta imagem. Volte ao passo 1 e escolha outra foto.
+            </span>
+          </div>
+        </div>
+      )}
+
       {currentStep === 1 && (
         <Step1Capture
           onImageSelected={(img) => {
@@ -232,7 +262,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         <Step3Scale
           cardSizeMm={analysisState.cardSizeMm}
           onChangeCardSize={(size) => setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }))}
-          dpi={analysisState.dpi}
+          rectWidthPx={analysisState.rectWidthPx}
+          rectHeightPx={analysisState.rectHeightPx}
+          limitedBySource={rasterLimitedBySource}
           onNext={() => setCurrentStep(4)}
         />
       )}
@@ -249,6 +281,8 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onChangeDiscardBorder={(val) => setDiscardBorder(val)}
           binaryMaskDataUrl={binaryMaskDataUrl}
           isProcessing={isProcessing}
+          detectedDroplets={analysisState.totalDroplets}
+          hasError={Boolean(pipelineError)}
           onNext={() => setCurrentStep(5)}
         />
       )}
@@ -257,6 +291,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         <Step5Result
           analysis={analysisState}
           fieldExperiments={fieldExperiments}
+          preselectedFieldId={preselectedFieldId}
           onViewDroplets={() => setCurrentStep(6)}
           onAdjustCalibration={() => setCurrentStep(4)}
           onSaveToSample={(fieldId, sampleName) => {

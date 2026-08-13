@@ -27,6 +27,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [selectedAnalysis, setSelectedAnalysis] = useState<AnalysisData | null>(null);
+  // Talhão de origem quando o wizard é aberto de dentro de um talhão, para que o passo
+  // de salvamento já venha com ele selecionado.
+  const [preselectedFieldId, setPreselectedFieldId] = useState<string | undefined>(undefined);
 
   // Dark Mode State
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -73,13 +76,15 @@ export default function App() {
   }, [nozzleSession]);
 
   // Handlers
-  const handleStartNewAnalysis = () => {
+  const handleStartNewAnalysis = (fieldId?: string) => {
     setSelectedAnalysis(null);
+    setPreselectedFieldId(fieldId);
     setIsWizardOpen(true);
   };
 
   const handleSelectAnalysis = (analysis: AnalysisData) => {
     setSelectedAnalysis(analysis);
+    setPreselectedFieldId(analysis.fieldId);
     setIsWizardOpen(true);
   };
 
@@ -184,9 +189,11 @@ export default function App() {
         <AnalysisWizard
           fieldExperiments={fieldExperiments}
           initialAnalysis={selectedAnalysis}
+          preselectedFieldId={preselectedFieldId}
           onCloseWizard={() => {
             setIsWizardOpen(false);
             setSelectedAnalysis(null);
+            setPreselectedFieldId(undefined);
           }}
           onSaveAnalysis={handleSaveNewAnalysis}
         />
@@ -224,7 +231,7 @@ export default function App() {
             <TalhaoDetailView
               experiments={fieldExperiments}
               onAddSampleToField={(fieldId) => {
-                handleStartNewAnalysis();
+                handleStartNewAnalysis(fieldId);
               }}
               onAddNewField={handleAddNewField}
               onDeleteField={handleDeleteField}
