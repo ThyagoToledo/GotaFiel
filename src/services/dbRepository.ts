@@ -125,7 +125,9 @@ export async function recalculateAnalysisQualityScore(id: string): Promise<Persi
   if (!analysis) return null;
 
   // Legacy records persisted before the calibration fix may lack raster dimensions.
-  // Derive them from the card so pixels stay square, instead of assuming 760x260.
+  // Derive them from the card so pixels stay square, instead of assuming a fixed raster.
+  // Records that DO carry their raster keep it, so changing the target resolution never
+  // reinterprets an analysis that was already saved.
   const plannedRaster = computeTargetRaster(
     analysis.cardSizeMm.width,
     analysis.cardSizeMm.height

@@ -9,10 +9,18 @@ import {
 import { ASABECategory, QualityVerdict, DropletItem } from '../types';
 
 /**
- * Target physical resolution of the rectified raster: 0.1 mm per pixel (254 dpi).
- * Chosen so a 76x26 mm card lands on exactly 760x260 px, matching the historical raster.
+ * Target physical resolution of the rectified raster: 0.0423 mm per pixel (600 dpi).
+ *
+ * 600 dpi is the resolution established for water-sensitive paper analysis (Marçal &
+ * Cunha, 2008) and is what DepositScan-class tools target. It is chosen here over the
+ * previous 0.1 mm/px (254 dpi) because the measurement error on a stain diameter only
+ * falls below 5 % for stains larger than ~300 µm at 300 dpi, versus ~140 µm at 600 dpi —
+ * and a fine spray puts most of its droplets below that first threshold.
+ *
+ * Raising it further (1200 dpi) keeps improving accuracy but quadruples the raster area,
+ * which matters because the whole pipeline runs client-side, on phones.
  */
-export const TARGET_MM_PER_PIXEL = 0.1;
+export const TARGET_MM_PER_PIXEL = 0.0423;
 
 /** Smallest raster side we will ever produce, to keep degenerate inputs analysable. */
 const MIN_RASTER_SIDE = 32;
@@ -32,7 +40,7 @@ export interface TargetRaster {
  *   targetWidth  = cardWidthMm  / TARGET_MM_PER_PIXEL
  *   targetHeight = cardHeightMm / TARGET_MM_PER_PIXEL
  *
- * which gives 76x26 -> 760x260, 76x52 -> 760x520, 26x38 -> 260x380.
+ * which at 600 dpi gives 76x26 -> 1797x615, 76x52 -> 1797x1229, 26x38 -> 615x898.
  *
  * Because the raster aspect ratio then equals the card aspect ratio, scaleX === scaleY
  * and the anisotropy is gone at the source rather than merely compensated for. This is

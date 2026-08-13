@@ -77,7 +77,15 @@ export function validateScale(
   // Pixels are non-square in physical space when the raster aspect ratio does not match
   // the card aspect ratio. Area-based metrics stay exact, but the rendered shape of a
   // droplet is stretched, so the UI can warn about it.
-  const isAnisotropic = Math.abs(scaleX - scaleY) > 1e-9;
+  //
+  // The comparison must be relative and must absorb rounding: the raster is rounded to
+  // whole pixels, so a card that IS square by construction still lands on scales that
+  // differ in the 5th decimal (76/1797 vs 26/615). An exact test flags those as
+  // stretched and shows the user a warning about a 0.04 % difference. The tolerance
+  // therefore tracks the raster itself — half a pixel on each axis, plus margin.
+  const roundingTolerance = 1.5 / Math.min(rectWidthPx, rectHeightPx);
+  const relativeDifference = Math.abs(scaleX - scaleY) / Math.max(scaleX, scaleY);
+  const isAnisotropic = relativeDifference > roundingTolerance;
 
   const areaCm2 = areaMm2 / 100;
 
