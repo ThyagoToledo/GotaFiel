@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2 } from 'lucide-react';
+import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2, AlertTriangle } from 'lucide-react';
 import { SAMPLE_CARD_IMAGES } from '../../data/mockData';
 import { BinarizationMethod } from '../../core/types';
 
@@ -14,6 +14,8 @@ interface Step4SensitivityProps {
   onChangeDiscardBorder?: (val: boolean) => void;
   binaryMaskDataUrl?: string;
   isProcessing?: boolean;
+  detectedDroplets?: number;
+  hasError?: boolean;
   onNext: () => void;
 }
 
@@ -28,6 +30,8 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   onChangeDiscardBorder,
   binaryMaskDataUrl,
   isProcessing = false,
+  detectedDroplets,
+  hasError = false,
   onNext,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(true);
@@ -101,6 +105,23 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
             </div>
           </div>
         </section>
+
+        {/* Zero detections is indistinguishable from a clean card unless we say so.
+            The legacy threshold in particular can reject every droplet on palettes
+            where the stain is not much darker than the paper. */}
+        {!isProcessing && !hasError && detectedDroplets === 0 && (
+          <section className="p-3.5 rounded-2xl border border-error/40 bg-error-container text-on-error-container shadow-xs flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold">Nenhuma gota detectada</span>
+              <span className="text-[11px] leading-relaxed">
+                {localMethod === 'gotas-legacy'
+                  ? 'O método GOTAS (Cinza) só separa manchas bem mais escuras que o papel. Experimente o método Cromático, que é o indicado para gotas azuis.'
+                  : 'Ajuste a sensibilidade para um valor negativo, reduza o tamanho mínimo de gota, ou refaça o corte do cartão no passo 2.'}
+              </span>
+            </div>
+          </section>
+        )}
 
         {/* Method Selector */}
         <section className="p-3.5 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xs flex flex-col gap-2">

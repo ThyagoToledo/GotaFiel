@@ -8,6 +8,8 @@ interface Step3ScaleProps {
   onChangeCardSize: (size: { width: number; height: number }) => void;
   rectWidthPx?: number;
   rectHeightPx?: number;
+  /** true quando a foto não tinha resolução para o raster ideal. */
+  limitedBySource?: boolean;
   onNext: () => void;
 }
 
@@ -16,6 +18,7 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
   onChangeCardSize,
   rectWidthPx,
   rectHeightPx,
+  limitedBySource = false,
   onNext,
 }) => {
   const [selectedOption, setSelectedOption] = useState<'none' | '76x26' | '76x52' | '26x38' | 'custom'>('76x26');
@@ -194,10 +197,19 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
               <p>
                 Resolução de análise:{' '}
                 <strong>{effectiveRectWidthPx} × {effectiveRectHeightPx} px</strong>
-                {' '}({TARGET_MM_PER_PIXEL} mm/pixel)
+                {' '}({(cardSizeMm.width / effectiveRectWidthPx).toFixed(4)} mm/pixel
+                {rectWidthPx ? '' : ', prevista'})
               </p>
               <p>Área por pixel: <strong>{scaleResult.mm2PerPixel} mm²/pixel</strong></p>
               <p>Área física total: <strong>{scaleResult.areaCm2} cm²</strong> ({scaleResult.areaMm2} mm²)</p>
+              {limitedBySource && (
+                <p className="mt-1.5 pt-1.5 border-t border-outline-variant/60 text-on-surface-variant">
+                  A foto não tem resolução para os {TARGET_MM_PER_PIXEL} mm/pixel do alvo, então
+                  a análise usou a resolução disponível. As medidas continuam válidas, mas gotas
+                  finas são subestimadas. Para o alvo, fotografe o cartão preenchendo mais o
+                  enquadramento ou aproxime a câmera.
+                </p>
+              )}
               {scaleResult.isAnisotropic && (
                 <p className="mt-1 text-on-surface-variant">
                   Pixel não quadrado ({scaleResult.scaleX} × {scaleResult.scaleY} mm).
