@@ -1,7 +1,12 @@
 import { runAnalysisCore } from './analysisCore';
-import { computeTargetRaster, measureQuadSizePx } from './imageProcessor';
+import {
+  computeTargetRaster,
+  measureQuadSizePx,
+  orientCropCornersForCard,
+} from './imageProcessor';
+import { assessMeasurementQuality } from './measurementQuality';
 import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
-import { DropletItem } from '../types';
+import { DropletItem, MeasurementQuality } from '../types';
 import { WorkerRequest, WorkerResponse } from './imageWorker';
 
 export interface PipelineResult {
@@ -19,6 +24,7 @@ export interface PipelineResult {
   rectHeightPx: number;
   /** true quando o raster ideal foi reduzido para não ampliar além da foto original. */
   rasterLimitedBySource: boolean;
+  measurementQuality: MeasurementQuality;
   binaryDataUrl: string;
   rectifiedDataUrl: string;
 }
@@ -114,7 +120,14 @@ export async function runImagePipeline(
 
   // Square physical pixels: raster aspect ratio follows the card, capped so we never
   // upscale beyond the resolution the photograph actually holds.
-  const quad = measureQuadSizePx(corners, width, height);
+  const oriented = orientCropCornersForCard(
+    corners,
+    width,
+    height,
+    cardSizeMm.width,
+    cardSizeMm.height
+  );
+  const quad = measureQuadSizePx(oriented.corners, width, height);
   const planned = computeTargetRaster(
     cardSizeMm.width,
     cardSizeMm.height,
@@ -155,7 +168,7 @@ export async function runImagePipeline(
           pixels,
           srcWidth: width,
           srcHeight: height,
-          corners,
+          corners: oriented.corners,
           targetWidth,
           targetHeight,
           cardSizeMm,
@@ -170,6 +183,14 @@ export async function runImagePipeline(
 
       const binaryDataUrl = createBinaryMaskDataUrl(workerResult.binaryMask, targetWidth, targetHeight);
       const rectifiedDataUrl = createRgbaDataUrl(workerResult.rectifiedPixels, targetWidth, targetHeight);
+      const measurementQuality = assessMeasurementQuality({
+        quadWidthPx: quad.widthPx,
+        quadHeightPx: quad.heightPx,
+        cardWidthMm: cardSizeMm.width,
+        cardHeightMm: cardSizeMm.height,
+        coveragePercent: workerResult.metrics.coveragePercent,
+        orientationCorrected: oriented.orientationCorrected,
+      });
 
       return {
         rectifiedPixels: workerResult.rectifiedPixels,
@@ -183,6 +204,7 @@ export async function runImagePipeline(
         rectWidthPx: targetWidth,
         rectHeightPx: targetHeight,
         rasterLimitedBySource: planned.limitedBySource,
+        measurementQuality,
         binaryDataUrl,
         rectifiedDataUrl,
       };
@@ -197,7 +219,7 @@ export async function runImagePipeline(
     pixels,
     srcWidth: width,
     srcHeight: height,
-    corners,
+    corners: oriented.corners,
     targetWidth,
     targetHeight,
     cardSizeMm,
@@ -206,6 +228,14 @@ export async function runImagePipeline(
 
   const binaryDataUrl = createBinaryMaskDataUrl(core.binaryMask, targetWidth, targetHeight);
   const rectifiedDataUrl = createRgbaDataUrl(core.rectifiedPixels, targetWidth, targetHeight);
+  const measurementQuality = assessMeasurementQuality({
+    quadWidthPx: quad.widthPx,
+    quadHeightPx: quad.heightPx,
+    cardWidthMm: cardSizeMm.width,
+    cardHeightMm: cardSizeMm.height,
+    coveragePercent: core.metrics.coveragePercent,
+    orientationCorrected: oriented.orientationCorrected,
+  });
 
   return {
     rectifiedPixels: core.rectifiedPixels,
@@ -217,6 +247,7 @@ export async function runImagePipeline(
     mm2PerPixel: core.mm2PerPixel,
     mmPerPixel: core.mmPerPixel,
     rasterLimitedBySource: planned.limitedBySource,
+    measurementQuality,
     rectWidthPx: targetWidth,
     rectHeightPx: targetHeight,
     binaryDataUrl,

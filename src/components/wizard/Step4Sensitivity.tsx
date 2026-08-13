@@ -11,6 +11,10 @@ interface Step4SensitivityProps {
   onChangeMinDropletUm?: (val: number) => void;
   discardBorder?: boolean;
   onChangeDiscardBorder?: (val: boolean) => void;
+  meanFilterPasses?: number;
+  onChangeMeanFilterPasses?: (val: number) => void;
+  fillHoles?: boolean;
+  onChangeFillHoles?: (val: boolean) => void;
   binaryMaskDataUrl?: string;
   isProcessing?: boolean;
   detectedDroplets?: number;
@@ -27,6 +31,10 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   onChangeMinDropletUm,
   discardBorder = true,
   onChangeDiscardBorder,
+  meanFilterPasses = 1,
+  onChangeMeanFilterPasses,
+  fillHoles = true,
+  onChangeFillHoles,
   binaryMaskDataUrl,
   isProcessing = false,
   detectedDroplets,
@@ -82,7 +90,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
           <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
             <h2 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
               <ImageIcon className="w-4 h-4 text-primary" />
-              Prévia da Máscara Binária ({localMethod === 'chromatic' ? 'Cromático' : 'GOTAS Legacy'})
+              Prévia da Máscara Binária ({localMethod === 'chromatic' ? 'Cromático' : 'Compatível em cinza'})
             </h2>
           </div>
           <div className="flex-1 relative w-full h-full p-2 flex items-center justify-center bg-black">
@@ -147,7 +155,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
               }`}
             >
-              GOTAS (Cinza)
+              Compatível em cinza
             </button>
           </div>
         </section>
@@ -333,6 +341,49 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                     className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
                   />
                 </div>
+
+                {localMethod === 'gotas-legacy' && (
+                  <div className="flex flex-col gap-3 pt-2 border-t border-outline-variant/40">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-on-surface text-xs">Suavização 3 × 3</span>
+                          <span className="text-[10px] text-on-surface-variant">Reduz variações locais antes do limiar em cinza</span>
+                        </div>
+                        <span className="text-xs font-bold text-primary">{meanFilterPasses} passagem(ns)</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[0, 1, 2].map((passes) => (
+                          <button
+                            type="button"
+                            key={passes}
+                            onClick={() => onChangeMeanFilterPasses?.(passes)}
+                            className={`min-h-[40px] rounded-lg text-xs font-bold border transition-colors ${
+                              meanFilterPasses === passes
+                                ? 'bg-primary text-on-primary border-primary'
+                                : 'bg-surface-container text-on-surface-variant border-outline-variant'
+                            }`}
+                          >
+                            {passes === 0 ? 'Desligada' : `${passes}×`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-on-surface text-xs">Preencher buracos internos</span>
+                        <span className="text-[10px] text-on-surface-variant">Une falhas claras totalmente cercadas pela mesma mancha</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={fillHoles}
+                        onChange={(event) => onChangeFillHoles?.(event.target.checked)}
+                        className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

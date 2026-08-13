@@ -1,4 +1,4 @@
-import { QualityVerdict, ASABECategory } from '../types';
+import { QualityVerdict, ASABECategory, MeasurementQuality } from '../types';
 
 export type BinarizationMethod = 'chromatic' | 'gotas-legacy';
 
@@ -18,6 +18,10 @@ export interface AnalysisParams {
   minDropletUm: number;
   discardBorder: boolean;
   roundnessMin?: number;
+  /** Passagens do filtro caixa 3 × 3 no modo de compatibilidade em cinza. */
+  meanFilterPasses?: number;
+  /** Preenche fundos totalmente cercados por pixels de mancha. */
+  fillHoles?: boolean;
 }
 
 export interface SampleHistogramBin {
@@ -85,6 +89,7 @@ export interface PersistedAnalysis {
   params: AnalysisParams;
   histogram: SampleHistogramBin[];
   metrics: ProcessedAnalysisMetrics;
+  measurementQuality?: MeasurementQuality;
 }
 
 export interface ScaleValidationResult {

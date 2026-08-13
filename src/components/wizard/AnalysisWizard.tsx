@@ -40,6 +40,8 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   const [method, setMethod] = useState<BinarizationMethod>('chromatic');
   const [minDropletUm, setMinDropletUm] = useState<number>(50);
   const [discardBorder, setDiscardBorder] = useState<boolean>(true);
+  const [meanFilterPasses, setMeanFilterPasses] = useState<number>(1);
+  const [fillHoles, setFillHoles] = useState<boolean>(true);
 
   const [binaryMaskDataUrl, setBinaryMaskDataUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -70,10 +72,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       dv01Um: 0,
       dv09Um: 0,
       estimatedVolumeLha: 0,
-      verdict: 'RUIM',
+      verdict: 'NAO_AVALIADO',
       verdictScore: 0,
       verdictMessage: 'Aguardando processamento de imagem...',
-      asabeCategory: 'Muito Fina',
+      asabeCategory: 'Não classificada',
       droplets: [],
     };
   });
@@ -99,6 +101,8 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           minAreaPx: 1,
           minDropletUm: minUm,
           discardBorder: discardBrd,
+          meanFilterPasses: binMethod === 'gotas-legacy' ? meanFilterPasses : 0,
+          fillHoles: binMethod === 'gotas-legacy' ? fillHoles : false,
         };
 
         const result: PipelineResult = await runImagePipeline(
@@ -117,6 +121,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           rectifiedImageUrl: result.rectifiedDataUrl,
           cardSizeMm: sizeMm,
           sensitivity: sens,
+          analysisMethod: binMethod,
+          meanFilterPasses: binMethod === 'gotas-legacy' ? meanFilterPasses : 0,
+          fillHoles: binMethod === 'gotas-legacy' ? fillHoles : false,
           mm2PerPixel: result.mm2PerPixel,
           mmPerPixel: result.mmPerPixel,
           rectWidthPx: result.rectWidthPx,
@@ -134,6 +141,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           verdictScore: result.metrics.verdictScore,
           verdictMessage: result.metrics.verdictMessage,
           asabeCategory: result.metrics.asabeCategory,
+          measurementQuality: result.measurementQuality,
           droplets: result.droplets,
         }));
       } catch (err) {
@@ -149,7 +157,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         setIsProcessing(false);
       }
     },
-    []
+    [meanFilterPasses, fillHoles]
   );
 
   // Trigger processing when parameters or image change
@@ -173,6 +181,8 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     method,
     minDropletUm,
     discardBorder,
+    meanFilterPasses,
+    fillHoles,
     executePipeline,
   ]);
 
@@ -242,6 +252,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
               mmPerPixel: undefined,
               rectWidthPx: undefined,
               rectHeightPx: undefined,
+              measurementQuality: undefined,
               totalDroplets: 0,
               density: 0,
               coveragePercent: 0,
@@ -284,6 +295,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onChangeMinDropletUm={(val) => setMinDropletUm(val)}
           discardBorder={discardBorder}
           onChangeDiscardBorder={(val) => setDiscardBorder(val)}
+          meanFilterPasses={meanFilterPasses}
+          onChangeMeanFilterPasses={setMeanFilterPasses}
+          fillHoles={fillHoles}
+          onChangeFillHoles={setFillHoles}
           binaryMaskDataUrl={binaryMaskDataUrl}
           isProcessing={isProcessing}
           detectedDroplets={analysisState.totalDroplets}

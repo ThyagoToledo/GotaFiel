@@ -205,8 +205,8 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
               {limitedBySource && (
                 <p className="mt-1.5 pt-1.5 border-t border-outline-variant/60 text-on-surface-variant">
                   A foto não tem resolução para os {TARGET_MM_PER_PIXEL} mm/pixel do alvo, então
-                  a análise usou a resolução disponível. As medidas continuam válidas, mas gotas
-                  finas são subestimadas. Para o alvo, fotografe o cartão preenchendo mais o
+                  a análise usou a resolução disponível. O resultado será marcado como limitado
+                  ou inconclusivo; gotas finas podem não ser detectadas. Para o alvo, fotografe o cartão preenchendo mais o
                   enquadramento ou aproxime a câmera.
                 </p>
               )}

@@ -2,9 +2,25 @@ import { SampleHistogramBin } from './core/types';
 
 export type CardColor = 'Amarelo' | 'Branco' | 'Outro';
 
-export type QualityVerdict = 'GREET' | 'BOM' | 'REGULAR' | 'RUIM' | 'EXCESSO';
+export type QualityVerdict = 'NAO_AVALIADO' | 'GREET' | 'BOM' | 'REGULAR' | 'RUIM' | 'EXCESSO';
 
-export type ASABECategory = 'Muito Fina' | 'Fina' | 'Média' | 'Grossa' | 'Muito Grossa' | 'Extremamente Grossa';
+export type ASABECategory = 'Não classificada' | 'Muito Fina' | 'Fina' | 'Média' | 'Grossa' | 'Muito Grossa' | 'Extremamente Grossa';
+
+export type MeasurementQualityStatus = 'ADEQUADA' | 'LIMITADA' | 'INCONCLUSIVA';
+
+export interface MeasurementQuality {
+  /** Qualidade técnica da leitura, não um veredito agronômico. */
+  status: MeasurementQualityStatus;
+  /** Menor resolução física entre os dois eixos do cartão recortado. */
+  effectiveDpi: number;
+  /** Identifica a correção automática de cartão fotografado em retrato. */
+  orientationCorrected: boolean;
+  coverageReliable: boolean;
+  countDensityReliable: boolean;
+  sizeVolumeReliable: boolean;
+  warnings: string[];
+  algorithmVersion: string;
+}
 
 export interface DropletItem {
   id: string;
@@ -37,6 +53,9 @@ export interface AnalysisData {
   cardSizeMm: { width: number; height: number };
   dpi: number;
   sensitivity: number; // -50 to +50
+  analysisMethod?: 'chromatic' | 'gotas-legacy';
+  meanFilterPasses?: number;
+  fillHoles?: boolean;
 
   // Calibration & Resolution persistence.
   // The calibration is (cardSizeMm, rectWidthPx, rectHeightPx). mm2PerPixel is derived
@@ -61,6 +80,9 @@ export interface AnalysisData {
   verdictMessage?: string;
   asabeCategory: ASABECategory;
 
+  /** Metadados de confiabilidade disponíveis nas análises da geração 3 ou posterior. */
+  measurementQuality?: MeasurementQuality;
+
   // Inspection droplets array
   droplets: DropletItem[];
 }
@@ -68,10 +90,13 @@ export interface AnalysisData {
 export interface SampleCardSummary {
   id: string;
   name: string; // "AMOSTRA 1"
-  status: 'Ideal' | 'Razoável' | 'Ruim' | 'Excesso';
+  status: 'Adequada' | 'Limitada' | 'Inconclusiva';
   density: number;
   coverage: number;
   span: number;
+  coverageReliable?: boolean;
+  countDensityReliable?: boolean;
+  sizeVolumeReliable?: boolean;
 }
 
 export interface FieldExperiment {

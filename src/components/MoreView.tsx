@@ -100,61 +100,19 @@ export const MoreView: React.FC<MoreViewProps> = ({
           </div>
         </section>
 
-        {/* ASABE Droplet Reference Table */}
+        {/* Limites do método: não apresentar classificação ASABE simulada. */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
             <Sliders className="w-4 h-4 text-primary" />
-            REFERÊNCIA DE CLASSIFICAÇÃO ASABE (S572)
+            COMO INTERPRETAR AS MEDIÇÕES
           </h2>
-
-          <div className="text-xs border border-outline-variant rounded-lg overflow-hidden divide-y divide-outline-variant/60">
-            <div className="flex justify-between p-2.5 bg-surface-container-low font-semibold text-on-surface">
-              <span>Classe de Gotas</span>
-              <span>DV0,5 (µm)</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-very-fine" />
-                Muito Fina
-              </span>
-              <span className="font-medium">&lt; 100 µm</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-fine" />
-                Fina
-              </span>
-              <span className="font-medium">100 – 175 µm</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-medium" />
-                Média
-              </span>
-              <span className="font-medium">175 – 250 µm</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-coarse" />
-                Grossa
-              </span>
-              <span className="font-medium">250 – 375 µm</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-very-coarse" />
-                Muito Grossa
-              </span>
-              <span className="font-medium">375 – 450 µm</span>
-            </div>
-            <div className="flex justify-between p-2.5 items-center">
-              <span className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-asabe-extremely-coarse" />
-                Extremamente Grossa
-              </span>
-              <span className="font-medium">&gt; 450 µm</span>
-            </div>
-          </div>
+          <ul className="list-disc pl-4 space-y-1.5 text-[11px] text-on-surface-variant leading-relaxed">
+            <li>Cobertura é a fração do cartão marcada pela pulverização.</li>
+            <li>Contagem, densidade e tamanhos ficam pouco confiáveis quando as manchas se sobrepõem.</li>
+            <li>DV e volume são estimativas dependentes da relação de espalhamento do papel e do líquido.</li>
+            <li>A classe ASABE S572.3 exige comparação padronizada com bicos de referência; ela não é inferida apenas do DV0,5 deste cartão.</li>
+            <li>O Gotas2 mede o cartão, mas não decide sozinho se a aplicação foi agronomicamente adequada.</li>
+          </ul>
         </section>
 
         {/* Nozzle Calibration Criteria */}

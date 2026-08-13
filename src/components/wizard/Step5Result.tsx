@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import {
-  CheckCircle2,
   AlertTriangle,
-  XCircle,
   Image as ImageIcon,
   ChevronRight,
   Save,
   SlidersHorizontal,
   FileText,
   Download,
-  Printer,
   Check,
   FileSpreadsheet,
 } from 'lucide-react';
@@ -50,10 +47,27 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   const [csvGeneratedToast, setCsvGeneratedToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isRunoff = analysis.verdict === 'EXCESSO';
-  const isGood = analysis.verdict === 'BOM';
-  const isRegular = analysis.verdict === 'REGULAR';
   const hasSourceImage = Boolean(analysis.imageUrl);
+  const quality = analysis.measurementQuality ?? {
+    status: 'INCONCLUSIVA' as const,
+    effectiveDpi: 0,
+    orientationCorrected: false,
+    coverageReliable: false,
+    countDensityReliable: false,
+    sizeVolumeReliable: false,
+    warnings: ['Análise anterior sem metadados suficientes para avaliar a confiabilidade.'],
+    algorithmVersion: 'legacy',
+  };
+  const qualityTitle = quality.status === 'ADEQUADA'
+    ? 'LEITURA TECNICAMENTE ADEQUADA'
+    : quality.status === 'LIMITADA'
+      ? 'LEITURA COM LIMITAÇÕES'
+      : 'LEITURA INCONCLUSIVA';
+  const qualityClass = quality.status === 'ADEQUADA'
+    ? 'bg-quality-good'
+    : quality.status === 'LIMITADA'
+      ? 'bg-quality-regular'
+      : 'bg-quality-poor';
 
   // Import dinâmico: o jsPDF (~200 kB gzip com dependências) só carrega quando o
   // usuário pede um relatório, não no carregamento inicial do app.
@@ -100,43 +114,25 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
       </div>
 
       <div className="w-full max-w-md mx-auto flex-1 flex flex-col gap-5">
-        {/* Verdict Banner */}
-        {isRunoff ? (
-          <section className="w-full bg-quality-runoff min-h-[110px] p-4 rounded-xl flex flex-col justify-center text-on-error shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="w-7 h-7 text-white fill-white/20 shrink-0" />
-              <h2 className="font-bold text-lg tracking-wide uppercase">EXCESSO / ESCORRIMENTO</h2>
-            </div>
-            <p className="text-sm opacity-90 leading-snug">
-              {analysis.verdictMessage ||
-                `Cobertura de ${analysis.coveragePercent}%. Indica excesso de volume ou gotas muito grandes. Risco de perda.`}
-            </p>
-          </section>
-        ) : (
-          <div
-            className={`w-full min-h-[88px] rounded-xl flex items-center justify-between px-5 text-white shadow-sm ${
-              isGood ? 'bg-quality-good' : isRegular ? 'bg-quality-regular' : 'bg-quality-poor'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              {isGood ? (
-                <CheckCircle2 className="w-9 h-9 fill-white text-quality-good shrink-0" />
-              ) : (
-                <AlertTriangle className="w-9 h-9 fill-white text-quality-regular shrink-0" />
-              )}
-              <div className="flex flex-col">
-                <span className="font-bold text-xl uppercase tracking-wider">
-                  {analysis.verdict}
-                </span>
-                <span className="text-xs opacity-90">Análise concluída</span>
-              </div>
-            </div>
-
-            <div className="font-bold text-3xl">
-              {analysis.verdictScore}
-              <span className="text-sm font-normal opacity-80">/100</span>
-            </div>
+        {/* Qualidade técnica da medição — não é um veredito agronômico. */}
+        <section className={`w-full min-h-[104px] p-4 rounded-xl text-white shadow-sm ${qualityClass}`}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <AlertTriangle className="w-6 h-6 shrink-0" />
+            <h2 className="font-bold text-base tracking-wide">{qualityTitle}</h2>
           </div>
+          <p className="text-xs opacity-95 leading-relaxed">
+            Resolução efetiva: {quality.effectiveDpi || 'não registrada'} dpi · algoritmo {quality.algorithmVersion}.
+            Este status avalia a possibilidade de medir a imagem; não determina se a aplicação foi boa ou ruim.
+          </p>
+        </section>
+
+        {quality.warnings.length > 0 && (
+          <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+            <h3 className="text-xs font-bold text-on-surface mb-2">Limites desta leitura</h3>
+            <ul className="list-disc pl-4 space-y-1 text-[11px] text-on-surface-variant leading-relaxed">
+              {quality.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          </section>
         )}
 
         {/* Analyzed Image Preview (If runoff or standard) */}
@@ -149,12 +145,6 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
               className="w-full aspect-[4/3] bg-cover bg-center rounded-lg border border-outline-variant relative overflow-hidden shadow-sm"
               style={{ backgroundImage: `url('${analysis.imageUrl}')` }}
             >
-              {isRunoff && <div className="absolute inset-2 border border-quality-runoff/40 rounded flex items-center justify-center">
-                <div className="w-6 h-6 border-t-2 border-l-2 border-quality-runoff absolute top-0 left-0" />
-                <div className="w-6 h-6 border-t-2 border-r-2 border-quality-runoff absolute top-0 right-0" />
-                <div className="w-6 h-6 border-b-2 border-l-2 border-quality-runoff absolute bottom-0 left-0" />
-                <div className="w-6 h-6 border-b-2 border-r-2 border-quality-runoff absolute bottom-0 right-0" />
-              </div>}
             </div>
           </section>
         )}
@@ -162,26 +152,10 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
         {/* Acima de ~20% de cobertura as manchas se encostam com frequência, e um
             aglomerado é lido como uma única gota grande. A cobertura em si continua
             válida (é razão de pixels); contagem, DMV e span é que degradam. */}
-        {analysis.coveragePercent > 20 && (
-          <section className="rounded-2xl border border-quality-regular/40 bg-quality-regular/10 p-4 flex items-start gap-2.5">
-            <AlertTriangle className="w-5 h-5 text-quality-regular shrink-0 mt-0.5" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-bold text-on-surface">
-                Cobertura alta: contagem e espectro pouco confiáveis
-              </span>
-              <span className="text-[11px] text-on-surface-variant leading-relaxed">
-                Com {analysis.coveragePercent}% de cobertura, muitas gotas se sobrepõem e são
-                contadas como uma só. A cobertura continua confiável; já a densidade, o DMV e o
-                span tendem a ficar, respectivamente, subestimada e superestimados.
-              </span>
-            </div>
-          </section>
-        )}
-
         {/* Quality Metrics Cards */}
         <section className="flex flex-col gap-2.5">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-widest">
-            O QUE DEFINE A QUALIDADE
+            MEDIÇÕES DO CARTÃO
           </h2>
 
           <div className="grid grid-cols-1 gap-2.5">
@@ -189,12 +163,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-lowest shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <span className="text-sm font-medium text-on-surface">Densidade de gotas</span>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-quality-good" />
-                  <div className="w-2 h-2 rounded-full bg-quality-good" />
-                  <div className="w-2 h-2 rounded-full bg-quality-good" />
-                  <div className="w-2 h-2 rounded-full bg-outline-variant" />
-                </div>
+                {!quality.countDensityReliable && <span className="text-[10px] font-bold text-quality-regular">LIMITADA</span>}
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="font-bold text-3xl text-primary">{analysis.density.toLocaleString('pt-BR')}</span>
@@ -203,49 +172,16 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             </div>
 
             {/* Cobertura */}
-            <div
-              className={`border rounded-lg p-4 shadow-sm ${
-                isRunoff
-                  ? 'border-2 border-quality-runoff bg-error-container'
-                  : 'border-outline-variant bg-surface-container-lowest'
-              }`}
-            >
+            <div className="border border-outline-variant rounded-lg p-4 shadow-sm bg-surface-container-lowest">
               <div className="flex justify-between items-start mb-2">
-                <span
-                  className={`text-sm font-medium ${
-                    isRunoff ? 'text-on-error-container font-bold' : 'text-on-surface'
-                  }`}
-                >
-                  Cobertura
-                </span>
-                <div className="flex gap-1">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      isRunoff ? 'bg-quality-runoff' : 'bg-cartao-amarelo'
-                    }`}
-                  />
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      isRunoff ? 'bg-quality-runoff' : 'bg-cartao-amarelo'
-                    }`}
-                  />
-                  <div className="w-2 h-2 rounded-full bg-outline-variant" />
-                  <div className="w-2 h-2 rounded-full bg-outline-variant" />
-                </div>
+                <span className="text-sm font-medium text-on-surface">Cobertura</span>
+                {!quality.coverageReliable && <span className="text-[10px] font-bold text-quality-poor">INCONCLUSIVA</span>}
               </div>
               <div className="flex items-baseline gap-1">
-                <span
-                  className={`font-bold text-3xl ${
-                    isRunoff ? 'text-quality-runoff' : 'text-primary'
-                  }`}
-                >
+                <span className="font-bold text-3xl text-primary">
                   {analysis.coveragePercent.toLocaleString('pt-BR')}
                 </span>
-                <span
-                  className={`text-xs font-medium ${
-                    isRunoff ? 'text-quality-runoff' : 'text-on-surface-variant'
-                  }`}
-                >
+                <span className="text-xs font-medium text-on-surface-variant">
                   %
                 </span>
               </div>
@@ -255,12 +191,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-lowest shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <span className="text-sm font-medium text-on-surface">Dispersão (Span)</span>
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-quality-great" />
-                  <div className="w-2 h-2 rounded-full bg-quality-great" />
-                  <div className="w-2 h-2 rounded-full bg-quality-great" />
-                  <div className="w-2 h-2 rounded-full bg-quality-great" />
-                </div>
+                {!quality.sizeVolumeReliable && <span className="text-[10px] font-bold text-quality-regular">LIMITADA</span>}
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="font-bold text-3xl text-primary">{analysis.span.toLocaleString('pt-BR')}</span>
@@ -283,15 +214,12 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             <div className="flex justify-between items-center p-3.5">
               <span className="font-medium text-on-surface">DMV (DV0,5)</span>
               <div className="flex items-center gap-2">
-                <span className="bg-asabe-coarse text-white text-xs font-semibold px-2 py-0.5 rounded">
-                  {analysis.asabeCategory}
-                </span>
                 <span className="font-semibold text-on-surface">{analysis.vmdUm.toLocaleString('pt-BR')} µm</span>
               </div>
             </div>
 
             <div className="flex justify-between items-center p-3.5">
-              <span className="font-medium text-on-surface">Volume Estimado</span>
+              <span className="font-medium text-on-surface">Volume estimado*</span>
               <span className="font-semibold text-on-surface">
                 {analysis.estimatedVolumeLha.toLocaleString('pt-BR')} L/ha
               </span>
@@ -312,6 +240,9 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
               <span className="font-semibold text-on-surface">{analysis.cardSizeMm.width} × {analysis.cardSizeMm.height} mm</span>
             </div>
           </div>
+          <p className="text-[10px] text-on-surface-variant leading-relaxed">
+            *Estimativas de diâmetro e volume dependem da relação de espalhamento adotada e não equivalem a medição direta em laboratório.
+          </p>
         </section>
 
         {/* Export PDF & CSV Report Actions */}
@@ -328,7 +259,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-on-surface">Relatório PDF</span>
-                  <span className="text-[10px] text-on-surface-variant">Laudo completo em PDF</span>
+                  <span className="text-[10px] text-on-surface-variant">Relatório de medição em PDF</span>
                 </div>
               </div>
               <Download className="w-4 h-4 text-primary shrink-0" />

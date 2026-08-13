@@ -13,6 +13,9 @@ function makeAnalysis(overrides: Partial<AnalysisData> = {}): AnalysisData {
     cardSizeMm: { width: 76, height: 26 },
     dpi: 300,
     sensitivity: 0,
+    analysisMethod: 'gotas-legacy',
+    meanFilterPasses: 1,
+    fillHoles: true,
     rectWidthPx: 461,
     rectHeightPx: 158,
     totalDroplets: 182,
@@ -26,6 +29,16 @@ function makeAnalysis(overrides: Partial<AnalysisData> = {}): AnalysisData {
     verdict: 'RUIM',
     verdictScore: 28,
     asabeCategory: 'Extremamente Grossa',
+    measurementQuality: {
+      status: 'LIMITADA',
+      effectiveDpi: 450,
+      orientationCorrected: false,
+      coverageReliable: true,
+      countDensityReliable: false,
+      sizeVolumeReliable: false,
+      warnings: ['Resolução abaixo de 600 dpi.'],
+      algorithmVersion: '3.0.0-alpha.1',
+    },
     droplets: [],
     ...overrides,
   };
@@ -39,7 +52,9 @@ describe('generateAnalysisCsvString', () => {
     expect(lines[0].startsWith('ID;Data;Titulo')).toBe(true);
     expect(lines[1]).toContain('ana-1');
     expect(lines[1]).toContain('"Talhão 1 — Amostra 1"');
-    expect(lines[1]).toContain('RUIM');
+    expect(lines[1]).toContain('LIMITADA');
+    expect(lines[1]).toContain('3.0.0-alpha.1');
+    expect(lines[1]).toContain('gotas-legacy;1;SIM');
   });
 
   it('rejeita métricas inválidas', () => {

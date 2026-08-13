@@ -4,6 +4,7 @@ import {
   computeMm2PerPixel,
   computeTargetRaster,
   measureQuadSizePx,
+  orientCropCornersForCard,
   mmPerPixelEquivalent,
   TARGET_MM_PER_PIXEL,
 } from '../imageProcessor';
@@ -264,6 +265,36 @@ describe('Invariância da calibração — cobertura não pode depender do taman
           .coveragePercentExact
     );
     expect(new Set(fixed).size).toBe(1);
+  });
+});
+
+describe('orientação física do cartão', () => {
+  it('rotaciona logicamente os cantos quando o cartão 76x26 está em retrato', () => {
+    const portraitCorners: CropCorners = {
+      tl: { x: 0, y: 0 },
+      tr: { x: 100, y: 0 },
+      br: { x: 100, y: 100 },
+      bl: { x: 0, y: 100 },
+    };
+    const oriented = orientCropCornersForCard(portraitCorners, 100, 300, 76, 26);
+    const size = measureQuadSizePx(oriented.corners, 100, 300);
+
+    expect(oriented.orientationCorrected).toBe(true);
+    expect(size.widthPx).toBeCloseTo(300, 6);
+    expect(size.heightPx).toBeCloseTo(100, 6);
+  });
+
+  it('preserva os cantos quando o lado longo já está na horizontal', () => {
+    const landscapeCorners: CropCorners = {
+      tl: { x: 0, y: 0 },
+      tr: { x: 100, y: 0 },
+      br: { x: 100, y: 100 },
+      bl: { x: 0, y: 100 },
+    };
+    const oriented = orientCropCornersForCard(landscapeCorners, 300, 100, 76, 26);
+
+    expect(oriented.orientationCorrected).toBe(false);
+    expect(oriented.corners).toEqual(landscapeCorners);
   });
 });
 

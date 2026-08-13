@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   calculateCorrectedDiameterUm,
-  calculateASABECategory,
-  calculateVerdict,
   computeOtsuThreshold,
   rectifyPixels,
   binarizeImageBuffer,
@@ -10,6 +8,9 @@ import {
   buildHistogramBins,
   computeMetricsFromHistogram,
   convertComponentsToDropletItems,
+  interpolateVolumePercentile,
+  boxBlurRgba,
+  fillBinaryHoles,
 } from '../imageProcessor';
 import { CropCorners } from '../types';
 
@@ -57,7 +58,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
     expect(metricsZero.totalDroplets).toBe(0);
     expect(metricsZero.density).toBe(0);
     expect(metricsZero.coveragePercent).toBe(0);
-    expect(metricsZero.verdict).toBe('RUIM');
+    expect(metricsZero.verdict).toBe('NAO_AVALIADO');
 
     const metricsNeg = computeMetricsFromHistogram([{ pixelCount: 10, quantity: 2 }], -76, -26, -760, -260);
     expect(metricsNeg.totalDroplets).toBe(0);
@@ -173,7 +174,7 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
     expect(metrics.density).toBe(0);
     expect(metrics.coveragePercent).toBe(0);
     expect(metrics.span).toBe(0);
-    expect(metrics.verdict).toBe('RUIM');
+    expect(metrics.verdict).toBe('NAO_AVALIADO');
   });
 
   // Test 10: Comportamento com imagem 100% branca e 100% preta
@@ -187,24 +188,6 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
 
     const binarizedBlack = binarizeImageBuffer(blackPixels, 10, 10, 'chromatic', 0);
     expect(binarizedBlack.thresholdUsed).toBeDefined();
-  });
-
-  // Test 11: Limites de score do veredito
-  it('11. Limites do veredito: avalia pontuações para EXCESSO, BOM, REGULAR e RUIM', () => {
-    expect(calculateVerdict(85, 100).verdict).toBe('EXCESSO');
-    expect(calculateVerdict(20, 70).verdict).toBe('BOM');
-    expect(calculateVerdict(2, 15).verdict).toBe('REGULAR');
-    expect(calculateVerdict(0.5, 5).verdict).toBe('RUIM');
-  });
-
-  // Test 12: Limiares das categorias ASABE
-  it('12. Categorias ASABE: verifica classificação de tamanho de gota conforme vmd', () => {
-    expect(calculateASABECategory(80)).toBe('Muito Fina');
-    expect(calculateASABECategory(150)).toBe('Fina');
-    expect(calculateASABECategory(220)).toBe('Média');
-    expect(calculateASABECategory(300)).toBe('Grossa');
-    expect(calculateASABECategory(400)).toBe('Muito Grossa');
-    expect(calculateASABECategory(500)).toBe('Extremamente Grossa');
   });
 
   // Test 13: Desempenho e eficiência do algoritmo
@@ -230,9 +213,6 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
     expect(calculateCorrectedDiameterUm(NaN)).toBe(0);
     expect(calculateCorrectedDiameterUm(Infinity)).toBe(0);
 
-    const verdict = calculateVerdict(NaN, Infinity);
-    expect(verdict.verdict).toBe('RUIM');
-    expect(verdict.score).toBe(0);
   });
 
   // Test 15: Coordenadas de Bounding Box
@@ -352,5 +332,80 @@ describe('Spray Analysis Image Processing Pipeline - 20 Verification Tests', () 
 
     expect(rectified.length).toBe(targetWidth * targetHeight * 4);
     expect(rectified[0]).toBe(128);
+  });
+});
+
+describe('percentis volumétricos interpolados', () => {
+  it('interpola entre os diâmetros vizinhos em vez de retornar apenas o próximo degrau', () => {
+    const droplets = [
+      { diameterUm: 100, volumeL: 1 },
+      { diameterUm: 200, volumeL: 1 },
+    ];
+
+    expect(interpolateVolumePercentile(droplets, 0.75)).toBe(150);
+  });
+
+  it('mantém os percentis monotônicos', () => {
+    const droplets = [
+      { diameterUm: 80, volumeL: 1 },
+      { diameterUm: 160, volumeL: 2 },
+      { diameterUm: 320, volumeL: 7 },
+    ];
+    const dv01 = interpolateVolumePercentile(droplets, 0.1);
+    const dv05 = interpolateVolumePercentile(droplets, 0.5);
+    const dv09 = interpolateVolumePercentile(droplets, 0.9);
+
+    expect(dv01).toBeLessThanOrEqual(dv05);
+    expect(dv05).toBeLessThanOrEqual(dv09);
+  });
+});
+
+describe('pré-processamento independente em TypeScript', () => {
+  it('aplica média 3 × 3 sem modificar o buffer de entrada', () => {
+    const width = 5;
+    const height = 5;
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    for (let index = 0; index < width * height; index++) pixels[index * 4 + 3] = 255;
+    const center = (2 * width + 2) * 4;
+    pixels[center] = 255;
+    pixels[center + 1] = 255;
+    pixels[center + 2] = 255;
+
+    const filtered = boxBlurRgba(pixels, width, height, 1);
+
+    expect(filtered[center]).toBe(28);
+    expect(filtered[center + 1]).toBe(28);
+    expect(filtered[center + 2]).toBe(28);
+    expect(pixels[center]).toBe(255);
+  });
+
+  it('preenche somente o fundo totalmente cercado', () => {
+    const width = 5;
+    const height = 5;
+    const mask = new Uint8Array(width * height);
+    for (let y = 1; y <= 3; y++) {
+      for (let x = 1; x <= 3; x++) {
+        if (x === 1 || x === 3 || y === 1 || y === 3) mask[y * width + x] = 1;
+      }
+    }
+
+    const filled = fillBinaryHoles(mask, width, height);
+
+    expect(filled[2 * width + 2]).toBe(1);
+    expect(filled[0]).toBe(0);
+  });
+
+  it('preserva fundo conectado diagonalmente à borda', () => {
+    const width = 3;
+    const height = 3;
+    const mask = new Uint8Array([
+      0, 1, 1,
+      1, 0, 1,
+      1, 1, 1,
+    ]);
+
+    const filled = fillBinaryHoles(mask, width, height);
+
+    expect(filled[4]).toBe(0);
   });
 });
