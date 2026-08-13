@@ -18,16 +18,18 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { calculateVolumeDeCalda, evaluateNozzles, calculateWeatherRisk } from '../utils/sprayAnalytics';
-import { NozzleCalibrationSession } from '../types';
+import { DEFAULT_NOZZLE_CRITERIA, NozzleCalibrationSession, NozzleCriteria } from '../types';
 
 interface CalculatorsViewProps {
   nozzleSession: NozzleCalibrationSession;
   onSaveNozzleSession: (session: NozzleCalibrationSession) => void;
+  nozzleCriteria?: NozzleCriteria;
 }
 
 export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   nozzleSession,
   onSaveNozzleSession,
+  nozzleCriteria = DEFAULT_NOZZLE_CRITERIA,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'volume' | 'afericao' | 'clima'>('volume');
 
@@ -96,7 +98,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   const volumeResult = calculateVolumeDeCalda(vazao, espacamento, velocidade);
 
   // Calculated Nozzle Evaluation
-  const nozzleEval = evaluateNozzles(nozzleVolumes);
+  const nozzleEval = evaluateNozzles(nozzleVolumes, nozzleCriteria);
 
   const handleCopyVolume = () => {
     navigator.clipboard?.writeText?.(`${volumeResult} L/ha`);
@@ -395,7 +397,11 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
               <div className="flex items-baseline gap-1">
                 <span
                   className={`font-extrabold text-xl ${
-                    nozzleEval.maxDevPercent >= 10 ? 'text-quality-poor' : 'text-quality-good'
+                    nozzleEval.maxDevPercent >= nozzleCriteria.replaceThresholdPercent
+                      ? 'text-quality-poor'
+                      : nozzleEval.maxDevPercent >= nozzleCriteria.cleanThresholdPercent
+                      ? 'text-quality-regular'
+                      : 'text-quality-good'
                   }`}
                 >
                   {nozzleEval.maxDevPercent}%
@@ -403,6 +409,13 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Critério em vigor: o operador precisa saber com que régua o app julgou. */}
+          <p className="text-[11px] text-on-surface-variant text-center -mt-2">
+            Critério <span className="font-semibold capitalize">{nozzleCriteria.mode}</span> ·
+            limpar a partir de {nozzleCriteria.cleanThresholdPercent}% · substituir a partir de{' '}
+            {nozzleCriteria.replaceThresholdPercent}% · ajuste em Mais
+          </p>
 
           {/* Diverging Bar Chart Section */}
           <section className="flex flex-col gap-3 bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm">

@@ -4,7 +4,10 @@ import {
   calculateWeatherRisk,
   calculateVolumeDeCalda,
   evaluateNozzles,
+  resolveNozzleAction,
+  sanitizeNozzleCriteria,
 } from '../sprayAnalytics';
+import { DEFAULT_NOZZLE_CRITERIA, NozzleCriteria } from '../../types';
 
 describe('calculateWetBulbC (aproximação de Stull)', () => {
   // Valores de referência calculados independentemente pela fórmula de Stull (2011).
@@ -80,5 +83,89 @@ describe('evaluateNozzles', () => {
     const result = evaluateNozzles([]);
     expect(result.overallAvgMl).toBe(0);
     expect(result.nozzleDeviations).toEqual([]);
+  });
+
+  it('sem critério explícito usa o padrão de fábrica', () => {
+    const semCriterio = evaluateNozzles([800, 800, 880, 704]);
+    const comPadrao = evaluateNozzles([800, 800, 880, 704], DEFAULT_NOZZLE_CRITERIA);
+    expect(semCriterio).toEqual(comPadrao);
+  });
+
+  it('critério configurado altera a classificação', () => {
+    const rigoroso: NozzleCriteria = {
+      mode: 'absoluto',
+      cleanThresholdPercent: 3,
+      replaceThresholdPercent: 5,
+    };
+    // média 796 → +1%, +1%, +11%, -12%
+    const padrao = evaluateNozzles([800, 800, 830, 760]);
+    const estrito = evaluateNozzles([800, 800, 830, 760], rigoroso);
+    // média 797 → +0%, +0%, +4%, -5%
+    expect(padrao.nozzleDeviations[2].actionRequired).toBe('OK');
+    expect(estrito.nozzleDeviations[2].actionRequired).toBe('LIMPAR');
+    expect(estrito.nozzleDeviations[3].actionRequired).toBe('SUBSTITUIR');
+  });
+});
+
+describe('resolveNozzleAction', () => {
+  const absoluto = DEFAULT_NOZZLE_CRITERIA;
+  const direcional: NozzleCriteria = { ...DEFAULT_NOZZLE_CRITERIA, mode: 'direcional' };
+
+  it('modo absoluto ignora o sentido do desvio', () => {
+    expect(resolveNozzleAction(8, absoluto)).toBe('LIMPAR');
+    expect(resolveNozzleAction(-8, absoluto)).toBe('LIMPAR');
+    expect(resolveNozzleAction(12, absoluto)).toBe('SUBSTITUIR');
+    expect(resolveNozzleAction(-12, absoluto)).toBe('SUBSTITUIR');
+  });
+
+  it('modo direcional manda substituir qualquer bico acima da média', () => {
+    expect(resolveNozzleAction(7, direcional)).toBe('SUBSTITUIR');
+    expect(resolveNozzleAction(30, direcional)).toBe('SUBSTITUIR');
+  });
+
+  it('modo direcional manda limpar bico obstruído até o limite maior', () => {
+    expect(resolveNozzleAction(-7, direcional)).toBe('LIMPAR');
+    expect(resolveNozzleAction(-9, direcional)).toBe('LIMPAR');
+    expect(resolveNozzleAction(-10, direcional)).toBe('SUBSTITUIR');
+  });
+
+  it('desvio abaixo do primeiro limiar é OK nos dois modos', () => {
+    expect(resolveNozzleAction(5, absoluto)).toBe('OK');
+    expect(resolveNozzleAction(5, direcional)).toBe('OK');
+    expect(resolveNozzleAction(-5, direcional)).toBe('OK');
+  });
+});
+
+describe('sanitizeNozzleCriteria', () => {
+  it('sem valor salvo devolve o padrão', () => {
+    expect(sanitizeNozzleCriteria(null)).toEqual(DEFAULT_NOZZLE_CRITERIA);
+    expect(sanitizeNozzleCriteria(undefined)).toEqual(DEFAULT_NOZZLE_CRITERIA);
+  });
+
+  it('modo desconhecido volta para absoluto', () => {
+    expect(sanitizeNozzleCriteria({ mode: 'qualquer' } as never).mode).toBe('absoluto');
+  });
+
+  it('nunca deixa substituir abaixo de limpar', () => {
+    const r = sanitizeNozzleCriteria({
+      mode: 'absoluto',
+      cleanThresholdPercent: 15,
+      replaceThresholdPercent: 5,
+    });
+    expect(r.replaceThresholdPercent).toBeGreaterThanOrEqual(r.cleanThresholdPercent);
+  });
+
+  it('rejeita valores não numéricos, zero, negativos e acima de 100', () => {
+    const r = sanitizeNozzleCriteria({
+      mode: 'direcional',
+      cleanThresholdPercent: -4,
+      replaceThresholdPercent: 500,
+    });
+    expect(r.mode).toBe('direcional');
+    expect(r.cleanThresholdPercent).toBe(DEFAULT_NOZZLE_CRITERIA.cleanThresholdPercent);
+    expect(r.replaceThresholdPercent).toBe(100);
+
+    const nan = sanitizeNozzleCriteria({ cleanThresholdPercent: NaN, replaceThresholdPercent: 0 });
+    expect(nan).toEqual(DEFAULT_NOZZLE_CRITERIA);
   });
 });

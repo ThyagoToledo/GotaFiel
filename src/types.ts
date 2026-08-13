@@ -87,6 +87,31 @@ export interface NozzleMeasurement {
   actionRequired?: 'SUBSTITUIR' | 'LIMPAR' | 'OK';
 }
 
+/**
+ * Como o desvio de vazão de cada bico vira uma ação recomendada.
+ *
+ * 'absoluto'   — só o tamanho do desvio importa, não o sentido. É o critério que o
+ *                app sempre usou e segue sendo o padrão.
+ * 'direcional' — separa as duas causas físicas do desvio: bico acima da média está
+ *                com o orifício desgastado (limpeza não recupera, tem de trocar);
+ *                abaixo da média está obstruído (limpar resolve até certo ponto).
+ */
+export type NozzleCriteriaMode = 'absoluto' | 'direcional';
+
+export interface NozzleCriteria {
+  mode: NozzleCriteriaMode;
+  /** Desvio (%) a partir do qual o bico sai do OK. */
+  cleanThresholdPercent: number;
+  /** Desvio (%) a partir do qual o bico deve ser substituído. */
+  replaceThresholdPercent: number;
+}
+
+export const DEFAULT_NOZZLE_CRITERIA: NozzleCriteria = {
+  mode: 'absoluto',
+  cleanThresholdPercent: 6,
+  replaceThresholdPercent: 10,
+};
+
 export interface NozzleCalibrationSession {
   id: string;
   date: string;

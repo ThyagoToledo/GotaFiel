@@ -1,6 +1,6 @@
-import React from 'react';
-import { Moon, Sun, Info, Download, Trash2, Shield, Sliders } from 'lucide-react';
-import { AnalysisData } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw } from 'lucide-react';
+import { AnalysisData, DEFAULT_NOZZLE_CRITERIA, NozzleCriteria, NozzleCriteriaMode } from '../types';
 import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
 
 interface MoreViewProps {
@@ -8,14 +8,49 @@ interface MoreViewProps {
   onToggleDarkMode: () => void;
   onClearData: () => void;
   recentAnalyses: AnalysisData[];
+  nozzleCriteria: NozzleCriteria;
+  onChangeNozzleCriteria: (criteria: NozzleCriteria) => void;
 }
+
+const MODE_DESCRIPTIONS: Record<NozzleCriteriaMode, string> = {
+  absoluto:
+    'Só o tamanho do desvio importa. Um bico 8% acima e outro 8% abaixo da média recebem a mesma recomendação.',
+  direcional:
+    'Separa as causas: acima da média o orifício está desgastado e a limpeza não recupera a vazão, então a recomendação é substituir. Abaixo da média é obstrução, e limpar resolve até o limite maior.',
+};
 
 export const MoreView: React.FC<MoreViewProps> = ({
   isDarkMode,
   onToggleDarkMode,
   onClearData,
   recentAnalyses,
+  nozzleCriteria,
+  onChangeNozzleCriteria,
 }) => {
+  // Rascunho local para os campos numéricos: deixa o usuário apagar e redigitar sem
+  // que a normalização reescreva o valor a cada tecla.
+  const [cleanDraft, setCleanDraft] = useState(String(nozzleCriteria.cleanThresholdPercent));
+  const [replaceDraft, setReplaceDraft] = useState(String(nozzleCriteria.replaceThresholdPercent));
+
+  useEffect(() => {
+    setCleanDraft(String(nozzleCriteria.cleanThresholdPercent));
+    setReplaceDraft(String(nozzleCriteria.replaceThresholdPercent));
+  }, [nozzleCriteria.cleanThresholdPercent, nozzleCriteria.replaceThresholdPercent]);
+
+  const commitThresholds = () => {
+    onChangeNozzleCriteria({
+      ...nozzleCriteria,
+      cleanThresholdPercent: Number(cleanDraft.replace(',', '.')),
+      replaceThresholdPercent: Number(replaceDraft.replace(',', '.')),
+    });
+  };
+
+  const isDefaultCriteria =
+    nozzleCriteria.mode === DEFAULT_NOZZLE_CRITERIA.mode &&
+    nozzleCriteria.cleanThresholdPercent === DEFAULT_NOZZLE_CRITERIA.cleanThresholdPercent &&
+    nozzleCriteria.replaceThresholdPercent === DEFAULT_NOZZLE_CRITERIA.replaceThresholdPercent;
+
+
   return (
     <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[240px]">
       <div className="flex flex-col gap-5 max-w-md mx-auto">
@@ -105,6 +140,131 @@ export const MoreView: React.FC<MoreViewProps> = ({
               </span>
               <span className="font-medium">&gt; 450 µm</span>
             </div>
+          </div>
+        </section>
+
+        {/* Nozzle Calibration Criteria */}
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+              <Droplets className="w-4 h-4 text-primary" />
+              CRITÉRIOS DA AFERIÇÃO DE BICOS
+            </h2>
+            {!isDefaultCriteria && (
+              <button
+                onClick={() => onChangeNozzleCriteria(DEFAULT_NOZZLE_CRITERIA)}
+                className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Padrão
+              </button>
+            )}
+          </div>
+
+          <p className="text-[11px] text-on-surface-variant leading-relaxed">
+            Define como o desvio de vazão de cada bico vira uma recomendação na calculadora
+            de aferição. Vale para as próximas aferições; as já salvas não são reescritas.
+          </p>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-on-surface-variant">
+              Como interpretar o desvio
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(['absoluto', 'direcional'] as NozzleCriteriaMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => onChangeNozzleCriteria({ ...nozzleCriteria, mode })}
+                  className={`p-2.5 rounded-lg border text-xs font-bold capitalize transition-colors cursor-pointer ${
+                    nozzleCriteria.mode === mode
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-outline-variant text-on-surface-variant hover:bg-surface-container'
+                  }`}
+                >
+                  {mode}
+                  {mode === DEFAULT_NOZZLE_CRITERIA.mode && (
+                    <span className="block text-[9px] font-medium opacity-70 normal-case">padrão</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-on-surface-variant leading-relaxed mt-0.5">
+              {MODE_DESCRIPTIONS[nozzleCriteria.mode]}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="criterio-limpar" className="text-xs font-semibold text-on-surface-variant">
+                Sai do OK a partir de
+              </label>
+              <div className="relative">
+                <input
+                  id="criterio-limpar"
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={0.5}
+                  value={cleanDraft}
+                  onChange={(e) => setCleanDraft(e.target.value)}
+                  onBlur={commitThresholds}
+                  className="w-full h-11 border border-outline-variant rounded-lg pl-3 pr-7 bg-surface text-on-surface text-sm font-semibold focus:outline-none focus:border-primary"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-on-surface-variant pointer-events-none">
+                  %
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label htmlFor="criterio-substituir" className="text-xs font-semibold text-on-surface-variant">
+                Substituir a partir de
+              </label>
+              <div className="relative">
+                <input
+                  id="criterio-substituir"
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={0.5}
+                  value={replaceDraft}
+                  onChange={(e) => setReplaceDraft(e.target.value)}
+                  onBlur={commitThresholds}
+                  className="w-full h-11 border border-outline-variant rounded-lg pl-3 pr-7 bg-surface text-on-surface text-sm font-semibold focus:outline-none focus:border-primary"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-on-surface-variant pointer-events-none">
+                  %
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Regra ativa em texto, para conferência antes de ir a campo. */}
+          <div className="text-[11px] rounded-lg border border-outline-variant/70 bg-surface-container-low p-2.5 flex flex-col gap-1">
+            <span className="font-bold text-on-surface">Regra ativa</span>
+            <span className="text-on-surface-variant">
+              Abaixo de {nozzleCriteria.cleanThresholdPercent}% de desvio: <strong>OK</strong>.
+            </span>
+            {nozzleCriteria.mode === 'direcional' ? (
+              <>
+                <span className="text-on-surface-variant">
+                  Acima da média com {nozzleCriteria.cleanThresholdPercent}% ou mais:{' '}
+                  <strong>SUBSTITUIR</strong>.
+                </span>
+                <span className="text-on-surface-variant">
+                  Abaixo da média entre {nozzleCriteria.cleanThresholdPercent}% e{' '}
+                  {nozzleCriteria.replaceThresholdPercent}%: <strong>LIMPAR</strong>; a partir de{' '}
+                  {nozzleCriteria.replaceThresholdPercent}%: <strong>SUBSTITUIR</strong>.
+                </span>
+              </>
+            ) : (
+              <span className="text-on-surface-variant">
+                Desvio entre {nozzleCriteria.cleanThresholdPercent}% e{' '}
+                {nozzleCriteria.replaceThresholdPercent}%, para cima ou para baixo:{' '}
+                <strong>LIMPAR</strong>; a partir de {nozzleCriteria.replaceThresholdPercent}%:{' '}
+                <strong>SUBSTITUIR</strong>.
+              </span>
+            )}
           </div>
         </section>
 
