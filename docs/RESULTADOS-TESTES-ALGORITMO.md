@@ -1,10 +1,10 @@
 # Resultados de verificação do algoritmo
 
-## Execução de 13 de agosto de 2026
+## Execução de 14 de agosto de 2026
 
-Branch: `codex/validacao-cientifica`
+Branch: `main`
 
-Versão declarada do algoritmo: `3.1.0-alpha.1`
+Versão declarada do algoritmo: `3.2.0-alpha.1`
 
 ### Comandos executados
 
@@ -19,8 +19,8 @@ npm run build
 | Verificação | Resultado |
 |---|---|
 | TypeScript (`tsc --noEmit`) | Aprovado |
-| Arquivos de teste Vitest | 6 aprovados |
-| Testes automatizados | 82 aprovados |
+| Arquivos de teste Vitest | 8 aprovados |
+| Testes automatizados | 90 aprovados |
 | Testes com falha | 0 |
 | Build Vite de produção | Aprovado |
 | Módulos transformados no build | 1.945 |
@@ -42,6 +42,7 @@ Os testes automatizados cobrem, entre outros pontos:
 - componentes conexos e filtros de tamanho;
 - interpolação e monotonicidade de DV0,1, DV0,5 e DV0,9;
 - limites de confiabilidade para 300 dpi, 600 dpi e cobertura acima de 20%;
+- sinais de captura finitos, versionados e explicitamente não calibrados;
 - recálculo após inspeção manual;
 - geração de CSV sem valores inválidos;
 - cálculos auxiliares de pulverização já existentes.
@@ -58,6 +59,10 @@ Esta verificação demonstra consistência de software, ausência de erros conhe
 - robustez geral a foco, sombra, reflexo, papel, líquido, câmera ou scanner diferentes.
 
 A comprovação científica depende da bateria independente e do teste cego descritos em `docs/PLANO-VALIDACAO-CIENTIFICA.md`.
+
+Os sinais de foco, iluminação, exposição, reflexo e ocupação são diagnósticos
+informativos. Ainda não existem limites de recaptura validados nem uma coleção
+rotulada suficiente para transformá-los em bloqueios ou afirmar exatidão.
 
 ## Reprodutibilidade
 

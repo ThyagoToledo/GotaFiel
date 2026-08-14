@@ -26,9 +26,9 @@ As principais lacunas encontradas são:
 
 - um cartão fotografado em orientação vertical pode associar o lado curto da imagem ao lado longo físico, desperdiçando resolução e deformando a escala por eixo;
 - os percentis volumétricos são selecionados pelo primeiro degrau que ultrapassa 10%, 50% ou 90%, sem interpolação;
-- iluminação irregular, sombra, reflexo, foco, balanço de branco e resolução efetiva ainda não são avaliados de forma completa;
+- iluminação irregular, sombra, reflexo e foco já possuem sinais brutos informativos, mas ainda não têm limites calibrados; balanço de branco e cor do papel ainda não são avaliados de forma completa;
 - gotas sobrepostas são tratadas como um único componente;
-- a interface apresenta um veredito agronômico universal e uma classe ASABE derivada apenas do DV0,5 do cartão, o que não é sustentado pelo método atual;
+- os campos históricos de veredito/ASABE permanecem no contrato para compatibilidade, mas as novas análises publicam qualidade técnica da leitura e não uma classificação agronômica;
 - ainda não existe uma bateria independente suficiente para afirmar exatidão geral.
 
 ## 3. Evidências e como podem ser usadas

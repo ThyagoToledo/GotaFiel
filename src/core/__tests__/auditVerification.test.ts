@@ -88,6 +88,38 @@ describe('Auditoria Corretiva - Spray Analysis Core Verification', () => {
     expect(recalculated.span).toBe(initialAnalysis05.span);
   });
 
+  it('Inspeção manual preserva a qualidade original da captura', () => {
+    const quality = {
+      status: 'LIMITADA' as const,
+      effectiveDpi: 450,
+      orientationCorrected: false,
+      coverageReliable: true,
+      countDensityReliable: false,
+      sizeVolumeReliable: false,
+      warnings: ['Resolução efetiva limitada.'],
+      algorithmVersion: '3.2.0-alpha.1',
+      captureQuality: {
+        cardOccupancyPercent: 42,
+        focusLaplacianVariance: 12.5,
+        illuminationVariationPercent: 8,
+        darkPixelPercent: 1,
+        highlightPixelPercent: 0.2,
+        sampleCount: 1000,
+        version: 'capture-signals-v1' as const,
+        calibrationStatus: 'NAO_CALIBRADO' as const,
+      },
+    };
+    const withQuality = { ...initialAnalysis05, measurementQuality: quality };
+    const changed = {
+      ...withQuality,
+      droplets: withQuality.droplets.map((drop, index) => ({ ...drop, included: index !== 0 })),
+    };
+
+    const recalculated = recalculateAnalysisData(changed);
+
+    expect(recalculated.measurementQuality).toEqual(quality);
+  });
+
   // 4. Otsu=0 não transforma todo o fundo em gota
   it('Otsu=0 não transforma todo o fundo com stain=0 em gota', () => {
     const pixels = new Uint8ClampedArray(10 * 10 * 4); // all zero RGB values (stain = 0)
