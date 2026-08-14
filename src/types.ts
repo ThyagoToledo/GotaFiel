@@ -8,6 +8,29 @@ export type ASABECategory = 'Não classificada' | 'Muito Fina' | 'Fina' | 'Médi
 
 export type MeasurementQualityStatus = 'ADEQUADA' | 'LIMITADA' | 'INCONCLUSIVA';
 
+/**
+ * Sinais observáveis da captura. Eles ainda não são um veredito: os limites de
+ * recaptura só poderão ser definidos depois de uma coleção rotulada.
+ */
+export interface CaptureQualitySignals {
+  /** Percentual da área da foto ocupado pelo quadrilátero do cartão. */
+  cardOccupancyPercent: number;
+  /** Variância do Laplaciano na imagem retificada; maior tende a significar mais nitidez. */
+  focusLaplacianVariance: number;
+  /** Variação entre regiões do cartão, usada apenas como proxy de iluminação/sombra. */
+  illuminationVariationPercent: number;
+  /** Percentual de pixels muito escuros. */
+  darkPixelPercent: number;
+  /** Percentual de altas luzes neutras, usado como proxy de reflexo especular. */
+  highlightPixelPercent: number;
+  /** Número de amostras efetivamente usadas nos sinais de foco e exposição. */
+  sampleCount: number;
+  /** Identifica a versão e impede comparar números produzidos por fórmulas diferentes. */
+  version: 'capture-signals-v1';
+  /** Explicita que ainda não há limites calibrados para bloquear a captura. */
+  calibrationStatus: 'NAO_CALIBRADO';
+}
+
 export interface MeasurementQuality {
   /** Qualidade técnica da leitura, não um veredito agronômico. */
   status: MeasurementQualityStatus;
@@ -20,6 +43,7 @@ export interface MeasurementQuality {
   sizeVolumeReliable: boolean;
   warnings: string[];
   algorithmVersion: string;
+  captureQuality?: CaptureQualitySignals;
 }
 
 export interface DropletItem {

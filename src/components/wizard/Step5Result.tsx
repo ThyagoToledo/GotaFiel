@@ -135,6 +135,36 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           </section>
         )}
 
+        {quality.captureQuality && (
+          <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-4">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h3 className="text-xs font-bold text-on-surface">Sinais da captura</h3>
+              <span className="text-[10px] font-semibold text-on-surface-variant">informativos</span>
+            </div>
+            <p className="text-[11px] text-on-surface-variant leading-relaxed mb-3">
+              Estes números ajudam a comparar imagens, mas ainda não têm limites calibrados para bloquear uma captura.
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="rounded-lg bg-surface-container-low p-2">
+                <span className="block text-on-surface-variant">Cartão no quadro</span>
+                <strong className="text-on-surface">{quality.captureQuality.cardOccupancyPercent.toLocaleString('pt-BR')}%</strong>
+              </div>
+              <div className="rounded-lg bg-surface-container-low p-2">
+                <span className="block text-on-surface-variant">Nitidez (Laplaciano)</span>
+                <strong className="text-on-surface">{quality.captureQuality.focusLaplacianVariance.toLocaleString('pt-BR')}</strong>
+              </div>
+              <div className="rounded-lg bg-surface-container-low p-2">
+                <span className="block text-on-surface-variant">Variação de luz</span>
+                <strong className="text-on-surface">{quality.captureQuality.illuminationVariationPercent.toLocaleString('pt-BR')}%</strong>
+              </div>
+              <div className="rounded-lg bg-surface-container-low p-2">
+                <span className="block text-on-surface-variant">Altas luzes neutras</span>
+                <strong className="text-on-surface">{quality.captureQuality.highlightPixelPercent.toLocaleString('pt-BR')}%</strong>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Analyzed Image Preview (If runoff or standard) */}
         {hasSourceImage && (
           <section className="mt-1">

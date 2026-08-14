@@ -5,6 +5,7 @@ import {
   orientCropCornersForCard,
 } from './imageProcessor';
 import { assessMeasurementQuality } from './measurementQuality';
+import { assessCaptureQuality } from './captureQuality';
 import { AnalysisParams, CropCorners, ProcessedAnalysisMetrics, SampleHistogramBin } from './types';
 import { DropletItem, MeasurementQuality } from '../types';
 import { WorkerRequest, WorkerResponse } from './imageWorker';
@@ -183,6 +184,14 @@ export async function runImagePipeline(
 
       const binaryDataUrl = createBinaryMaskDataUrl(workerResult.binaryMask, targetWidth, targetHeight);
       const rectifiedDataUrl = createRgbaDataUrl(workerResult.rectifiedPixels, targetWidth, targetHeight);
+      const captureQuality = assessCaptureQuality({
+        rectifiedPixels: workerResult.rectifiedPixels,
+        rectWidthPx: targetWidth,
+        rectHeightPx: targetHeight,
+        sourceWidthPx: width,
+        sourceHeightPx: height,
+        corners: oriented.corners,
+      });
       const measurementQuality = assessMeasurementQuality({
         quadWidthPx: quad.widthPx,
         quadHeightPx: quad.heightPx,
@@ -190,6 +199,7 @@ export async function runImagePipeline(
         cardHeightMm: cardSizeMm.height,
         coveragePercent: workerResult.metrics.coveragePercent,
         orientationCorrected: oriented.orientationCorrected,
+        captureQuality,
       });
 
       return {
@@ -228,6 +238,14 @@ export async function runImagePipeline(
 
   const binaryDataUrl = createBinaryMaskDataUrl(core.binaryMask, targetWidth, targetHeight);
   const rectifiedDataUrl = createRgbaDataUrl(core.rectifiedPixels, targetWidth, targetHeight);
+  const captureQuality = assessCaptureQuality({
+    rectifiedPixels: core.rectifiedPixels,
+    rectWidthPx: targetWidth,
+    rectHeightPx: targetHeight,
+    sourceWidthPx: width,
+    sourceHeightPx: height,
+    corners: oriented.corners,
+  });
   const measurementQuality = assessMeasurementQuality({
     quadWidthPx: quad.widthPx,
     quadHeightPx: quad.heightPx,
@@ -235,6 +253,7 @@ export async function runImagePipeline(
     cardHeightMm: cardSizeMm.height,
     coveragePercent: core.metrics.coveragePercent,
     orientationCorrected: oriented.orientationCorrected,
+    captureQuality,
   });
 
   return {

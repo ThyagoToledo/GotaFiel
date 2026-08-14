@@ -4,6 +4,8 @@
 
 O processamento de imagem continua no navegador. A API envia ao Neon o resumo textual e numérico da análise: nome, talhão/cultura quando informados, densidade, cobertura, span, DV, volume estimado, versão do algoritmo e indicadores de confiabilidade.
 
+As análises novas também podem guardar `capture_quality`, um objeto numérico com ocupação do cartão, sinal de nitidez, variação de iluminação e altas luzes neutras. Esses sinais são diagnósticos informativos, versionados como `capture-signals-v1`, e permanecem marcados como `NAO_CALIBRADO` até existir uma coleção rotulada.
+
 Máscara, pixels, histograma e lista de gotas não são enviados ao Neon. Quando o usuário salva uma análise, a imagem original e o recorte retificado podem ser armazenados de forma privada no Vercel Blob; o Neon guarda apenas as URLs privadas usadas pelos endpoints autenticados do Gotas2.
 
 ## Configuração
@@ -26,7 +28,7 @@ A senha nunca é salva em texto puro: a API usa `scrypt` com salt individual. A 
 
 ## Migração da geração 3
 
-Projetos já existentes também devem executar novamente `scripts/neon-schema.sql`. Os comandos `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` acrescentam status da leitura, dpi efetivo, correção de orientação, confiabilidade por grupo de métricas, avisos, versão do algoritmo, passagens de suavização e preenchimento de buracos sem apagar as análises anteriores. Registros antigos recebem `INCONCLUSIVA` e versão `legacy`, pois não há informação suficiente para reavaliá-los retroativamente.
+Projetos já existentes também devem executar novamente `scripts/neon-schema.sql`. Os comandos `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` acrescentam status da leitura, dpi efetivo, correção de orientação, confiabilidade por grupo de métricas, avisos, sinais de captura, versão do algoritmo, passagens de suavização e preenchimento de buracos sem apagar as análises anteriores. Registros antigos recebem `INCONCLUSIVA` e versão `legacy`, pois não há informação suficiente para reavaliá-los retroativamente.
 
 ## Desenvolvimento local
 

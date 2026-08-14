@@ -1,7 +1,7 @@
-import type { MeasurementQuality } from '../types';
+import type { CaptureQualitySignals, MeasurementQuality } from '../types';
 
 /** Incrementar sempre que uma mudança puder alterar as métricas publicadas. */
-export const ANALYSIS_ALGORITHM_VERSION = '3.1.0-alpha.1';
+export const ANALYSIS_ALGORITHM_VERSION = '3.2.0-alpha.1';
 
 export interface MeasurementQualityInput {
   quadWidthPx: number;
@@ -10,6 +10,7 @@ export interface MeasurementQualityInput {
   cardHeightMm: number;
   coveragePercent: number;
   orientationCorrected: boolean;
+  captureQuality?: CaptureQualitySignals;
 }
 
 /**
@@ -27,6 +28,7 @@ export function assessMeasurementQuality(input: MeasurementQualityInput): Measur
     cardHeightMm,
     coveragePercent,
     orientationCorrected,
+    captureQuality,
   } = input;
 
   const dpiX = cardWidthMm > 0 ? quadWidthPx / (cardWidthMm / 25.4) : 0;
@@ -81,6 +83,7 @@ export function assessMeasurementQuality(input: MeasurementQualityInput): Measur
     sizeVolumeReliable,
     warnings,
     algorithmVersion: ANALYSIS_ALGORITHM_VERSION,
+    ...(captureQuality ? { captureQuality } : {}),
   };
 }
 

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS gotas_analyses (
   count_density_reliable BOOLEAN NOT NULL DEFAULT FALSE,
   size_volume_reliable BOOLEAN NOT NULL DEFAULT FALSE,
   quality_warnings JSONB NOT NULL DEFAULT '[]'::jsonb,
+  capture_quality JSONB,
   algorithm_version TEXT NOT NULL DEFAULT 'legacy',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -68,6 +69,7 @@ ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS coverage_reliable BOOLEAN NO
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS count_density_reliable BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS size_volume_reliable BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS quality_warnings JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS capture_quality JSONB;
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS algorithm_version TEXT NOT NULL DEFAULT 'legacy';
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS mean_filter_passes INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS fill_holes BOOLEAN NOT NULL DEFAULT FALSE;
