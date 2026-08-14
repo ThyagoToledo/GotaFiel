@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Image as ImageIcon, ChevronDown, ChevronUp, BarChart2, Plus, Minus, Settings2, AlertTriangle, Sparkles, Layers, ShieldCheck, SunMedium } from 'lucide-react';
 import { BinarizationMethod } from '../../core/types';
 
 interface Step4SensitivityProps {
@@ -15,6 +15,12 @@ interface Step4SensitivityProps {
   onChangeMeanFilterPasses?: (val: number) => void;
   fillHoles?: boolean;
   onChangeFillHoles?: (val: boolean) => void;
+  splitOverlappingDroplets?: boolean;
+  onChangeSplitOverlappingDroplets?: (val: boolean) => void;
+  filterArtifacts?: boolean;
+  onChangeFilterArtifacts?: (val: boolean) => void;
+  normalizeIllumination?: boolean;
+  onChangeNormalizeIllumination?: (val: boolean) => void;
   binaryMaskDataUrl?: string;
   isProcessing?: boolean;
   detectedDroplets?: number;
@@ -25,7 +31,7 @@ interface Step4SensitivityProps {
 export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   sensitivity,
   onChangeSensitivity,
-  method = 'chromatic',
+  method = 'hybrid',
   onChangeMethod,
   minDropletUm = 50,
   onChangeMinDropletUm,
@@ -35,6 +41,12 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   onChangeMeanFilterPasses,
   fillHoles = true,
   onChangeFillHoles,
+  splitOverlappingDroplets = true,
+  onChangeSplitOverlappingDroplets,
+  filterArtifacts = true,
+  onChangeFilterArtifacts,
+  normalizeIllumination = true,
+  onChangeNormalizeIllumination,
   binaryMaskDataUrl,
   isProcessing = false,
   detectedDroplets,
@@ -45,6 +57,9 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   const [localMinDroplet, setLocalMinDroplet] = useState(minDropletUm);
   const [localDiscardBorder, setLocalDiscardBorder] = useState(discardBorder);
   const [localMethod, setLocalMethod] = useState<BinarizationMethod>(method);
+  const [localSplitOverlapping, setLocalSplitOverlapping] = useState(splitOverlappingDroplets);
+  const [localFilterArtifacts, setLocalFilterArtifacts] = useState(filterArtifacts);
+  const [localNormalizeIllum, setLocalNormalizeIllum] = useState(normalizeIllumination);
 
   // Calculate percentage fills for custom visual tracks
   const sensPercent = Math.min(100, Math.max(0, sensitivity + 50));
@@ -65,6 +80,12 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
     setLocalMethod(m);
     onChangeMethod?.(m);
   };
+
+  const methodLabel = localMethod === 'hybrid'
+    ? 'Híbrido Adaptativo'
+    : localMethod === 'chromatic'
+      ? 'Cromático'
+      : 'Compatível em cinza';
 
   return (
     <div className="flex-1 flex flex-col max-w-[1200px] mx-auto w-full pb-36 px-4 pt-4">
@@ -90,7 +111,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
           <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
             <h2 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
               <ImageIcon className="w-4 h-4 text-primary" />
-              Prévia da Máscara Binária ({localMethod === 'chromatic' ? 'Cromático' : 'Compatível em cinza'})
+              Prévia da Máscara Binária ({methodLabel})
             </h2>
           </div>
           <div className="flex-1 relative w-full h-full p-2 flex items-center justify-center bg-black">
@@ -111,9 +132,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
           </div>
         </section>
 
-        {/* Zero detections is indistinguishable from a clean card unless we say so.
-            The legacy threshold in particular can reject every droplet on palettes
-            where the stain is not much darker than the paper. */}
+        {/* Zero detections warning */}
         {!isProcessing && !hasError && detectedDroplets === 0 && (
           <section className="p-3.5 rounded-2xl border border-error/40 bg-error-container text-on-error-container shadow-xs flex items-start gap-2.5">
             <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
@@ -121,8 +140,8 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
               <span className="text-xs font-bold">Nenhuma gota detectada</span>
               <span className="text-[11px] leading-relaxed">
                 {localMethod === 'gotas-legacy'
-                  ? 'O método GOTAS (Cinza) só separa manchas bem mais escuras que o papel. Experimente o método Cromático, que é o indicado para gotas azuis.'
-                  : 'Ajuste a sensibilidade para um valor negativo, reduza o tamanho mínimo de gota, ou refaça o corte do cartão no passo 2.'}
+                  ? 'O método GOTAS (Cinza) só separa manchas bem mais escuras que o papel. Experimente o método Híbrido ou Cromático.'
+                  : 'Ajuste a sensibilidade do limiar, reduza o tamanho mínimo de gota ou refaça o corte do cartão no passo 2.'}
               </span>
             </div>
           </section>
@@ -132,30 +151,47 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
         <section className="p-3.5 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-xs flex flex-col gap-2">
           <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface">
             <Settings2 className="w-4 h-4 text-primary" />
-            <span>Método de Binarização:</span>
+            <span>Método de Segmentação:</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleMethodChange('hybrid')}
+              className={`py-2.5 px-2 rounded-xl text-[11px] font-bold transition-all text-center border cursor-pointer flex flex-col items-center gap-0.5 ${
+                localMethod === 'hybrid'
+                  ? 'bg-primary text-on-primary border-primary shadow-xs'
+                  : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                Híbrido
+              </span>
+              <span className="text-[9px] opacity-80 font-normal">Recomendado</span>
+            </button>
             <button
               type="button"
               onClick={() => handleMethodChange('chromatic')}
-              className={`py-3 min-h-[44px] px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl text-[11px] font-bold transition-all text-center border cursor-pointer flex flex-col items-center gap-0.5 ${
                 localMethod === 'chromatic'
                   ? 'bg-primary text-on-primary border-primary shadow-xs'
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
               }`}
             >
-              Cromático (B - max)
+              <span>Cromático</span>
+              <span className="text-[9px] opacity-80 font-normal">B - max(R,G)</span>
             </button>
             <button
               type="button"
               onClick={() => handleMethodChange('gotas-legacy')}
-              className={`py-3 min-h-[44px] px-2.5 rounded-xl text-xs font-bold transition-all text-center border cursor-pointer ${
+              className={`py-2.5 px-2 rounded-xl text-[11px] font-bold transition-all text-center border cursor-pointer flex flex-col items-center gap-0.5 ${
                 localMethod === 'gotas-legacy'
                   ? 'bg-primary text-on-primary border-primary shadow-xs'
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
               }`}
             >
-              Compatível em cinza
+              <span>Cinza (GOTAS)</span>
+              <span className="text-[9px] opacity-80 font-normal">Histórico</span>
             </button>
           </div>
         </section>
@@ -170,9 +206,6 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   Sensibilidade do Limiar
                 </label>
                 <span className="text-[11px] text-on-surface-variant">
-                  {/* Otsu only exists in the chromatic path. The legacy path uses the
-                      historical GOTAS threshold ((max-min)+mean)/3, so naming Otsu there
-                      would misdescribe what the slider actually shifts. */}
                   {localMethod === 'gotas-legacy'
                     ? 'Ajuste do limiar histórico GOTAS (-50 a +50)'
                     : 'Ajuste fino de Otsu (-50 a +50)'}
@@ -245,7 +278,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full flex items-center justify-between p-4 text-left font-bold text-sm text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer"
             >
-              <span>Opções Avançadas de Filtro</span>
+              <span>Opções Avançadas e Filtros</span>
               {showAdvanced ? (
                 <ChevronUp className="w-5 h-5 text-on-surface-variant" />
               ) : (
@@ -323,6 +356,71 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                     ))}
                   </div>
                 </div>
+
+                {/* Overlapping Droplet Separation Toggle */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-primary" />
+                      Separar gotas sobrepostas (Aglomerados)
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant">Identifica múltiplos centros de gotas em contato com constrição</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={localSplitOverlapping}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setLocalSplitOverlapping(val);
+                      onChangeSplitOverlappingDroplets?.(val);
+                    }}
+                    className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
+                  />
+                </div>
+
+                {/* Filter Artifacts / Fibers Toggle */}
+                <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+                      Filtrar fibras e riscos lineares
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant">Rejeita artefatos alongados não-circulares (poeiras/arranhões)</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={localFilterArtifacts}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setLocalFilterArtifacts(val);
+                      onChangeFilterArtifacts?.(val);
+                    }}
+                    className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
+                  />
+                </div>
+
+                {/* Background Shadow Normalization Toggle */}
+                {localMethod !== 'gotas-legacy' && (
+                  <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-on-surface text-xs flex items-center gap-1.5">
+                        <SunMedium className="w-3.5 h-3.5 text-primary" />
+                        Compensar sombras (Normalização de fundo)
+                      </span>
+                      <span className="text-[10px] text-on-surface-variant">Corrige gradientes de iluminação e vinhetamento</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={localNormalizeIllum}
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        setLocalNormalizeIllum(val);
+                        onChangeNormalizeIllumination?.(val);
+                      }}
+                      className="w-5 h-5 text-primary rounded border-outline-variant accent-primary cursor-pointer"
+                    />
+                  </div>
+                )}
 
                 {/* Filter Edges Toggle */}
                 <div className="flex items-center justify-between pt-2 border-t border-outline-variant/40">

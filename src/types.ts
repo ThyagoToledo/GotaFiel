@@ -55,6 +55,8 @@ export interface DropletItem {
   included: boolean;
   pixelCount?: number;
   areaMm2?: number;
+  roundness?: number;
+  isSplitCluster?: boolean;
 }
 
 export interface AnalysisData {
@@ -77,9 +79,12 @@ export interface AnalysisData {
   cardSizeMm: { width: number; height: number };
   dpi: number;
   sensitivity: number; // -50 to +50
-  analysisMethod?: 'chromatic' | 'gotas-legacy';
+  analysisMethod?: 'chromatic' | 'gotas-legacy' | 'hybrid';
   meanFilterPasses?: number;
   fillHoles?: boolean;
+  splitOverlappingDroplets?: boolean;
+  filterArtifacts?: boolean;
+  normalizeIllumination?: boolean;
 
   // Calibration & Resolution persistence.
   // The calibration is (cardSizeMm, rectWidthPx, rectHeightPx). mm2PerPixel is derived

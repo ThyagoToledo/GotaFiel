@@ -37,11 +37,14 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   const [currentStep, setCurrentStep] = useState<number>(initialAnalysis ? 5 : 1);
 
   const [corners, setCorners] = useState<CropCorners>(DEFAULT_CORNERS);
-  const [method, setMethod] = useState<BinarizationMethod>('chromatic');
+  const [method, setMethod] = useState<BinarizationMethod>('hybrid');
   const [minDropletUm, setMinDropletUm] = useState<number>(50);
   const [discardBorder, setDiscardBorder] = useState<boolean>(true);
   const [meanFilterPasses, setMeanFilterPasses] = useState<number>(1);
   const [fillHoles, setFillHoles] = useState<boolean>(true);
+  const [splitOverlappingDroplets, setSplitOverlappingDroplets] = useState<boolean>(true);
+  const [filterArtifacts, setFilterArtifacts] = useState<boolean>(true);
+  const [normalizeIllumination, setNormalizeIllumination] = useState<boolean>(true);
 
   const [binaryMaskDataUrl, setBinaryMaskDataUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -88,7 +91,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       sens: number,
       binMethod: BinarizationMethod,
       minUm: number,
-      discardBrd: boolean
+      discardBrd: boolean,
+      splitOverlap: boolean,
+      filterArt: boolean,
+      normIllum: boolean
     ) => {
       if (!imgUrl) return;
       setIsProcessing(true);
@@ -103,6 +109,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           discardBorder: discardBrd,
           meanFilterPasses: binMethod === 'gotas-legacy' ? meanFilterPasses : 0,
           fillHoles: binMethod === 'gotas-legacy' ? fillHoles : false,
+          splitOverlappingDroplets: splitOverlap,
+          filterArtifacts: filterArt,
+          normalizeIllumination: normIllum,
         };
 
         const result: PipelineResult = await runImagePipeline(
@@ -124,6 +133,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           analysisMethod: binMethod,
           meanFilterPasses: binMethod === 'gotas-legacy' ? meanFilterPasses : 0,
           fillHoles: binMethod === 'gotas-legacy' ? fillHoles : false,
+          splitOverlappingDroplets: splitOverlap,
+          filterArtifacts: filterArt,
+          normalizeIllumination: normIllum,
           mm2PerPixel: result.mm2PerPixel,
           mmPerPixel: result.mmPerPixel,
           rectWidthPx: result.rectWidthPx,
@@ -170,7 +182,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         analysisState.sensitivity,
         method,
         minDropletUm,
-        discardBorder
+        discardBorder,
+        splitOverlappingDroplets,
+        filterArtifacts,
+        normalizeIllumination
       );
     }
   }, [
@@ -183,6 +198,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     discardBorder,
     meanFilterPasses,
     fillHoles,
+    splitOverlappingDroplets,
+    filterArtifacts,
+    normalizeIllumination,
     executePipeline,
   ]);
 
@@ -299,6 +317,12 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onChangeMeanFilterPasses={setMeanFilterPasses}
           fillHoles={fillHoles}
           onChangeFillHoles={setFillHoles}
+          splitOverlappingDroplets={splitOverlappingDroplets}
+          onChangeSplitOverlappingDroplets={setSplitOverlappingDroplets}
+          filterArtifacts={filterArtifacts}
+          onChangeFilterArtifacts={setFilterArtifacts}
+          normalizeIllumination={normalizeIllumination}
+          onChangeNormalizeIllumination={setNormalizeIllumination}
           binaryMaskDataUrl={binaryMaskDataUrl}
           isProcessing={isProcessing}
           detectedDroplets={analysisState.totalDroplets}

@@ -334,14 +334,16 @@ export function rectifyPixels(
   const targetPixels = new Uint8ClampedArray(targetWidth * targetHeight * 4);
 
   // Convert percentage corners to source image pixel coordinates
-  const x0 = (corners.tl.x / 100) * srcWidth;
-  const y0 = (corners.tl.y / 100) * srcHeight;
-  const x1 = (corners.tr.x / 100) * srcWidth;
-  const y1 = (corners.tr.y / 100) * srcHeight;
-  const x2 = (corners.br.x / 100) * srcWidth;
-  const y2 = (corners.br.y / 100) * srcHeight;
-  const x3 = (corners.bl.x / 100) * srcWidth;
-  const y3 = (corners.bl.y / 100) * srcHeight;
+  const maxSrcX = Math.max(1, srcWidth - 1);
+  const maxSrcY = Math.max(1, srcHeight - 1);
+  const x0 = (corners.tl.x / 100) * maxSrcX;
+  const y0 = (corners.tl.y / 100) * maxSrcY;
+  const x1 = (corners.tr.x / 100) * maxSrcX;
+  const y1 = (corners.tr.y / 100) * maxSrcY;
+  const x2 = (corners.br.x / 100) * maxSrcX;
+  const y2 = (corners.br.y / 100) * maxSrcY;
+  const x3 = (corners.bl.x / 100) * maxSrcX;
+  const y3 = (corners.bl.y / 100) * maxSrcY;
 
   // 3x3 Homography matrix mapping (u, v) in [0, 1]x[0, 1] to (x, y) in source
   const H = computeHomographyFromNormalizedQuad(x0, y0, x1, y1, x2, y2, x3, y3);
@@ -432,6 +434,30 @@ export function binarizeImageBuffer(
 
     for (let i = 0; i < totalPixels; i++) {
       binaryMask[i] = stainValues[i] <= thresholdUsed ? 1 : 0;
+    }
+
+    return { binaryMask, thresholdUsed, stainValues };
+  } else if (method === 'hybrid') {
+    // Hybrid Method: Chromatic Blue Contrast + Inverse Luminance Contrast
+    const histogram = new Array(256).fill(0);
+
+    for (let i = 0; i < totalPixels; i++) {
+      const r = pixels[i * 4];
+      const g = pixels[i * 4 + 1];
+      const b = pixels[i * 4 + 2];
+      const chromatic = Math.max(0, b - Math.max(r, g));
+      const lumContrast = Math.max(0, Math.round(255 - (0.299 * r + 0.587 * g + 0.114 * b)));
+      const stain = Math.max(0, Math.min(255, Math.round(0.7 * chromatic + 0.3 * lumContrast)));
+
+      stainValues[i] = stain;
+      histogram[stain]++;
+    }
+
+    const otsuVal = computeOtsuThreshold(histogram, totalPixels);
+    const thresholdUsed = Math.max(0, Math.min(255, otsuVal + thresholdAdjustment));
+
+    for (let i = 0; i < totalPixels; i++) {
+      binaryMask[i] = stainValues[i] > thresholdUsed ? 1 : 0;
     }
 
     return { binaryMask, thresholdUsed, stainValues };
@@ -552,11 +578,295 @@ export function fillBinaryHoles(binaryMask: Uint8Array, width: number, height: n
   return output;
 }
 
+/**
+ * Normaliza o fundo amarelo do cartão hidrossensível compensando gradientes de
+ * iluminação e sombras parciais através de um campo suave de fundo.
+ */
+export function normalizeCardBackground(
+  pixels: Uint8ClampedArray | Uint8Array,
+  width: number,
+  height: number,
+  tileSize = 32
+): Uint8ClampedArray {
+  const total = width * height;
+  if (width <= 0 || height <= 0 || pixels.length < total * 4) {
+    return new Uint8ClampedArray(pixels);
+  }
+
+  const tilesX = Math.max(1, Math.ceil(width / tileSize));
+  const tilesY = Math.max(1, Math.ceil(height / tileSize));
+  const bgR = new Float32Array(tilesX * tilesY);
+  const bgG = new Float32Array(tilesX * tilesY);
+  const bgB = new Float32Array(tilesX * tilesY);
+
+  for (let ty = 0; ty < tilesY; ty++) {
+    for (let tx = 0; tx < tilesX; tx++) {
+      const startX = tx * tileSize;
+      const endX = Math.min(width, startX + tileSize);
+      const startY = ty * tileSize;
+      const endY = Math.min(height, startY + tileSize);
+
+      const rList: number[] = [];
+      const gList: number[] = [];
+      const bList: number[] = [];
+
+      for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+          const idx = (y * width + x) * 4;
+          const r = pixels[idx];
+          const g = pixels[idx + 1];
+          const b = pixels[idx + 2];
+          if (b <= Math.max(r, g) - 5 || (r + g > 280)) {
+            rList.push(r);
+            gList.push(g);
+            bList.push(b);
+          }
+        }
+      }
+
+      const tIdx = ty * tilesX + tx;
+      if (rList.length > 5) {
+        rList.sort((a, b) => a - b);
+        gList.sort((a, b) => a - b);
+        bList.sort((a, b) => a - b);
+        const p80 = Math.floor(rList.length * 0.8);
+        bgR[tIdx] = rList[p80];
+        bgG[tIdx] = gList[p80];
+        bgB[tIdx] = bList[p80];
+      } else {
+        bgR[tIdx] = 235;
+        bgG[tIdx] = 220;
+        bgB[tIdx] = 55;
+      }
+    }
+  }
+
+  const output = new Uint8ClampedArray(pixels.length);
+  const targetR = 235;
+  const targetG = 220;
+  const targetB = 55;
+
+  for (let y = 0; y < height; y++) {
+    const normY = (y / Math.max(1, height - 1)) * (tilesY - 1);
+    const ty0 = Math.floor(normY);
+    const ty1 = Math.min(tilesY - 1, ty0 + 1);
+    const fy = normY - ty0;
+
+    for (let x = 0; x < width; x++) {
+      const normX = (x / Math.max(1, width - 1)) * (tilesX - 1);
+      const tx0 = Math.floor(normX);
+      const tx1 = Math.min(tilesX - 1, tx0 + 1);
+      const fx = normX - tx0;
+
+      const idx00 = ty0 * tilesX + tx0;
+      const idx10 = ty0 * tilesX + tx1;
+      const idx01 = ty1 * tilesX + tx0;
+      const idx11 = ty1 * tilesX + tx1;
+
+      const interpR = (1 - fy) * ((1 - fx) * bgR[idx00] + fx * bgR[idx10]) + fy * ((1 - fx) * bgR[idx01] + fx * bgR[idx11]);
+      const interpG = (1 - fy) * ((1 - fx) * bgG[idx00] + fx * bgG[idx10]) + fy * ((1 - fx) * bgG[idx01] + fx * bgG[idx11]);
+      const interpB = (1 - fy) * ((1 - fx) * bgB[idx00] + fx * bgB[idx10]) + fy * ((1 - fx) * bgB[idx01] + fx * bgB[idx11]);
+
+      const pIdx = (y * width + x) * 4;
+      const r = pixels[pIdx];
+      const g = pixels[pIdx + 1];
+      const b = pixels[pIdx + 2];
+
+      const scaleR = targetR / Math.max(30, interpR);
+      const scaleG = targetG / Math.max(30, interpG);
+      const scaleB = targetB / Math.max(10, interpB);
+
+      output[pIdx] = Math.max(0, Math.min(255, Math.round(r * scaleR)));
+      output[pIdx + 1] = Math.max(0, Math.min(255, Math.round(g * scaleG)));
+      output[pIdx + 2] = Math.max(0, Math.min(255, Math.round(b * scaleB)));
+      output[pIdx + 3] = pixels[pIdx + 3];
+    }
+  }
+
+  return output;
+}
+
+/**
+ * Separa de forma conservadora componentes que correspondem a gotas sobrepostas
+ * usando transformada de distância e identificação de gargalos.
+ */
+export function splitOverlappingCluster(
+  compPixels: number[],
+  width: number,
+  height: number,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number
+): Array<{ pixels: number[]; minX: number; maxX: number; minY: number; maxY: number }> {
+  const boxW = maxX - minX + 3;
+  const boxH = maxY - minY + 3;
+  const compMask = new Uint8Array(boxW * boxH);
+  const dist = new Float32Array(boxW * boxH);
+
+  for (const idx of compPixels) {
+    const px = (idx % width) - minX + 1;
+    const py = Math.floor(idx / width) - minY + 1;
+    compMask[py * boxW + px] = 1;
+  }
+
+  // 2-pass Chamfer distance transform
+  const INF = 1e6;
+  dist.fill(INF);
+  for (let y = 0; y < boxH; y++) {
+    for (let x = 0; x < boxW; x++) {
+      const idx = y * boxW + x;
+      if (compMask[idx] === 0) {
+        dist[idx] = 0;
+      } else {
+        let d = dist[idx];
+        if (x > 0) d = Math.min(d, dist[idx - 1] + 1);
+        if (y > 0) {
+          d = Math.min(d, dist[idx - boxW] + 1);
+          if (x > 0) d = Math.min(d, dist[idx - boxW - 1] + 1.414);
+          if (x < boxW - 1) d = Math.min(d, dist[idx - boxW + 1] + 1.414);
+        }
+        dist[idx] = d;
+      }
+    }
+  }
+  for (let y = boxH - 1; y >= 0; y--) {
+    for (let x = boxW - 1; x >= 0; x--) {
+      const idx = y * boxW + x;
+      if (compMask[idx] === 1) {
+        let d = dist[idx];
+        if (x < boxW - 1) d = Math.min(d, dist[idx + 1] + 1);
+        if (y < boxH - 1) {
+          d = Math.min(d, dist[idx + boxW] + 1);
+          if (x < boxW - 1) d = Math.min(d, dist[idx + boxW + 1] + 1.414);
+          if (x > 0) d = Math.min(d, dist[idx + boxW - 1] + 1.414);
+        }
+        dist[idx] = d;
+      }
+    }
+  }
+
+  // Encontrar picos de distância significativos (raio >= 2 px)
+  const peaks: Array<{ x: number; y: number; r: number }> = [];
+  for (let y = 1; y < boxH - 1; y++) {
+    for (let x = 1; x < boxW - 1; x++) {
+      const idx = y * boxW + x;
+      const r = dist[idx];
+      if (r < 2.5) continue;
+
+      let isMax = true;
+      const win = Math.max(2, Math.floor(r * 0.6));
+      for (let dy = -win; dy <= win && isMax; dy++) {
+        for (let dx = -win; dx <= win && isMax; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < boxW && ny >= 0 && ny < boxH) {
+            const nVal = dist[ny * boxW + nx];
+            if (nVal > r || (nVal === r && (ny < y || (ny === y && nx < x)))) {
+              isMax = false;
+            }
+          }
+        }
+      }
+      if (isMax) {
+        peaks.push({ x, y, r });
+      }
+    }
+  }
+
+  if (peaks.length <= 1) {
+    return [{ pixels: compPixels, minX, maxX, minY, maxY }];
+  }
+
+  // Filtrar picos muito próximos entre si (manter o maior)
+  const filteredPeaks: Array<{ x: number; y: number; r: number }> = [];
+  peaks.sort((a, b) => b.r - a.r);
+  for (const p of peaks) {
+    let tooClose = false;
+    for (const fp of filteredPeaks) {
+      const distBetween = Math.hypot(p.x - fp.x, p.y - fp.y);
+      if (distBetween < Math.max(p.r, fp.r) * 0.85) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (!tooClose) filteredPeaks.push(p);
+  }
+
+  if (filteredPeaks.length <= 1) {
+    return [{ pixels: compPixels, minX, maxX, minY, maxY }];
+  }
+
+  // Verificar se há constrição/gargalo entre os picos
+  let validConstriction = false;
+  for (let i = 0; i < filteredPeaks.length && !validConstriction; i++) {
+    for (let j = i + 1; j < filteredPeaks.length; j++) {
+      const p1 = filteredPeaks[i];
+      const p2 = filteredPeaks[j];
+      const steps = Math.max(5, Math.ceil(Math.hypot(p1.x - p2.x, p1.y - p2.y)));
+      let minAlongLine = INF;
+      for (let s = 1; s < steps; s++) {
+        const lx = Math.round(p1.x + (s / steps) * (p2.x - p1.x));
+        const ly = Math.round(p1.y + (s / steps) * (p2.y - p1.y));
+        minAlongLine = Math.min(minAlongLine, dist[ly * boxW + lx]);
+      }
+      if (minAlongLine < Math.min(p1.r, p2.r) * 0.88) {
+        validConstriction = true;
+        break;
+      }
+    }
+  }
+
+  if (!validConstriction) {
+    return [{ pixels: compPixels, minX, maxX, minY, maxY }];
+  }
+
+  // Voronoi assignment dos pixels para o pico mais próximo com peso no raio
+  const subClusters: Array<{ pixels: number[]; minX: number; maxX: number; minY: number; maxY: number }> =
+    filteredPeaks.map(() => ({ pixels: [], minX: width, maxX: 0, minY: height, maxY: 0 }));
+
+  for (const idx of compPixels) {
+    const gx = idx % width;
+    const gy = Math.floor(idx / width);
+    const lx = gx - minX + 1;
+    const ly = gy - minY + 1;
+
+    let bestDist = INF;
+    let bestCluster = 0;
+    for (let k = 0; k < filteredPeaks.length; k++) {
+      const fp = filteredPeaks[k];
+      const d = Math.hypot(lx - fp.x, ly - fp.y) / fp.r;
+      if (d < bestDist) {
+        bestDist = d;
+        bestCluster = k;
+      }
+    }
+
+    const cluster = subClusters[bestCluster];
+    cluster.pixels.push(idx);
+    if (gx < cluster.minX) cluster.minX = gx;
+    if (gx > cluster.maxX) cluster.maxX = gx;
+    if (gy < cluster.minY) cluster.minY = gy;
+    if (gy > cluster.maxY) cluster.maxY = gy;
+  }
+
+  return subClusters.filter((c) => c.pixels.length > 0);
+}
+
 export function findConnectedComponents(
   binaryMask: Uint8Array,
   width: number,
   height: number,
-  params: { discardBorder: boolean; minAreaPx: number; minDropletUm: number; mm2PerPixel: number }
+  params: {
+    discardBorder: boolean;
+    minAreaPx: number;
+    minDropletUm: number;
+    mm2PerPixel: number;
+    splitOverlappingDroplets?: boolean;
+    filterArtifacts?: boolean;
+    roundnessMin?: number;
+  }
 ): DropletComponent[] {
   const visited = new Uint8Array(width * height);
   const rawComponents: Array<{
@@ -569,6 +879,8 @@ export function findConnectedComponents(
     sumX: number;
     sumY: number;
     touchesBorder: boolean;
+    roundness: number;
+    isSplitCluster: boolean;
   }> = [];
 
   let nextId = 1;
@@ -577,16 +889,14 @@ export function findConnectedComponents(
     for (let x = 0; x < width; x++) {
       const idx = y * width + x;
       if (binaryMask[idx] === 1 && visited[idx] === 0) {
-        let pixelCount = 0;
         let minX = x;
         let maxX = x;
         let minY = y;
         let maxY = y;
-        let sumX = 0;
-        let sumY = 0;
         let touchesBorder = false;
 
         const queue: number[] = [idx];
+        const compPixels: number[] = [idx];
         visited[idx] = 1;
 
         let qHead = 0;
@@ -594,10 +904,6 @@ export function findConnectedComponents(
           const currIdx = queue[qHead++];
           const cy = Math.floor(currIdx / width);
           const cx = currIdx % width;
-
-          pixelCount++;
-          sumX += cx;
-          sumY += cy;
 
           if (cx < minX) minX = cx;
           if (cx > maxX) maxX = cx;
@@ -619,6 +925,7 @@ export function findConnectedComponents(
                 if (binaryMask[nIdx] === 1 && visited[nIdx] === 0) {
                   visited[nIdx] = 1;
                   queue.push(nIdx);
+                  compPixels.push(nIdx);
                 }
               }
             }
@@ -629,10 +936,71 @@ export function findConnectedComponents(
           continue;
         }
 
-        if (pixelCount >= params.minAreaPx) {
+        if (compPixels.length < params.minAreaPx) {
+          continue;
+        }
+
+        // Calcula perímetro para circularidade
+        let perimeter = 0;
+        for (const pIdx of compPixels) {
+          const px = pIdx % width;
+          const py = Math.floor(pIdx / width);
+          if (
+            px === 0 || px === width - 1 || py === 0 || py === height - 1 ||
+            binaryMask[pIdx - 1] === 0 || binaryMask[pIdx + 1] === 0 ||
+            binaryMask[pIdx - width] === 0 || binaryMask[pIdx + width] === 0
+          ) {
+            perimeter++;
+          }
+        }
+        const roundness = Math.min(1.0, (4 * Math.PI * compPixels.length) / Math.max(1, perimeter * perimeter));
+
+        // Filtro de artefatos lineares / fibras quando ativado
+        if (
+          (params.filterArtifacts || params.roundnessMin !== undefined) &&
+          compPixels.length > 15 &&
+          roundness < (params.roundnessMin ?? 0.15)
+        ) {
+          continue;
+        }
+
+        // Separação de gotas sobrepostas quando ativada
+        if (params.splitOverlappingDroplets && compPixels.length >= 35) {
+          const splitParts = splitOverlappingCluster(compPixels, width, height, minX, maxX, minY, maxY);
+          const isSplit = splitParts.length > 1;
+
+          for (const part of splitParts) {
+            if (part.pixels.length < params.minAreaPx) continue;
+            let sumX = 0;
+            let sumY = 0;
+            for (const pIdx of part.pixels) {
+              sumX += pIdx % width;
+              sumY += Math.floor(pIdx / width);
+            }
+            rawComponents.push({
+              id: nextId++,
+              pixelCount: part.pixels.length,
+              minX: part.minX,
+              maxX: part.maxX,
+              minY: part.minY,
+              maxY: part.maxY,
+              sumX,
+              sumY,
+              touchesBorder,
+              roundness,
+              isSplitCluster: isSplit,
+            });
+          }
+        } else {
+          let sumX = 0;
+          let sumY = 0;
+          for (const pIdx of compPixels) {
+            sumX += pIdx % width;
+            sumY += Math.floor(pIdx / width);
+          }
           rawComponents.push({
             id: nextId++,
-            pixelCount,
+            pixelCount: compPixels.length,
             minX,
             maxX,
             minY,
@@ -640,6 +1008,8 @@ export function findConnectedComponents(
             sumX,
             sumY,
             touchesBorder,
+            roundness,
+            isSplitCluster: false,
           });
         }
       }
@@ -672,6 +1042,8 @@ export function findConnectedComponents(
       maxY: c.maxY,
       touchesBorder: c.touchesBorder,
       included,
+      roundness: Number(c.roundness.toFixed(3)),
+      isSplitCluster: c.isSplitCluster,
     });
   }
 
@@ -906,6 +1278,8 @@ export function convertComponentsToDropletItems(
       included: comp.included,
       pixelCount: comp.pixelCount,
       areaMm2: comp.areaMm2,
+      roundness: comp.roundness,
+      isSplitCluster: comp.isSplitCluster,
     };
   });
 }
