@@ -120,7 +120,7 @@ Serão produzidos avisos rastreáveis para:
 - cobertura acima de 20%: cobertura pode ser usada, mas contagem, densidade, DVs e volume ficam pouco confiáveis;
 - cartão pequeno no enquadramento, recorte incompatível, foco baixo, sombra forte, altas luzes estouradas ou cor do papel incompatível.
 
-Os primeiros controles implementados serão orientação, dpi efetivo e sobreposição. Foco, iluminação e cor serão adicionados depois de calibrados com imagens rotuladas, para evitar limites arbitrários.
+Os primeiros controles implementados foram orientação, dpi efetivo e sobreposição. Na Fase 2, o sistema passou a registrar sinais brutos de foco, iluminação, altas luzes neutras e ocupação do cartão. Eles são exibidos como informativos e versionados como `capture-signals-v1`; ainda não bloqueiam a captura nem alteram a confiabilidade, porque seus limites precisam ser calibrados com imagens rotuladas.
 
 ### 5.3 Normalização e segmentação híbrida
 
@@ -191,7 +191,12 @@ As imagens permanecem privadas no Vercel Blob e são renderizadas pelo endpoint 
 ### Fase 2 — qualidade da imagem
 
 - medir foco, sombra, reflexo, exposição e ocupação do cartão no quadro;
-- criar bloqueios e instruções de recaptura;
+- registrar a variância do Laplaciano no recorte retificado como sinal de nitidez;
+- registrar a variação entre regiões do cartão como proxy de iluminação/sombra;
+- registrar pixels escuros e altas luzes neutras como sinais de exposição/reflexo;
+- registrar a ocupação do quadrilátero na fotografia original;
+- exibir os sinais com o rótulo `NAO_CALIBRADO`, sem transformar valores em aprovação;
+- criar bloqueios e instruções de recaptura somente depois da calibração;
 - validar limites em uma coleção rotulada, sem escolhê-los com a bateria final.
 
 ### Fase 3 — segmentação híbrida
@@ -253,6 +258,7 @@ Essas metas só se tornam critérios oficiais após o piloto demonstrar que são
 - DVs são monotônicos e interpolados;
 - nenhuma saída contém `NaN` ou infinito;
 - limites de 300 dpi, 600 dpi e 20% de cobertura geram os avisos esperados;
+- sinais de captura permanecem finitos, versionados e não alteram o status antes da calibração;
 - API rejeita status, dpi e avisos inválidos;
 - consultas, exclusões e imagens continuam isoladas por usuário;
 - build, TypeScript e suíte Vitest passam antes de publicar.
@@ -267,6 +273,7 @@ A atualização não estará cientificamente concluída apenas porque um cartão
 - Conjunto de dados Dryad: <https://datadryad.org/dataset/doi:10.25338/B8WG9S>
 - GOTAS — Embrapa: <https://www.embrapa.br/en/busca-de-solucoes-tecnologicas/-/produto-servico/9943/gotas---programa-de-calibracao-de-pulverizacao>
 - Manual oficial GOTAS V2: <https://www.cnpma.embrapa.br/down_site/gotas/ManualGotasV2.pdf>
+- Estudo de avaliação de foco por variância do Laplaciano: <https://pmc.ncbi.nlm.nih.gov/articles/PMC12696038/>
 - Estudo Embrapa de comparação com microscopia: <https://apct.sede.embrapa.br/index.php/pab/article/view/6366>
 - Comparação entre softwares de análise: <https://www.scielo.br/j/pd/a/8sZLF4kH5fZZZyL7KCd5CgM/?format=html>
 - DepositScan/USDA: <https://www.ars.usda.gov/ARSUserFiles/50820500/Publications/Zhu_2010_DepositScan.pdf>
