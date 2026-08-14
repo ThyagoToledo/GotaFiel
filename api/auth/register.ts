@@ -1,4 +1,4 @@
-import { getSql } from '../_db.js';
+import { ensureSchema, getSql } from '../_db.js';
 import { isSameOrigin, JsonBodyTooLargeError, readJson, sendJson, setSessionCookie } from '../_http.js';
 import { AuthRateLimitError, clearAuthAttempts, consumeAuthAttempt } from '../_rateLimit.js';
 import { createSessionToken, hashPassword, hashSessionToken, normalizeName, sessionExpiry } from '../_security.js';
@@ -16,6 +16,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (name.length < 2 || name.length > 80) return sendJson(res, 400, { error: 'NOME_INVALIDO' });
     if (password.length < 8 || password.length > 200) return sendJson(res, 400, { error: 'SENHA_INVALIDA' });
 
+    await ensureSchema();
     await consumeAuthAttempt('register', name);
     const sql = getSql();
     const nameKey = normalizeName(name);

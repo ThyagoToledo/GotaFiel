@@ -1,4 +1,4 @@
-import { getSql } from '../_db.js';
+import { ensureSchema, getSql } from '../_db.js';
 import { isSameOrigin, JsonBodyTooLargeError, readJson, sendJson, setSessionCookie } from '../_http.js';
 import { AuthRateLimitError, clearAuthAttempts, consumeAuthAttempt } from '../_rateLimit.js';
 import { createSessionToken, hashSessionToken, normalizeName, sessionExpiry, verifyPassword } from '../_security.js';
@@ -13,6 +13,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const body = await readJson<Credentials>(req);
     const name = typeof body.name === 'string' ? body.name : '';
     const password = typeof body.password === 'string' ? body.password : '';
+    await ensureSchema();
     await consumeAuthAttempt('login', name);
     const sql = getSql();
     const rows = (await sql`SELECT id, name, password_hash FROM gotas_users WHERE name_key = ${normalizeName(name)} LIMIT 1`) as unknown as Array<Record<string, unknown>>;

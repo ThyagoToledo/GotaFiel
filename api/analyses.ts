@@ -1,5 +1,5 @@
 import { del } from '@vercel/blob';
-import { getSql } from './_db.js';
+import { ensureSchema, getSql } from './_db.js';
 import { isSameOrigin, readJson, sendJson } from './_http.js';
 import { getCurrentUser } from './_security.js';
 import type { ApiRequest, ApiResponse } from './_types.js';
@@ -169,9 +169,9 @@ function values(input: AnalysisInput) {
   const cardHeight = number(input.cardSizeMm?.height, 0.1, 1000);
   const sensitivity = number(input.sensitivity, -50, 50);
   const verdict = text(input.verdict, 20);
-  const method = text(input.method, 30) ?? 'chromatic';
+  const method = text(input.method, 30) ?? 'hybrid';
   if (!text(input.title, 160) || !verdict || !['NAO_AVALIADO', 'GREET', 'BOM', 'REGULAR', 'RUIM', 'EXCESSO'].includes(verdict)) return null;
-  if (!['chromatic', 'gotas-legacy'].includes(method)) return null;
+  if (!['chromatic', 'gotas-legacy', 'hybrid'].includes(method)) return null;
   if (cardWidth === null || cardHeight === null || sensitivity === null) return null;
   const metrics = {
     totalDroplets: number(input.totalDroplets),
@@ -249,6 +249,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (!['GET', 'POST', 'DELETE'].includes(req.method ?? '')) return sendJson(res, 405, { error: 'METODO_NAO_PERMITIDO' });
   if (req.method !== 'GET' && !isSameOrigin(req)) return sendJson(res, 403, { error: 'ORIGEM_NAO_PERMITIDA' });
   try {
+    await ensureSchema();
     const user = await getCurrentUser(req);
     if (!user) return sendJson(res, 401, { error: 'NAO_AUTENTICADO' });
     const sql = getSql();
