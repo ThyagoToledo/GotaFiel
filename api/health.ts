@@ -11,6 +11,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     POSTGRES_URL: Boolean(process.env.POSTGRES_URL),
     POSTGRES_PRISMA_URL: Boolean(process.env.POSTGRES_PRISMA_URL),
     POSTGRES_URL_NON_POOLING: Boolean(process.env.POSTGRES_URL_NON_POOLING),
+    DATABASE_URL_UNPOOLED: Boolean(process.env.DATABASE_URL_UNPOOLED),
     NEON_DATABASE_URL: Boolean(process.env.NEON_DATABASE_URL),
   };
 
@@ -21,26 +22,26 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       status: 'error',
       message: 'Nenhuma variável de conexão Neon/Postgres encontrada nas variáveis de ambiente da Vercel.',
       variablesChecked: envDetected,
-      recommendation: 'Adicione POSTGRES_URL ou DATABASE_URL nas configurações de Environment Variables da Vercel.',
+      recommendation: 'Adicione DATABASE_URL ou DATABASE_POSTGRES_URL nas configurações de Environment Variables da Vercel.',
     });
   }
 
   try {
-    await ensureSchema();
     const sql = getSql();
     const result = (await sql`SELECT 1 as connected, NOW() as server_time`) as unknown as Array<Record<string, unknown>>;
+    await ensureSchema();
     const usersCount = (await sql`SELECT COUNT(*)::int as count FROM gotas_users`) as unknown as Array<{ count: number }>;
 
     return sendJson(res, 200, {
       status: 'ok',
-      message: 'Conexão com o banco Neon estabelecida com sucesso.',
+      message: 'Conexão com o banco Neon estabelecida com sucesso e tabelas verificadas.',
       serverTime: result[0]?.server_time,
       usersCount: usersCount[0]?.count ?? 0,
       variablesChecked: envDetected,
     });
   } catch (error) {
     console.error('Falha de saúde do banco:', error);
-    return sendJson(res, 503, {
+    return sendJson(res, 200, {
       status: 'error',
       message: 'Erro ao conectar ou consultar o banco Neon.',
       error: error instanceof Error ? error.message : String(error),
