@@ -1,5 +1,5 @@
 import { getSql } from '../_db.js';
-import { readJson, sendJson, setSessionCookie } from '../_http.js';
+import { isSameOrigin, JsonBodyTooLargeError, readJson, sendJson, setSessionCookie } from '../_http.js';
 import { createSessionToken, hashSessionToken, normalizeName, sessionExpiry, verifyPassword } from '../_security.js';
 import type { ApiRequest, ApiResponse } from '../_types.js';
 
@@ -7,6 +7,7 @@ type Credentials = { name?: unknown; password?: unknown };
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'METODO_NAO_PERMITIDO' });
+  if (!isSameOrigin(req)) return sendJson(res, 403, { error: 'ORIGEM_NAO_PERMITIDA' });
   try {
     const body = await readJson<Credentials>(req);
     const name = typeof body.name === 'string' ? body.name : '';
@@ -21,6 +22,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     setSessionCookie(res, token);
     sendJson(res, 200, { user: { id: user.id, name: user.name } });
   } catch (error) {
+    if (error instanceof JsonBodyTooLargeError) return sendJson(res, 413, { error: 'CORPO_MUITO_GRANDE' });
     console.error('Falha no login:', error);
     sendJson(res, 503, { error: 'BANCO_INDISPONIVEL' });
   }

@@ -1,6 +1,6 @@
 import { del } from '@vercel/blob';
 import { getSql } from './_db.js';
-import { readJson, sendJson } from './_http.js';
+import { isSameOrigin, readJson, sendJson } from './_http.js';
 import { getCurrentUser } from './_security.js';
 import type { ApiRequest, ApiResponse } from './_types.js';
 import {
@@ -204,6 +204,7 @@ function blobUrl(value: unknown) {
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (!['GET', 'POST', 'DELETE'].includes(req.method ?? '')) return sendJson(res, 405, { error: 'METODO_NAO_PERMITIDO' });
+  if (req.method !== 'GET' && !isSameOrigin(req)) return sendJson(res, 403, { error: 'ORIGEM_NAO_PERMITIDA' });
   try {
     const user = await getCurrentUser(req);
     if (!user) return sendJson(res, 401, { error: 'NAO_AUTENTICADO' });
