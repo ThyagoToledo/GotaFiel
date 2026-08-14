@@ -30,6 +30,8 @@ A senha nunca é salva em texto puro: a API usa `scrypt` com salt individual. A 
 
 Projetos já existentes também devem executar novamente `scripts/neon-schema.sql`. Os comandos `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` acrescentam status da leitura, dpi efetivo, correção de orientação, confiabilidade por grupo de métricas, avisos, sinais de captura, versão do algoritmo, passagens de suavização e preenchimento de buracos sem apagar as análises anteriores. Registros antigos recebem `INCONCLUSIVA` e versão `legacy`, pois não há informação suficiente para reavaliá-los retroativamente.
 
+Para uma instalação que já está na geração anterior, é suficiente executar `scripts/neon-migration-phase2.sql` antes de publicar esta fase. A migração é aditiva e não altera registros existentes.
+
 ## Desenvolvimento local
 
 O frontend continua sendo executado com `npm run dev`. As funções `/api` são funções Vercel e devem ser exercitadas em um ambiente Vercel (`vercel dev` ou preview/deploy), com `DATABASE_URL` configurada. Sem essa variável, o app mostra a indisponibilidade do banco em vez de fabricar dados.
