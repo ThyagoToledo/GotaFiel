@@ -38,6 +38,16 @@ function makeAnalysis(overrides: Partial<AnalysisData> = {}): AnalysisData {
       sizeVolumeReliable: false,
       warnings: ['Resolução abaixo de 600 dpi.'],
       algorithmVersion: '3.0.0-alpha.1',
+      captureQuality: {
+        cardOccupancyPercent: 42,
+        focusLaplacianVariance: 12.5,
+        illuminationVariationPercent: 8,
+        darkPixelPercent: 1,
+        highlightPixelPercent: 0.2,
+        sampleCount: 1000,
+        version: 'capture-signals-v1',
+        calibrationStatus: 'NAO_CALIBRADO',
+      },
     },
     droplets: [],
     ...overrides,
@@ -55,6 +65,7 @@ describe('generateAnalysisCsvString', () => {
     expect(lines[1]).toContain('LIMITADA');
     expect(lines[1]).toContain('3.0.0-alpha.1');
     expect(lines[1]).toContain('gotas-legacy;1;SIM');
+    expect(lines[1]).toContain('42,0000;12,500000;8,0000;1,0000;0,2000;1000;NAO_CALIBRADO');
   });
 
   it('rejeita métricas inválidas', () => {

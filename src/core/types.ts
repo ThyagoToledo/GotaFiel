@@ -1,6 +1,6 @@
 import { QualityVerdict, ASABECategory, MeasurementQuality } from '../types';
 
-export type BinarizationMethod = 'chromatic' | 'gotas-legacy';
+export type BinarizationMethod = 'chromatic' | 'gotas-legacy' | 'hybrid';
 
 export interface Point {
   x: number; // percentage 0-100 or relative 0-1
@@ -22,6 +22,12 @@ export interface AnalysisParams {
   meanFilterPasses?: number;
   /** Preenche fundos totalmente cercados por pixels de mancha. */
   fillHoles?: boolean;
+  /** Separação morfológica/watershed de aglomerados de gotas sobrepostas. */
+  splitOverlappingDroplets?: boolean;
+  /** Filtro de artefatos não-gotas (fibras, poeiras e riscos por circularidade mínima). */
+  filterArtifacts?: boolean;
+  /** Normalização adaptativa de fundo para compensar sombras e iluminação irregular. */
+  normalizeIllumination?: boolean;
 }
 
 export interface SampleHistogramBin {
@@ -42,6 +48,8 @@ export interface DropletComponent {
   maxY: number;
   touchesBorder: boolean;
   included: boolean;
+  roundness?: number;
+  isSplitCluster?: boolean;
 }
 
 export interface ProcessedAnalysisMetrics {

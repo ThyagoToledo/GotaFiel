@@ -161,6 +161,10 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
                 <span className="block text-on-surface-variant">Altas luzes neutras</span>
                 <strong className="text-on-surface">{quality.captureQuality.highlightPixelPercent.toLocaleString('pt-BR')}%</strong>
               </div>
+              <div className="rounded-lg bg-surface-container-low p-2">
+                <span className="block text-on-surface-variant">Pixels escuros</span>
+                <strong className="text-on-surface">{quality.captureQuality.darkPixelPercent.toLocaleString('pt-BR')}%</strong>
+              </div>
             </div>
           </section>
         )}

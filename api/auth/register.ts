@@ -1,5 +1,6 @@
 import { getSql } from '../_db.js';
 import { isSameOrigin, JsonBodyTooLargeError, readJson, sendJson, setSessionCookie } from '../_http.js';
+import { AuthRateLimitError, clearAuthAttempts, consumeAuthAttempt } from '../_rateLimit.js';
 import { createSessionToken, hashPassword, hashSessionToken, normalizeName, sessionExpiry } from '../_security.js';
 import type { ApiRequest, ApiResponse } from '../_types.js';
 
@@ -15,11 +16,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     if (name.length < 2 || name.length > 80) return sendJson(res, 400, { error: 'NOME_INVALIDO' });
     if (password.length < 8 || password.length > 200) return sendJson(res, 400, { error: 'SENHA_INVALIDA' });
 
+    await consumeAuthAttempt('register', name);
     const sql = getSql();
     const nameKey = normalizeName(name);
     const existing = (await sql`SELECT id FROM gotas_users WHERE name_key = ${nameKey} LIMIT 1`) as unknown as Array<Record<string, unknown>>;
     if (existing.length > 0) return sendJson(res, 409, { error: 'NOME_JA_CADASTRADO' });
 
+    await clearAuthAttempts('register', name);
     const created = (await sql`
       INSERT INTO gotas_users (name, name_key, password_hash)
       VALUES (${name}, ${nameKey}, ${hashPassword(password)})
@@ -34,6 +37,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     sendJson(res, 201, { user });
   } catch (error) {
     if (error instanceof JsonBodyTooLargeError) return sendJson(res, 413, { error: 'CORPO_MUITO_GRANDE' });
+    if (error instanceof AuthRateLimitError) return sendJson(res, 429, { error: 'MUITAS_TENTATIVAS' });
     console.error('Falha no cadastro:', error);
     sendJson(res, 503, { error: 'BANCO_INDISPONIVEL' });
   }

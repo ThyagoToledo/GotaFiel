@@ -8,6 +8,7 @@ import {
   findConnectedComponents,
   fillBinaryHoles,
   mmPerPixelEquivalent,
+  normalizeCardBackground,
   rectifyPixels,
 } from './imageProcessor';
 import {
@@ -90,10 +91,13 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
   );
   const mmPerPixel = mmPerPixelEquivalent(mm2PerPixel);
 
-  // 3. Compatibilidade em cinza: suavização opcional antes do limiar.
-  const pixelsForBinarization = params.method === 'gotas-legacy'
-    ? boxBlurRgba(rectifiedPixels, targetWidth, targetHeight, params.meanFilterPasses ?? 1)
-    : rectifiedPixels;
+  // 3. Normalização ou compatibilidade em cinza antes do limiar.
+  let pixelsForBinarization = rectifiedPixels;
+  if (params.normalizeIllumination ?? (params.method === 'hybrid')) {
+    pixelsForBinarization = normalizeCardBackground(rectifiedPixels, targetWidth, targetHeight);
+  } else if (params.method === 'gotas-legacy') {
+    pixelsForBinarization = boxBlurRgba(rectifiedPixels, targetWidth, targetHeight, params.meanFilterPasses ?? 1);
+  }
 
   // 4. Binarize.
   const binarized = binarizeImageBuffer(
@@ -114,6 +118,9 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
     minAreaPx: params.minAreaPx,
     minDropletUm: params.minDropletUm,
     mm2PerPixel,
+    splitOverlappingDroplets: params.splitOverlappingDroplets ?? (params.method === 'hybrid'),
+    filterArtifacts: params.filterArtifacts,
+    roundnessMin: params.roundnessMin,
   });
 
   // 6. Histogram + metrics.

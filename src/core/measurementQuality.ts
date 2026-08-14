@@ -1,7 +1,7 @@
 import type { CaptureQualitySignals, MeasurementQuality } from '../types';
 
 /** Incrementar sempre que uma mudança puder alterar as métricas publicadas. */
-export const ANALYSIS_ALGORITHM_VERSION = '3.2.0-alpha.1';
+export const ANALYSIS_ALGORITHM_VERSION = '3.3.0-alpha.1';
 
 export interface MeasurementQualityInput {
   quadWidthPx: number;
