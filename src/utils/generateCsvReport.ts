@@ -42,6 +42,13 @@ const CSV_HEADERS = [
   'Tamanho_volume_confiaveis',
   'Versao_algoritmo',
   'Avisos',
+  'Cartao_no_quadro_pct',
+  'Nitidez_laplaciano',
+  'Variacao_iluminacao_pct',
+  'Pixels_escuros_pct',
+  'Altas_luzes_neutras_pct',
+  'Amostras_sinais_captura',
+  'Calibracao_sinais_captura',
 ];
 
 function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
@@ -56,6 +63,7 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
   const span = isPersisted ? data.metrics.span : data.span;
   const estimatedVolumeLha = isPersisted ? data.metrics.estimatedVolumeLha : data.estimatedVolumeLha;
   const quality = data.measurementQuality;
+  const captureQuality = quality?.captureQuality;
 
   const method = isPersisted ? data.params.method : (data.analysisMethod ?? 'chromatic');
   const meanFilterPasses = isPersisted
@@ -93,6 +101,16 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
     data.cardSizeMm.height,
     mm2PerPixel,
     mmPerPixel,
+    ...(captureQuality
+      ? [
+          captureQuality.cardOccupancyPercent,
+          captureQuality.focusLaplacianVariance,
+          captureQuality.illuminationVariationPercent,
+          captureQuality.darkPixelPercent,
+          captureQuality.highlightPixelPercent,
+          captureQuality.sampleCount,
+        ]
+      : []),
   ];
 
   for (const num of numericValues) {
@@ -134,6 +152,13 @@ function buildAnalysisCsvRow(data: AnalysisData | PersistedAnalysis): string {
     quality?.sizeVolumeReliable ? 'SIM' : 'NAO',
     quality?.algorithmVersion ?? 'legacy',
     `"${(quality?.warnings ?? ['Sem metadados de confiabilidade.']).join(' | ').replace(/"/g, '""')}"`,
+    captureQuality ? formatPtBrNumber(captureQuality.cardOccupancyPercent, 4) : '',
+    captureQuality ? formatPtBrNumber(captureQuality.focusLaplacianVariance, 6) : '',
+    captureQuality ? formatPtBrNumber(captureQuality.illuminationVariationPercent, 4) : '',
+    captureQuality ? formatPtBrNumber(captureQuality.darkPixelPercent, 4) : '',
+    captureQuality ? formatPtBrNumber(captureQuality.highlightPixelPercent, 4) : '',
+    captureQuality ? String(captureQuality.sampleCount) : '',
+    captureQuality?.calibrationStatus ?? '',
   ];
 
   return row.join(';');

@@ -11,7 +11,6 @@ import {
   computeMm2PerPixel,
   computeTargetRaster,
 } from '../core/imageProcessor';
-import { assessMeasurementQuality } from '../core/measurementQuality';
 
 /**
  * Recalculates AnalysisData metrics based on real droplet list and card dimensions.
@@ -83,17 +82,6 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     rectWidthPx,
     rectHeightPx
   );
-  const measurementQuality = analysis.measurementQuality
-    ? assessMeasurementQuality({
-        quadWidthPx: (cardWidthMm / 25.4) * analysis.measurementQuality.effectiveDpi,
-        quadHeightPx: (cardHeightMm / 25.4) * analysis.measurementQuality.effectiveDpi,
-        cardWidthMm,
-        cardHeightMm,
-        coveragePercent: metrics.coveragePercent,
-        orientationCorrected: analysis.measurementQuality.orientationCorrected,
-      })
-    : undefined;
-
   return {
     ...analysis,
     totalDroplets: metrics.totalDroplets,
@@ -108,7 +96,10 @@ export function recalculateAnalysisData(analysis: AnalysisData): AnalysisData {
     verdictScore: metrics.verdictScore,
     verdictMessage: metrics.verdictMessage,
     asabeCategory: metrics.asabeCategory,
-    measurementQuality,
+    // A inspeção manual altera quais manchas entram nas métricas, não a qualidade
+    // da fotografia. Preservar os sinais originais evita que excluir gotas faça uma
+    // captura sobreposta parecer adequada ou descarte os sinais de foco/iluminação.
+    measurementQuality: analysis.measurementQuality,
   };
 }
 

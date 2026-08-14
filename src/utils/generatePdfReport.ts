@@ -11,6 +11,16 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
     analysis.dv09Um,
     analysis.estimatedVolumeLha,
     analysis.measurementQuality?.effectiveDpi ?? 0,
+    ...(analysis.measurementQuality?.captureQuality
+      ? [
+          analysis.measurementQuality.captureQuality.cardOccupancyPercent,
+          analysis.measurementQuality.captureQuality.focusLaplacianVariance,
+          analysis.measurementQuality.captureQuality.illuminationVariationPercent,
+          analysis.measurementQuality.captureQuality.darkPixelPercent,
+          analysis.measurementQuality.captureQuality.highlightPixelPercent,
+          analysis.measurementQuality.captureQuality.sampleCount,
+        ]
+      : []),
   ];
 
   for (const m of metrics) {
@@ -241,6 +251,32 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.text(splitLines, margin + 5, y + 14);
 
   y += 40;
+
+  if (quality.captureQuality) {
+    doc.setFillColor(248, 250, 248);
+    doc.rect(margin, y, contentWidth, 24, 'F');
+    doc.setDrawColor(210, 220, 210);
+    doc.rect(margin, y, contentWidth, 24, 'S');
+    doc.setTextColor(0, 100, 57);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('SINAIS DA CAPTURA (INFORMATIVOS, NÃO CALIBRADOS)', margin + 5, y + 7);
+    doc.setTextColor(60, 60, 60);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    const capture = quality.captureQuality;
+    doc.text(
+      `Quadro: ${capture.cardOccupancyPercent}% · Laplaciano: ${capture.focusLaplacianVariance} · Luz: ${capture.illuminationVariationPercent}%`,
+      margin + 5,
+      y + 14
+    );
+    doc.text(
+      `Escuros: ${capture.darkPixelPercent}% · Altas luzes neutras: ${capture.highlightPixelPercent}% · versão ${capture.version}`,
+      margin + 5,
+      y + 19
+    );
+    y += 30;
+  }
 
   // --- FOOTER SECTION ---
   doc.setDrawColor(200, 200, 200);
