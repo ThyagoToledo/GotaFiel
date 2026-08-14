@@ -7,6 +7,7 @@ import {
   ANALYSIS_ALGORITHM_VERSION,
   assessMeasurementQuality,
 } from '../src/core/measurementQuality.js';
+import type { CaptureQualitySignals } from '../src/types.js';
 
 type AnalysisInput = {
   id?: unknown;
@@ -42,6 +43,7 @@ type AnalysisInput = {
     sizeVolumeReliable?: unknown;
     warnings?: unknown;
     algorithmVersion?: unknown;
+    captureQuality?: unknown;
   };
 };
 
@@ -67,6 +69,36 @@ function warningList(value: unknown): string[] {
     .slice(0, 10);
 }
 
+function captureQuality(value: unknown): CaptureQualitySignals | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const item = value as Record<string, unknown>;
+  const finite = (name: string, min: number, max: number) => {
+    const candidate = typeof item[name] === 'number' ? item[name] : Number(item[name]);
+    return Number.isFinite(candidate) && candidate >= min && candidate <= max ? candidate : null;
+  };
+  const occupancy = finite('cardOccupancyPercent', 0, 100);
+  const focus = finite('focusLaplacianVariance', 0, Number.MAX_SAFE_INTEGER);
+  const illumination = finite('illuminationVariationPercent', 0, 100);
+  const dark = finite('darkPixelPercent', 0, 100);
+  const highlight = finite('highlightPixelPercent', 0, 100);
+  const samples = finite('sampleCount', 0, 10_000_000);
+  if (
+    occupancy === null || focus === null || illumination === null || dark === null ||
+    highlight === null || samples === null || !Number.isInteger(samples) || samples < 0 ||
+    item.version !== 'capture-signals-v1' || item.calibrationStatus !== 'NAO_CALIBRADO'
+  ) return null;
+  return {
+    cardOccupancyPercent: occupancy,
+    focusLaplacianVariance: focus,
+    illuminationVariationPercent: illumination,
+    darkPixelPercent: dark,
+    highlightPixelPercent: highlight,
+    sampleCount: samples,
+    version: 'capture-signals-v1',
+    calibrationStatus: 'NAO_CALIBRADO',
+  };
+}
+
 function mapRow(row: Record<string, unknown>) {
   const id = String(row.id);
   const imageUrl = typeof row.image_url === 'string' && row.image_url.length > 0 ? `/api/image?id=${encodeURIComponent(id)}&kind=original` : '';
@@ -79,6 +111,11 @@ function mapRow(row: Record<string, unknown>) {
           ? (() => { try { return JSON.parse(row.quality_warnings); } catch { return []; } })()
           : []
       );
+  const storedCaptureQuality = captureQuality(
+    typeof row.capture_quality === 'string'
+      ? (() => { try { return JSON.parse(row.capture_quality); } catch { return null; } })()
+      : row.capture_quality
+  );
   return {
     id: row.id,
     title: row.title,
@@ -122,6 +159,7 @@ function mapRow(row: Record<string, unknown>) {
         ? storedWarnings
         : ['Análise anterior sem metadados suficientes para avaliar a confiabilidade.'],
       algorithmVersion: typeof row.algorithm_version === 'string' ? row.algorithm_version : 'legacy',
+      ...(storedCaptureQuality ? { captureQuality: storedCaptureQuality } : {}),
     },
   };
 }
@@ -156,12 +194,15 @@ function values(input: AnalysisInput) {
   const countDensityReliable = boolean(quality?.countDensityReliable);
   const sizeVolumeReliable = boolean(quality?.sizeVolumeReliable);
   const algorithmVersion = text(quality?.algorithmVersion, 60);
+  const captureQualityInput = quality?.captureQuality;
+  const captureQualityValue = captureQuality(captureQualityInput);
   const meanFilterPasses = number(input.meanFilterPasses, 0, 3);
   const fillHoles = boolean(input.fillHoles);
   if (
     effectiveDpi === null || orientationCorrected === null || coverageReliable === null ||
     countDensityReliable === null || sizeVolumeReliable === null || !algorithmVersion ||
-    meanFilterPasses === null || fillHoles === null
+    meanFilterPasses === null || fillHoles === null ||
+    (captureQualityInput !== undefined && captureQualityValue === null)
   ) return null;
   if (!Number.isInteger(meanFilterPasses)) return null;
   if (algorithmVersion !== ANALYSIS_ALGORITHM_VERSION) return null;
@@ -173,6 +214,7 @@ function values(input: AnalysisInput) {
     cardHeightMm: cardHeight,
     coveragePercent: metrics.coveragePercent as number,
     orientationCorrected,
+    ...(captureQualityValue ? { captureQuality: captureQualityValue } : {}),
   });
   if (
     qualityStatus !== expectedQuality.status ||
@@ -189,6 +231,7 @@ function values(input: AnalysisInput) {
     qualityStatus, effectiveDpi, orientationCorrected, coverageReliable,
     countDensityReliable, sizeVolumeReliable, qualityWarnings: expectedQuality.warnings,
     algorithmVersion: ANALYSIS_ALGORITHM_VERSION,
+    captureQuality: expectedQuality.captureQuality ?? null,
   };
 }
 
@@ -217,6 +260,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           dv09_um, volume_l_ha, verdict, verdict_score, verdict_message, asabe_category,
           quality_status, effective_dpi, orientation_corrected, coverage_reliable,
           count_density_reliable, size_volume_reliable, quality_warnings, algorithm_version
+          , capture_quality
         FROM gotas_analyses WHERE user_id = ${user.id} ORDER BY created_at DESC LIMIT 200
       `) as unknown as Array<Record<string, unknown>>;
       return sendJson(res, 200, { analyses: rows.map((row) => mapRow(row as Record<string, unknown>)) });
@@ -243,19 +287,21 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         verdict, verdict_score, verdict_message, asabe_category, quality_status, effective_dpi,
         orientation_corrected, coverage_reliable, count_density_reliable, size_volume_reliable,
         quality_warnings, algorithm_version
+        , capture_quality
       ) VALUES (
         ${user.id}, ${text(body.id, 120)}, ${row.title}, ${row.fieldId}, ${row.fieldName}, ${row.crop}, ${row.imageUrl}, ${row.rectifiedImageUrl}, ${row.cardWidth}, ${row.cardHeight},
         ${row.sensitivity}, ${row.method}, ${row.meanFilterPasses}, ${row.fillHoles}, ${row.totalDroplets}, ${row.density}, ${row.coveragePercent}, ${row.span}, ${row.vmdUm},
         ${row.dv01Um}, ${row.dv09Um}, ${row.volumeLHa}, ${row.verdict}, ${row.verdictScore}, ${row.verdictMessage}, ${row.asabeCategory},
         ${row.qualityStatus}, ${row.effectiveDpi}, ${row.orientationCorrected}, ${row.coverageReliable},
         ${row.countDensityReliable}, ${row.sizeVolumeReliable}, ${JSON.stringify(row.qualityWarnings)}::jsonb,
-        ${row.algorithmVersion}
+        ${row.algorithmVersion}, ${row.captureQuality ? JSON.stringify(row.captureQuality) : null}::jsonb
       )
       RETURNING id, title, field_id, field_name, crop, image_url, rectified_image_url, created_at, card_width_mm, card_height_mm, sensitivity, method, mean_filter_passes, fill_holes,
         total_droplets, density, coverage_percent, span, vmd_um, dv01_um, dv09_um, volume_l_ha, verdict,
         verdict_score, verdict_message, asabe_category, quality_status, effective_dpi,
         orientation_corrected, coverage_reliable, count_density_reliable, size_volume_reliable,
         quality_warnings, algorithm_version
+        , capture_quality
     `) as unknown as Array<Record<string, unknown>>;
     return sendJson(res, 201, { analysis: mapRow(rows[0] as Record<string, unknown>) });
   } catch (error) {
