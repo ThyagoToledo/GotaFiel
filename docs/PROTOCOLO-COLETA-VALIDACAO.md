@@ -42,6 +42,27 @@ separar, quando possível, mancha isolada, aglomerado, sujeira, fibra e reflexo.
 - repetibilidade: variação entre novas capturas da mesma amostra;
 - qualidade da captura: concordância entre os sinais e o rótulo visual, sem definir o corte no teste final.
 
+## Meta de 95% e como ela será comprovada
+
+No Gotas2, “95% de precisão” não pode significar apenas uma foto favorável nem apenas
+95% de acertos sobre pixels de fundo. A meta proposta para a segmentação no conjunto de
+teste final é, simultaneamente, **precisão, recall e F1 maiores ou iguais a 0,95**. Assim,
+a avaliação penaliza tanto falsos positivos (sujeira/reflexo contado como gota) como falsos
+negativos (gota não identificada).
+
+As métricas são calculadas pelas funções versionadas em
+`src/core/validationMetrics.ts`, comparando uma máscara produzida pelo Gotas2 a uma
+referência independente já alinhada ao mesmo recorte. Para contagem, densidade, cobertura e
+DV, o relatório deve publicar também erro absoluto/relativo e os casos excluídos com motivo.
+O resultado só poderá ser divulgado como meta atingida quando o conjunto final estiver
+congelado, as anotações tiverem sido revisadas independentemente e as três métricas forem
+apresentadas por cenário de iluminação, resolução, cor do cartão e nível de sobreposição.
+
+Imagens de referência devem ter autorização de uso e vir de relatórios, instituições,
+fabricantes ou ensaios com método e rótulo verificáveis. Material publicitário sem imagem
+original, máscara/contagem de referência ou identificação do método pode servir para teste
+exploratório, mas não para comprovar a meta.
+
 ## Critério de publicação
 
 Até o teste final existir, a interface deve continuar chamando DV, volume e sinais de

@@ -17,10 +17,11 @@ As imagens usam Vercel Blob privado. O navegador não recebe a URL privada diret
 - Limite de corpo JSON de 256 KiB para autenticação e análises.
 - Limite de 6 MiB para o JSON de upload, compatível com o limite de 4 MiB dos bytes da imagem após a decodificação Base64.
 - Respostas JSON marcadas como `Cache-Control: no-store`.
+- Limite distribuído no Neon para login e cadastro: no máximo oito tentativas sem sucesso por nome normalizado e operação a cada 15 minutos; uma operação concluída limpa o contador. A tabela guarda somente o hash SHA-256 do nome, nunca senha, token ou IP.
 
 ## Riscos que permanecem explicitamente conhecidos
 
-- Não há rate limit distribuído para tentativas de login ou cadastro. Implementar isso exige uma política de retenção e um mecanismo compartilhado; não foi adicionado um contador local que falharia em Functions serverless.
+- O rate limit é deliberadamente por nome, não por IP: ele reduz tentativas repetidas contra a mesma conta sem armazenar endereço IP. Uma proteção global contra ataques que alternam nomes exigirá WAF/provedor dedicado e política de privacidade/retenção antes de ser adicionada.
 - O armazenamento não substitui validação científica. A aplicação continua mostrando limitações de qualidade e não transforma o resultado do cartão em laudo agronômico.
 - O scanner local encontrou zero ocorrências de padrões fortes de segredo. Como nenhuma ferramenta dedicada de secret scanning está instalada no ambiente, a revisão foi feita com padrões de connection string, chaves privadas, tokens conhecidos e inspeção do histórico Git.
 

@@ -32,6 +32,21 @@ Projetos já existentes também devem executar novamente `scripts/neon-schema.sq
 
 Para uma instalação que já está na geração anterior, é suficiente executar `scripts/neon-migration-phase2.sql` antes de publicar esta fase. A migração é aditiva e não altera registros existentes.
 
+## Migração do limite de autenticação
+
+Antes de publicar a fase de proteção distribuída, execute uma única vez
+`scripts/neon-migration-auth-rate-limit.sql` no mesmo branch de produção do Neon. Ela cria
+apenas a tabela operacional de tentativas, sem tocar em usuários, sessões ou análises.
+
+Os registros expirados não interferem no limite, pois a janela é de 15 minutos. Para manter
+a tabela compacta, a operação do banco pode remover registros com mais de 48 horas quando
+necessário:
+
+```sql
+DELETE FROM gotas_auth_rate_limits
+WHERE updated_at < NOW() - INTERVAL '48 hours';
+```
+
 ## Desenvolvimento local
 
 O frontend continua sendo executado com `npm run dev`. As funções `/api` são funções Vercel e devem ser exercitadas em um ambiente Vercel (`vercel dev` ou preview/deploy), com `DATABASE_URL` ou `DATABASE_POSTGRES_URL` configurada. Sem uma delas, o app mostra a indisponibilidade do banco em vez de fabricar dados.
