@@ -12,7 +12,7 @@ const messages: Record<string, string> = {
   SENHA_INVALIDA: 'A senha precisa ter entre 8 e 200 caracteres.',
   NOME_JA_CADASTRADO: 'Esse nome já está cadastrado. Entre ou escolha outro.',
   CREDENCIAIS_INVALIDAS: 'Nome ou senha inválidos.',
-  BANCO_INDISPONIVEL: 'O banco não está disponível. Confira DATABASE_URL e tente novamente.',
+  BANCO_INDISPONIVEL: 'O banco não está disponível. Confira a conexão Neon da Vercel e tente novamente.',
 };
 
 export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialError }) => {
