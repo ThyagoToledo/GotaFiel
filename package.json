@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "test": "vitest run",
+    "test:benchmark": "tsx scripts/benchmarkRunner.ts",
     "verify:calibration": "tsx scripts/verifyCalibration.ts",
     "lint": "tsc --noEmit"
   },
