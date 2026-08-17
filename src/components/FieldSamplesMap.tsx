@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { MapPin, Navigation, Info, AlertTriangle, Layers } from 'lucide-react';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { MapPin, Navigation } from 'lucide-react';
 import { AnalysisData } from '../types';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -10,28 +10,37 @@ interface FieldSamplesMapProps {
   onSelectSample?: (sample: AnalysisData) => void;
 }
 
+/**
+ * Componente para Visualização Geoespacial das Amostras por Talhão
+ * utilizando OpenStreetMap e Leaflet com marcadores dinâmicos por nível de cobertura foliar.
+ */
 export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
   samples,
   fieldName,
-  onSelectSample,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
-  const geoSamples = samples.filter(
-    (s) =>
-      typeof s.latitude === 'number' &&
-      typeof s.longitude === 'number' &&
-      Number.isFinite(s.latitude) &&
-      Number.isFinite(s.longitude) &&
-      s.latitude !== 0 &&
-      s.longitude !== 0
-  );
+  // Filtra amostras que possuem coordenadas GPS válidas
+  const geoSamples = useMemo(() => {
+    return samples.filter(
+      (s) =>
+        typeof s.latitude === 'number' &&
+        typeof s.longitude === 'number' &&
+        Number.isFinite(s.latitude) &&
+        Number.isFinite(s.longitude) &&
+        s.latitude >= -90 &&
+        s.latitude <= 90 &&
+        s.longitude >= -180 &&
+        s.longitude <= 180 &&
+        (s.latitude !== 0 || s.longitude !== 0)
+    );
+  }, [samples]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    // Destrói instância anterior se existir
+    // Destrói instância anterior se existir para evitar vazamentos de memória
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
@@ -39,7 +48,7 @@ export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
 
     if (geoSamples.length === 0) return;
 
-    // Coordenada média inicial
+    // Coordenada média inicial (centroide geográfico dos pontos)
     const avgLat = geoSamples.reduce((sum, s) => sum + s.latitude!, 0) / geoSamples.length;
     const avgLng = geoSamples.reduce((sum, s) => sum + s.longitude!, 0) / geoSamples.length;
 
@@ -52,7 +61,7 @@ export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
 
     mapInstanceRef.current = map;
 
-    // OpenStreetMap gratuito
+    // Camada de tiles OpenStreetMap 100% gratuita
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
     }).addTo(map);
@@ -64,20 +73,20 @@ export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
       const lng = sample.longitude!;
       bounds.extend([lat, lng]);
 
-      // Cor do marcador baseada na cobertura
-      const color =
+      // Cor do marcador baseada no limiar de cobertura foliar
+      const markerColor =
         sample.coveragePercent >= 15
-          ? '#16a34a' // Verde
+          ? '#16a34a' // Verde: Cobertura Boa
           : sample.coveragePercent >= 8
-            ? '#eab308' // Amarelo
-            : '#dc2626'; // Vermelho
+            ? '#eab308' // Amarelo: Cobertura Moderada
+            : '#dc2626'; // Vermelho: Cobertura Deficiente
 
-      // Ícone circular estilizado
+      // Marcador circular customizado
       const customIcon = L.divIcon({
         className: 'custom-map-pin',
         html: `
           <div style="
-            background-color: ${color};
+            background-color: ${markerColor};
             width: 28px;
             height: 28px;
             border-radius: 50%;
@@ -100,14 +109,17 @@ export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
 
       const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
 
-      // Conteúdo do Popup
+      // Sanitização e formatação do popup informativo
+      const sampleTitle = sample.title ? String(sample.title).replace(/</g, '&lt;') : `Amostra #${idx + 1}`;
+      const canopyText = sample.canopyPosition ? `Posição: <strong>${sample.canopyPosition.toUpperCase()}</strong>` : '';
+
       const popupContent = `
         <div style="font-family: sans-serif; font-size: 12px; color: #1e293b; min-width: 180px;">
           <div style="font-weight: 800; font-size: 13px; margin-bottom: 4px; color: #006439;">
-            ${sample.title || `Amostra #${idx + 1}`}
+            ${sampleTitle}
           </div>
           <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">
-            ${sample.canopyPosition ? `Posição: <strong>${sample.canopyPosition.toUpperCase()}</strong>` : ''} · ${sample.date || ''}
+            ${canopyText} ${sample.date ? `· ${sample.date}` : ''}
           </div>
           <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; flex-direction: column; gap: 3px;">
             <div><strong>Densidade:</strong> ${sample.density} gotas/cm²</div>
@@ -130,7 +142,7 @@ export const FieldSamplesMap: React.FC<FieldSamplesMapProps> = ({
         mapInstanceRef.current = null;
       }
     };
-  }, [geoSamples.length]);
+  }, [geoSamples]);
 
   if (geoSamples.length === 0) {
     return (

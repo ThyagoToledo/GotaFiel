@@ -13,6 +13,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { CanopyPosition } from '../../types';
+import { computeLaplacianSharpness } from '../../utils/sprayAnalytics';
 
 interface Step1CaptureProps {
   onImageSelected: (
@@ -31,6 +32,10 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const focusCheckIntervalRef = useRef<any>(null);
+
+  // Buffers estáticos reutilizados para evitar pressão no Garbage Collector (GC)
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const grayscaleBufferRef = useRef<Float32Array | null>(null);
 
   // Focus & Sharpness Meter State
   const [sharpnessScore, setSharpnessScore] = useState<number>(0);
@@ -80,52 +85,40 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     }
   };
 
-  // Cálculo da variância do Laplaciano para medição de foco em tempo real
-  const calculateLaplacianVariance = (video: HTMLVideoElement): number => {
-    const canvas = document.createElement('canvas');
+  /**
+   * Amostra a imagem do vídeo com buffers pré-alocados para cálculo de foco
+   */
+  const sampleVideoSharpness = (video: HTMLVideoElement): number => {
     const width = 160;
     const height = 90;
-    canvas.width = width;
-    canvas.height = height;
+
+    if (!offscreenCanvasRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      offscreenCanvasRef.current = canvas;
+    }
+
+    if (!grayscaleBufferRef.current) {
+      grayscaleBufferRef.current = new Float32Array(width * height);
+    }
+
+    const canvas = offscreenCanvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return 0;
 
-    // Amostra a área central
+    // Desenha o frame do vídeo reduzido no buffer
     ctx.drawImage(video, 0, 0, width, height);
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
+    const gray = grayscaleBufferRef.current;
 
-    // Escala de cinza
-    const gray = new Float32Array(width * height);
+    // Conversão otimizada para escala de cinza perceptiva (Rec. 601)
     for (let i = 0, j = 0; i < data.length; i += 4, j++) {
       gray[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     }
 
-    // Filtro Laplaciano 3x3
-    let sum = 0;
-    let sumSq = 0;
-    let count = 0;
-
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = y * width + x;
-        const lap =
-          gray[idx - width] +
-          gray[idx + width] +
-          gray[idx - 1] +
-          gray[idx + 1] -
-          4 * gray[idx];
-
-        sum += lap;
-        sumSq += lap * lap;
-        count++;
-      }
-    }
-
-    if (count === 0) return 0;
-    const mean = sum / count;
-    const variance = sumSq / count - mean * mean;
-    return variance;
+    return computeLaplacianSharpness(gray, width, height);
   };
 
   // Encerra stream de vídeo
@@ -169,7 +162,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
         // Monitor de foco (~10 FPS)
         focusCheckIntervalRef.current = setInterval(() => {
           if (videoRef.current && !videoRef.current.paused && !videoRef.current.ended) {
-            const variance = calculateLaplacianVariance(videoRef.current);
+            const variance = sampleVideoSharpness(videoRef.current);
             setSharpnessScore(Math.round(variance));
 
             if (variance >= 120) {

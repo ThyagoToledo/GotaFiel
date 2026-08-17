@@ -271,3 +271,195 @@ export function evaluateNozzles(
     nozzleDeviations,
   };
 }
+
+/**
+ * Calcula a vazão nominal requerida por ponta de pulverização em Litros por minuto.
+ *
+ * Fórmula Agronômica Fundamental:
+ *   q = (Q * E * v) / 600
+ * Onde:
+ *   - Q = Taxa de aplicação da calda (L/ha)
+ *   - E = Espaçamento entre bicos na barra (metros = cm / 100)
+ *   - v = Velocidade de avanço do trator/pulverizador (km/h)
+ *   - 600 = Fator de conversão de unidades (10.000 m²/ha / (60 min/h * 1.000 m/km * 10 dm/m))
+ *
+ * @param volumeLHa Volume de calda desejado em L/ha (ex: 100)
+ * @param spacingCm Espaçamento entre bicos na barra em centímetros (ex: 50)
+ * @param speedKmh Velocidade de trabalho do pulverizador em km/h (ex: 12)
+ * @returns Vazão requerida por bico em L/min com 4 casas de precisão (mínimo 0)
+ */
+export function calculateRequiredNozzleFlow(
+  volumeLHa: number,
+  spacingCm: number,
+  speedKmh: number
+): number {
+  if (!Number.isFinite(volumeLHa) || volumeLHa <= 0) return 0;
+  if (!Number.isFinite(spacingCm) || spacingCm <= 0) return 0;
+  if (!Number.isFinite(speedKmh) || speedKmh <= 0) return 0;
+
+  const spacingM = spacingCm / 100;
+  const flowLMin = (volumeLHa * spacingM * speedKmh) / 600;
+  return Number.isFinite(flowLMin) && flowLMin > 0 ? Number(flowLMin.toFixed(4)) : 0;
+}
+
+/**
+ * Calcula a pressão de operação necessária para uma ponta de pulverização padrão ISO 10625.
+ *
+ * Lei Física dos Orifícios Hidráulicos:
+ *   q / q_nom = sqrt(P / P_nom) => P = P_nom * (q / q_nom)^2
+ * Pela norma internacional ISO 10625, a vazão nominal (q_nom) de referência é sempre cotada a P_nom = 3.0 bar.
+ *
+ * @param requiredFlowLMin Vazão requerida pelo bico em L/min
+ * @param nominalFlowLMin Vazão nominal da ponta a 3.0 bar em L/min (ex: 0.80 para ponta amarela 02)
+ * @returns Objeto com pressão em bar e PSI, status de adequação operacional e mensagem diagnóstica.
+ */
+export function calculateIsoNozzlePressure(
+  requiredFlowLMin: number,
+  nominalFlowLMin: number
+): {
+  pressureBar: number;
+  pressurePsi: number;
+  status: 'ideal' | 'acceptable' | 'inadequate';
+  statusLabel: string;
+  pressureDiffFrom3Bar: number;
+} {
+  if (!Number.isFinite(requiredFlowLMin) || requiredFlowLMin <= 0 || !Number.isFinite(nominalFlowLMin) || nominalFlowLMin <= 0) {
+    return {
+      pressureBar: 0,
+      pressurePsi: 0,
+      status: 'inadequate',
+      statusLabel: 'Parâmetros Inválidos',
+      pressureDiffFrom3Bar: 3.0,
+    };
+  }
+
+  // P = 3.0 * (q / q_nom)^2
+  const pressureBar = 3.0 * Math.pow(requiredFlowLMin / nominalFlowLMin, 2);
+  const pressurePsi = pressureBar * 14.50377377; // 1 bar = 14.5038 PSI
+  const pressureDiffFrom3Bar = Math.abs(pressureBar - 3.0);
+
+  let status: 'ideal' | 'acceptable' | 'inadequate' = 'inadequate';
+  let statusLabel = 'Pressão Fora da Faixa Segura';
+
+  if (pressureBar >= 2.0 && pressureBar <= 4.0) {
+    status = 'ideal';
+    statusLabel = 'Pressão Ideal (2 a 4 bar)';
+  } else if ((pressureBar >= 1.5 && pressureBar < 2.0) || (pressureBar > 4.0 && pressureBar <= 5.0)) {
+    status = 'acceptable';
+    statusLabel = 'Aceitável (1.5 a 5 bar)';
+  }
+
+  return {
+    pressureBar: Number(pressureBar.toFixed(2)),
+    pressurePsi: Number(pressurePsi.toFixed(1)),
+    status,
+    statusLabel,
+    pressureDiffFrom3Bar: Number(pressureDiffFrom3Bar.toFixed(4)),
+  };
+}
+
+/**
+ * Avalia o perfil vertical de penetração de gotas no dossel da cultura.
+ *
+ * Fórmula do Índice de Penetração:
+ *   Penetração (%) = (Densidade no Baixeiro / Densidade no Topo) * 100
+ *
+ * @param topoDensity Densidade de gotas no topo do dossel (gotas/cm²)
+ * @param baixeiroDensity Densidade de gotas no baixeiro/fundo da planta (gotas/cm²)
+ * @returns Diagnóstico agronômico com taxa percentual de penetração e mensagem técnica.
+ */
+export function calculateCanopyPenetration(
+  topoDensity: number,
+  baixeiroDensity: number
+): {
+  penetrationRate: number | null;
+  classification: 'excelente' | 'moderada' | 'deficiente' | 'inconclusiva';
+  message: string;
+} {
+  if (!Number.isFinite(topoDensity) || topoDensity <= 0 || !Number.isFinite(baixeiroDensity) || baixeiroDensity < 0) {
+    return {
+      penetrationRate: null,
+      classification: 'inconclusiva',
+      message: 'Densidade de topo insuficiente ou nula para calcular o índice de penetração.',
+    };
+  }
+
+  const penetrationRate = Number(((baixeiroDensity / topoDensity) * 100).toFixed(1));
+
+  if (penetrationRate >= 40) {
+    return {
+      penetrationRate,
+      classification: 'excelente',
+      message: `Excelente penetração no dossel (${penetrationRate}%). O baixeiro recebeu ${baixeiroDensity} gotas/cm², garantindo proteção fungicida eficaz no terço inferior.`,
+    };
+  }
+
+  if (penetrationRate >= 20) {
+    return {
+      penetrationRate,
+      classification: 'moderada',
+      message: `Penetração moderada (${penetrationRate}%). Houve atenuação da deposição no terço inferior (${baixeiroDensity} vs ${topoDensity} gotas/cm² no topo). Monitore o alvo biológico.`,
+    };
+  }
+
+  return {
+    penetrationRate,
+    classification: 'deficiente',
+    message: `Penetração deficiente no baixeiro (${penetrationRate}%). Risco elevado de escape de doenças no baixeiro. Recomenda-se utilizar pontas de duplo leque ou aumentar ligeiramente o volume de calda.`,
+  };
+}
+
+/**
+ * Calcula a variância estatística do operador Laplaciano (Laplacian Edge Variance)
+ * para medição objetiva de nitidez e foco de imagem em tempo real.
+ *
+ * Filtro Laplaciano 3x3 de segunda ordem:
+ *   [ 0,  1,  0 ]
+ *   [ 1, -4,  1 ]
+ *   [ 0,  1,  0 ]
+ *
+ * Imagens nítidas possuem bordas com altas variações de gradiente de segunda ordem,
+ * resultando em variância elevada (Var(∇²I) >= 120). Imagens borradas/desfocadas
+ * possuem transições suaves, gerando variância baixa (< 50).
+ *
+ * @param grayscalePixels Buffer unidimensional de pixels em escala de cinza (0 a 255)
+ * @param width Largura do quadro de amostragem em pixels
+ * @param height Altura do quadro de amostragem em pixels
+ * @returns Variância do Laplaciano (Score de Nitidez)
+ */
+export function computeLaplacianSharpness(
+  grayscalePixels: Float32Array | Uint8ClampedArray | Uint8Array | number[],
+  width: number,
+  height: number
+): number {
+  if (!grayscalePixels || width < 3 || height < 3 || grayscalePixels.length < width * height) {
+    return 0;
+  }
+
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+
+  for (let y = 1; y < height - 1; y++) {
+    const rowOffset = y * width;
+    for (let x = 1; x < width - 1; x++) {
+      const idx = rowOffset + x;
+      const lap =
+        grayscalePixels[idx - width] +
+        grayscalePixels[idx + width] +
+        grayscalePixels[idx - 1] +
+        grayscalePixels[idx + 1] -
+        4 * grayscalePixels[idx];
+
+      sum += lap;
+      sumSq += lap * lap;
+      count++;
+    }
+  }
+
+  if (count === 0) return 0;
+  const mean = sum / count;
+  const variance = sumSq / count - mean * mean;
+  return Number.isFinite(variance) && variance > 0 ? Number(variance.toFixed(2)) : 0;
+}
+

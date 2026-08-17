@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, Columns, Sparkles, TrendingUp, Layers, CheckCircle2, AlertTriangle, ArrowRight, BarChart2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Columns, Layers, CheckCircle2 } from 'lucide-react';
 import { AnalysisData, CanopyPosition } from '../types';
+import { calculateCanopyPenetration } from '../utils/sprayAnalytics';
 
 interface SampleComparatorModalProps {
   analyses: AnalysisData[];
@@ -8,6 +9,10 @@ interface SampleComparatorModalProps {
   onClose: () => void;
 }
 
+/**
+ * Modal para Comparação Lado a Lado de Amostras de Pulverização
+ * e Avaliação Automatizada de Penetração no Dossel Vegetal (Topo, Médio, Baixeiro).
+ */
 export const SampleComparatorModal: React.FC<SampleComparatorModalProps> = ({
   analyses,
   initialSelectedIds = [],
@@ -27,9 +32,12 @@ export const SampleComparatorModal: React.FC<SampleComparatorModalProps> = ({
     return map;
   });
 
-  const selectedAnalyses = selectedIds
-    .map((id) => analyses.find((a) => a.id === id))
-    .filter((a): a is AnalysisData => Boolean(a));
+  // Amostras selecionadas ativas com memoização
+  const selectedAnalyses = useMemo(() => {
+    return selectedIds
+      .map((id) => analyses.find((a) => a.id === id))
+      .filter((a): a is AnalysisData => Boolean(a));
+  }, [selectedIds, analyses]);
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -50,21 +58,23 @@ export const SampleComparatorModal: React.FC<SampleComparatorModalProps> = ({
     setCustomPositions((prev) => ({ ...prev, [analysisId]: pos }));
   };
 
-  // Análise de penetração no dossel (se houver Topo e Baixeiro)
-  const topoSample = selectedAnalyses.find(
-    (a) => (customPositions[a.id] || a.canopyPosition) === 'topo'
-  );
-  const baixeiroSample = selectedAnalyses.find(
-    (a) => (customPositions[a.id] || a.canopyPosition) === 'baixeiro'
-  );
-  const medioSample = selectedAnalyses.find(
-    (a) => (customPositions[a.id] || a.canopyPosition) === 'medio'
-  );
+  // Avaliação da penetração foliar
+  const canopyEvaluation = useMemo(() => {
+    const topo = selectedAnalyses.find(
+      (a) => (customPositions[a.id] || a.canopyPosition) === 'topo'
+    );
+    const baixeiro = selectedAnalyses.find(
+      (a) => (customPositions[a.id] || a.canopyPosition) === 'baixeiro'
+    );
 
-  let penetrationRate: number | null = null;
-  if (topoSample && baixeiroSample && topoSample.density > 0) {
-    penetrationRate = Number(((baixeiroSample.density / topoSample.density) * 100).toFixed(1));
-  }
+    if (!topo || !baixeiro) return null;
+
+    return {
+      topo,
+      baixeiro,
+      result: calculateCanopyPenetration(topo.density, baixeiro.density),
+    };
+  }, [selectedAnalyses, customPositions]);
 
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
@@ -135,12 +145,12 @@ export const SampleComparatorModal: React.FC<SampleComparatorModalProps> = ({
           </section>
 
           {/* Canopy Penetration Diagnostic Banner (se houver Topo + Baixeiro) */}
-          {penetrationRate !== null && topoSample && baixeiroSample && (
+          {canopyEvaluation && (
             <section
               className={`p-4 rounded-2xl border flex flex-col gap-2 ${
-                penetrationRate >= 40
+                canopyEvaluation.result.classification === 'excelente'
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-200'
-                  : penetrationRate >= 20
+                  : canopyEvaluation.result.classification === 'moderada'
                     ? 'bg-amber-500/10 border-amber-500/30 text-amber-950 dark:text-amber-200'
                     : 'bg-red-500/10 border-red-500/30 text-red-950 dark:text-red-200'
               }`}
@@ -150,15 +160,13 @@ export const SampleComparatorModal: React.FC<SampleComparatorModalProps> = ({
                   <Layers className="w-4 h-4" />
                   Perfil de Penetração no Dossel
                 </h3>
-                <span className="font-black text-sm">{penetrationRate}% de Penetração</span>
+                {canopyEvaluation.result.penetrationRate !== null && (
+                  <span className="font-black text-sm">{canopyEvaluation.result.penetrationRate}% de Penetração</span>
+                )}
               </div>
 
               <p className="text-xs leading-relaxed">
-                {penetrationRate >= 40
-                  ? `Excelente penetração da calda. O baixeiro atingiu ${baixeiroSample.density} gotas/cm² (${penetrationRate}% da densidade do topo: ${topoSample.density} gotas/cm²). Cobertura protetora eficaz em todo o perfil da planta.`
-                  : penetrationRate >= 20
-                    ? `Penetração intermediária. A densidade caiu de ${topoSample.density} gotas/cm² no topo para ${baixeiroSample.density} gotas/cm² no baixeiro. Recomendado monitorar se o alvo biológico está no terço inferior.`
-                    : `Penetração deficiente no baixeiro (${baixeiroSample.density} gotas/cm² vs ${topoSample.density} gotas/cm² no topo). Risco de escape de doenças no baixeiro. Considere pontas com duplo leque ou aumento de pressão/volume.`}
+                {canopyEvaluation.result.message}
               </p>
             </section>
           )}

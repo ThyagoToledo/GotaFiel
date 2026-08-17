@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
-import { Sparkles, CheckCircle2, AlertTriangle, Info, HelpCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Sparkles, CheckCircle2, AlertTriangle, Info, Layers } from 'lucide-react';
+import {
+  calculateRequiredNozzleFlow,
+  calculateIsoNozzlePressure,
+} from '../utils/sprayAnalytics';
 
-interface IsoNozzle {
+/**
+ * Definição das pontas padrão da norma internacional ISO 10625
+ */
+interface IsoNozzleDefinition {
   code: string;
   name: string;
-  nominalFlowLMin: number; // vazão a 3.0 bar
+  nominalFlowLMin: number; // Vazão nominal de referência a 3.0 bar
   hexColor: string;
   textColor: string;
   borderColor: string;
 }
 
-const ISO_NOZZLES: IsoNozzle[] = [
+/**
+ * Tabela oficial de pontas padronizadas ISO 10625 com vazões de referência a 3.0 bar (43.5 PSI)
+ */
+const ISO_NOZZLES: IsoNozzleDefinition[] = [
   { code: '01', name: 'Laranja', nominalFlowLMin: 0.40, hexColor: '#f97316', textColor: '#ffffff', borderColor: '#ea580c' },
   { code: '015', name: 'Verde Oliva', nominalFlowLMin: 0.60, hexColor: '#84cc16', textColor: '#ffffff', borderColor: '#65a30d' },
   { code: '02', name: 'Amarela', nominalFlowLMin: 0.80, hexColor: '#eab308', textColor: '#000000', borderColor: '#ca8a04' },
@@ -24,6 +34,9 @@ const ISO_NOZZLES: IsoNozzle[] = [
 
 type TargetType = 'fungicida_contato' | 'fungicida_sistemico' | 'inseticida' | 'herbicida_pos' | 'herbicida_pre';
 
+/**
+ * Recomendações técnicas agronômicas por tipo de alvo e modalidade de aplicação
+ */
 const TARGET_SPECS: Record<TargetType, { label: string; nozzleType: string; dropletCategory: string; tip: string }> = {
   fungicida_contato: {
     label: 'Fungicida de Contato',
@@ -57,52 +70,44 @@ const TARGET_SPECS: Record<TargetType, { label: string; nozzleType: string; drop
   },
 };
 
+/**
+ * Componente Seletor Inteligente de Pontas de Pulverização ISO 10625
+ */
 export const NozzleSelectorCalculator: React.FC = () => {
   const [target, setTarget] = useState<TargetType>('fungicida_sistemico');
   const [volumeLHa, setVolumeLHa] = useState<number>(100);
   const [spacingCm, setSpacingCm] = useState<number>(50);
   const [speedKmh, setSpeedKmh] = useState<number>(14);
 
-  // Vazão requerida por bico em L/min: q = (Q * E * v) / 600
-  // Onde E é o espaçamento em metros
-  const spacingM = spacingCm / 100;
-  const requiredFlowLMin = (volumeLHa * spacingM * speedKmh) / 600;
+  // Cálculo da vazão requerida com memoização
+  const requiredFlowLMin = useMemo(() => {
+    return calculateRequiredNozzleFlow(volumeLHa, spacingCm, speedKmh);
+  }, [volumeLHa, spacingCm, speedKmh]);
 
-  // Avalia cada ponta ISO
-  const nozzleEvaluations = ISO_NOZZLES.map((nozzle) => {
-    // Pressão necessária: P = 3.0 * (q / q_nom)^2 em bar
-    const pressureBar = 3.0 * Math.pow(requiredFlowLMin / nozzle.nominalFlowLMin, 2);
-    const pressurePsi = pressureBar * 14.5038;
+  // Avaliação de cada ponta ISO com a física hidráulica de orifícios
+  const nozzleEvaluations = useMemo(() => {
+    return ISO_NOZZLES.map((nozzle) => {
+      const pressureResult = calculateIsoNozzlePressure(requiredFlowLMin, nozzle.nominalFlowLMin);
 
-    let status: 'ideal' | 'acceptable' | 'inadequate' = 'inadequate';
-    let statusLabel = 'Pressão Fora da Faixa';
+      return {
+        ...nozzle,
+        pressureBar: pressureResult.pressureBar,
+        pressurePsi: pressureResult.pressurePsi,
+        status: pressureResult.status,
+        statusLabel: pressureResult.statusLabel,
+        pressureDiffFrom3Bar: pressureResult.pressureDiffFrom3Bar,
+      };
+    });
+  }, [requiredFlowLMin]);
 
-    if (pressureBar >= 2.0 && pressureBar <= 4.0) {
-      status = 'ideal';
-      statusLabel = 'Pressão Ideal (2 a 4 bar)';
-    } else if ((pressureBar >= 1.5 && pressureBar < 2.0) || (pressureBar > 4.0 && pressureBar <= 5.0)) {
-      status = 'acceptable';
-      statusLabel = 'Aceitável (1.5 a 5 bar)';
-    }
+  // Identifica a melhor ponta recomendada (mais próxima da pressão de calibração de 3.0 bar)
+  const bestNozzleCode = useMemo(() => {
+    const validCandidates = [...nozzleEvaluations]
+      .filter((n) => n.status !== 'inadequate')
+      .sort((a, b) => a.pressureDiffFrom3Bar - b.pressureDiffFrom3Bar);
 
-    const pressureDiffFrom3Bar = Math.abs(pressureBar - 3.0);
-
-    return {
-      ...nozzle,
-      pressureBar,
-      pressurePsi,
-      status,
-      statusLabel,
-      pressureDiffFrom3Bar,
-    };
-  });
-
-  // Identifica a melhor ponta (menor desvio de 3.0 bar dentro da faixa aceitável)
-  const sortedByFit = [...nozzleEvaluations]
-    .filter((n) => n.status !== 'inadequate')
-    .sort((a, b) => a.pressureDiffFrom3Bar - b.pressureDiffFrom3Bar);
-
-  const bestNozzleCode = sortedByFit.length > 0 ? sortedByFit[0].code : null;
+    return validCandidates.length > 0 ? validCandidates[0].code : null;
+  }, [nozzleEvaluations]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -216,7 +221,7 @@ export const NozzleSelectorCalculator: React.FC = () => {
             </div>
           </div>
           <div className="text-right text-[11px] text-on-surface-variant">
-            q = ({volumeLHa} × {spacingM} × {speedKmh}) / 600
+            q = ({volumeLHa} × {(spacingCm / 100).toFixed(2)}m × {speedKmh}) / 600
           </div>
         </div>
       </section>

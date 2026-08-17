@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Layers, AlertTriangle, CheckCircle2, FlaskConical, Droplets, Info, Timer, Play, Pause, RotateCcw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Layers, AlertTriangle, CheckCircle2, FlaskConical, Timer, Play, Pause, RotateCcw } from 'lucide-react';
 
+/**
+ * Estrutura de cada etapa da sequência WALES/DULES
+ */
 interface MixingStep {
   letter: string;
   title: string;
@@ -11,6 +14,9 @@ interface MixingStep {
   badgeColor: string;
 }
 
+/**
+ * Sequência agronômica padronizada de adição no tanque de pulverização (Regra WALES / DULES)
+ */
 const WALES_STEPS: MixingStep[] = [
   {
     letter: 'W',
@@ -66,15 +72,18 @@ const WALES_STEPS: MixingStep[] = [
   },
 ];
 
+/**
+ * Componente Guia Interativo de Ordem de Mistura (WALES) e Teste de Compatibilidade (Jar Test)
+ */
 export const TankMixingGuide: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'wales' | 'jartest'>('wales');
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
 
-  // Jar Test Timer (15 minutes = 900 seconds)
+  // Cronômetro do Jar Test (15 minutos = 900 segundos)
   const [jarTimerSec, setJarTimerSec] = useState<number>(900);
   const [isJarTimerRunning, setIsJarTimerRunning] = useState<boolean>(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let interval: any = null;
     if (isJarTimerRunning && jarTimerSec > 0) {
       interval = setInterval(() => {
