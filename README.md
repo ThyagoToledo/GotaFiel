@@ -1,187 +1,158 @@
 <p align="center">
-  <img src="public/banner.jpg" alt="GotaFiel Banner" width="100%" />
+  <img src="public/banner.jpg" alt="GotaFiel Banner" width="600px" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);" />
 </p>
 
-<h1 align="center">🌾 GotaFiel — Análise de Pulverização & Calibração Agrícola</h1>
+<h1 align="center">GotaFiel</h1>
 
 <p align="center">
-  <strong>Plataforma moderna de visão computacional de alta precisão para análise de cartões hidrossensíveis, calibração de bicos pulverizadores e diagnóstico agronômico de campo.</strong>
+  <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Neon-PostgreSQL-00E599?style=for-the-badge&logo=postgresql&logoColor=white" alt="Neon PostgreSQL" />
+  <img src="https://img.shields.io/badge/PWA-Offline_Ready-006439?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA" />
+  <img src="https://img.shields.io/badge/Precisao-%E2%89%A5_95%25-006439?style=for-the-badge" alt="Precisao" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versão-2.5.0-emerald.svg" alt="Versão 2.5.0" />
-  <img src="https://img.shields.io/badge/precisão-≥_95%25_comprovada-006439.svg" alt="Precisão 95%+" />
-  <img src="https://img.shields.io/badge/pwa-offline_ready-blue.svg" alt="PWA Offline" />
-  <img src="https://img.shields.io/badge/typescript-strict_100%25-3178c6.svg" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/testes-101_passando-brightgreen.svg" alt="Testes Unitários" />
-  <img src="https://img.shields.io/badge/arquitetura-clean--room-orange.svg" alt="Clean-Room" />
-  <img src="https://img.shields.io/badge/banco-neon_serverless-00e599.svg" alt="Neon Database" />
+  GotaFiel e uma plataforma de visao computacional e calibracao agronomica para analise de cartoes hidrossensiveis de pulverizacao agricola. O software processa imagens de deposicao de defensivos, quantifica densidade de gotas, cobertura percentual e diametros volumetricos (DV0.1, DV0.5/DMV, DV0.9, Span), alem de oferecer calibracao de bicos pulverizadores, monitoramento termodinamico de Delta T e suporte a operacao offline em campo via Progressive Web App (PWA).
 </p>
 
 ---
 
-## 📌 Visão Geral
+## Componentes Principais
 
-O **GotaFiel** é uma solução de agricultura de precisão desenvolvida para agrônomos, pesquisadores, operadores de pulverização e produtores rurais. O software transforma imagens de cartões hidrossensíveis capturadas por smartphones ou câmeras em métricas quantitativas de deposição de defensivos em segundos.
+### Visao Computacional & Motores de Segmentacao
+Processamento em Web Workers acelerados no navegador, desenvolvido sob principios Clean-Room:
+* **Motor Hibrido Adaptativo:** Fusao espectral azul-amarelo e luminancia, normalizacao de iluminacao para compensacao de sombras e separacao morfologica de gotas aglomeradas por transformada de distancia.
+* **Motor Cromatico:** Binarizacao espectral direta pelo diferencial cromatico com limiarizacao automatica de Otsu.
+* **Motor Monocromatico:** Binarizacao em escala de cinza por densidade optica e suavizacao espacial.
+* **Calibracao Fisica:** Retificacao geometrica por homografia subpixel e calculo preciso de area fisica por pixel (mm2/pixel).
 
-A ferramenta combina processamento em **Web Workers** acelerados no próprio navegador, armazenamento em nuvem no **Neon PostgreSQL** e **Vercel Blob**, e ferramentas de campo como aferição individual de bicos de pulverização, monitoramento climático (Delta T) e diagnóstico rápido de gotas.
+### Ferramentas de Campo & Diagnostico Agronomico
+Conjunto integrado de utilitarios para apoio a tomada de decisao:
+* **Afericao de Bicos:** Cronometro de coleta de 60 segundos com sinal sonoro, calculo de desvio relativo/absoluto e graficos divergentes para identificacao de desgaste ou obstrucao.
+* **Calculadora de Volume de Calda:** Determinacao da taxa de aplicacao em L/ha em funcao da vazao, espacamento e velocidade de trabalho.
+* **Clima & Risco de Deriva (Delta T):** Avaliacao termodinamica de bulbo umido (Stull, 2011) para prevencao de evaporacao de gotas finas e deriva por vento.
+* **Diagnostico Rapido:** Simulacao de densidade e cobertura para alvos especificos (fungicidas de contato, sistemicos, inseticidas e herbicidas).
 
----
-
-## 🛡️ Arquitetura Clean-Room & Propriedade Intelectual
-
-O GotaFiel foi construído segundo os mais rigorosos princípios de **Engenharia Reversa Limpa (*Clean-Room Development*)**:
-
-1. **Zero Cópia de Código**: 100% do código-fonte, algoritmos de segmentação, rotulação de componentes, matrizes de transformação de perspectiva e modelos estatísticos foram escritos do zero em **TypeScript e JavaScript modernos**.
-2. **Identidade Visual Própria**: Interface responsiva, contemporânea e projetada especificamente para uso sob a luz do sol (*High Sunlight Legibility*) e tema escuro.
-3. **Independência Tecnológica**: Nenhuma dependência de binários legados ou marcas comerciais registradas de terceiros.
-
----
-
-## 🚀 Principais Funcionalidades
-
-### 1. 🔬 Análise de Cartões Hidrossensíveis (Fluxo em 6 Passos)
-- **Passo 1 — Captura Inteligente**:
-  - Acesso direto à galeria de fotos sem forçar a câmera.
-  - Câmera nativa no mobile via `capture="environment"`.
-  - Visualizador de **webcam ao vivo no desktop** via `navigator.mediaDevices.getUserMedia`.
-- **Passo 2 — Retificação Geométrica**:
-  - Ajuste de 4 vértices para correção de perspectiva com homografia subpixel e raster dinâmico.
-- **Passo 3 — Escala Física e Resolução**:
-  - Calibração de dimensão do cartão ($76 \times 26\text{ mm}$, $38 \times 26\text{ mm}$ ou personalizado) garantindo pixel físico quadrado ($mm^2/\text{pixel}$).
-- **Passo 4 — Sensibilidade & Motores Clean-Room**:
-  - **Motor Híbrido Adaptativo (Padrão Recomendado)**: Fusão espectral azul-amarelo ($B - \max(R,G)$), luminância, compensação de sombras e separação morfológica de gotas sobrepostas.
-  - **Motor Cromático (Espectral)**: Binarização direta por isolamento do canal azul com limiar de Otsu.
-  - **Motor Monocromático (Escala de Cinza)**: Binarização por contraste de densidade óptica com suavização espacial 3×3.
-  - Separação de gotas aglomeradas (*Overlapping Droplet Split*) por transformada de distância e constrição.
-  - Filtragem de fibras, poeiras e riscos por circularidade ($4\pi A / P^2$).
-- **Passo 5 — Resultados & Diagnóstico Agronômico**:
-  - Densidade de gotas ($\text{gotas/cm}^2$) com classificação visual (Insuficiente, Intermediária, Boa).
-  - Cobertura percentual (%) com **Alerta Crítico de Excesso e Escorrimento ($\ge 75\%$)**.
-  - Diâmetros Volumétricos: $DV_{0.1}, DV_{0.5} (\text{DMV/VMD}), DV_{0.9}$ e Coeficiente de Dispersão ($\text{Span}$).
-  - Volume estimado aplicado em $\text{L/ha}$.
-  - Espectro de gotas padronizado (ASABE S572.1).
-- **Passo 6 — Inspeção Manual de Manchas**:
-  - Visualização interativa gota a gota com inclusão/exclusão manual e recálculo instantâneo das estatísticas.
+### Mobilidade & Persistencia
+* **Progressive Web App (PWA):** Instalacao direta no celular ou computador com Service Worker para execucao completa sem sinal de internet na lavoura.
+* **Persistencia Distribuida:** Armazenamento relacional serverless no Neon PostgreSQL e imagens privadas no Vercel Blob com protecao de taxa (Rate Limiting).
+* **Exportacao de Relatorios:** Geracao client-side de documentos tecnicos em PDF e planilhas estruturadas em CSV.
 
 ---
 
-### 2. 🧪 Calculadoras Agrícolas Especializadas
-- **Volume de Calda**: Cálculo exato da taxa de aplicação ($\text{L/ha}$) a partir da vazão do bico ($\text{L/min}$), espaçamento ($\text{cm}$) e velocidade ($\text{km/h}$).
-- **Aferição de Bicos de Pulverização**:
-  - Cronômetro digital integrado de 60 segundos com sinal sonoro de término.
-  - Gráfico divergente de barras destacando desvio individual ($\%$) em relação à média da barra.
-  - Critérios direcionais (desgaste vs obstrução) e absolutos.
-- **Clima & Risco de Deriva (Delta T)**:
-  - Cálculo de temperatura de bulbo úmido pela fórmula termodinâmica de **Stull (2011)**.
-  - Diagnóstico de risco de evaporação rápida (gotas finas), deriva por vento ou inversão térmica.
-- **Diagnóstico Rápido de Pulverização**:
-  - Simulação instantânea de densidade e cobertura para alvos específicos: *Fungicidas de Contato (50-70 gotas/cm²)*, *Fungicidas Sistêmicos (30-40 gotas/cm²)*, *Inseticidas (20-30 gotas/cm²)* e *Herbicidas (15-30 gotas/cm²)*.
+<details>
+  <summary><b>Estrutura de Diretorios</b></summary>
+
+```text
+Gotas2/
+├── api/                     # Serverless endpoints (autenticacao, analises e rate limit)
+│   ├── auth/                # Rotas de login, cadastro, sessao e logout
+│   ├── analyses/            # CRUD de amostras e sincronizacao com o Neon
+│   └── lib/                 # Conexao com banco Neon, hash de senhas e utilitarios HTTP
+├── public/                  # Ativos estaticos e configuracoes PWA
+│   ├── icon.svg             # Vetor principal do icone da aplicacao
+│   ├── icon-maskable.svg    # Icone adaptativo com area de seguranca para Android
+│   ├── app-icon.png         # Icone em alta resolucao para instalacao PWA
+│   ├── banner.jpg           # Banner oficial do GotaFiel
+│   ├── manifest.webmanifest # Manifesto da aplicacao web progressiva
+│   └── sw.js                # Service Worker para cache e uso offline
+├── src/
+│   ├── core/                # Nucleo de visao computacional e binarizacao
+│   │   ├── imageProcessor.ts     # Pipeline de processamento e extracao de metricas
+│   │   ├── analysisCore.ts       # Algoritmos de segmentacao e rotulacao de gotas
+│   │   ├── imageWorker.ts        # Execucao assincrona em Web Worker
+│   │   └── validationMetrics.ts  # Metricas estatisticas de validacao e IoU
+│   ├── components/          # Componentes visuais da interface de usuario
+│   │   ├── wizard/          # Assistente de analise em 6 etapas
+│   │   ├── CalculatorsView.tsx   # Calculadoras agronomicas e diagnosticos
+│   │   ├── InstallAppBanner.tsx  # Banner de instalacao PWA
+│   │   ├── TalhaoDetailView.tsx  # Gestao de experimentos e talhoes
+│   │   └── MoreView.tsx          # Configuracoes de motores e criterios
+│   ├── hooks/               # Custom hooks React (PWA, camera, eventos)
+│   └── utils/               # Geradores de relatorio PDF, CSV e calculos climaticos
+├── scripts/                 # Suites de validacao e benchmarks cientificos
+│   └── benchmarkRunner.ts   # Executor de validacao de precisao (>= 95%)
+└── package.json             # Dependencias e scripts do projeto
+```
+</details>
 
 ---
 
-### 3. 📱 PWA & Funcionamento Offline no Campo
-- Instalável como aplicativo nativo no celular (Android / iOS) e no computador (Chrome / Edge / Safari).
-- Service Worker com estratégia de cache avançada: funciona mesmo sem sinal de internet na lavoura.
-- Banner e atalho direto nas configurações para instalação com um clique.
+## Validacao e Metricas de Precisao
 
----
+O software e validado continuamente por uma suite automatizada de testes contra padroes de referencia:
 
-### 4. 📄 Exportação & Relatórios
-- **Relatório PDF Completo**: Geração no cliente via `jsPDF` com dados do talhão, histograma de distribuição de gotas, metadados técnicos e orientações de calibração.
-- **Planilhas CSV**: Exportação detalhada de gotas individuais ou consolidadas por talhão e experimento.
-
----
-
-## 📊 Validação Científica & Benchmark (Meta $\ge 95\%$)
-
-O GotaFiel conta com uma suíte de validação automatizada contra conjuntos de dados de referência sintéticos e reais:
-
-```bash
-npm run test:benchmark
+```text
+Cenario de Teste                                Precisao   Recall   F1-Score   Status
+1. Padrao Geometrico de Calibracao (25 gotas)   100,00%    100,00%  100,00%    Aprovado (>= 95%)
+2. Gotas Finas Esparsas (Baixa Cobertura)       100,00%    100,00%  100,00%    Aprovado (>= 95%)
+3. Gradiente Severo de Sombra                   100,00%    100,00%  100,00%    Aprovado (>= 95%)
+4. Aglomerados com Constricao (Split)           100,00%    100,00%  100,00%    Aprovado (>= 95%)
+5. Ruido de Papel Real                          100,00%    100,00%  100,00%    Aprovado (>= 95%)
+--------------------------------------------------------------------------------------
+Metrica Agregada Global                         100,00%    100,00%  100,00%    Meta Atingida
 ```
 
-| Cenário de Teste | Precisão | Recall | F1-Score | IoU (Jaccard) | Status |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **1. Padrão Geométrico de Calibração (25 gotas)** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | ✅ **Aprovado ($\ge 95\%$)** |
-| **2. Gotas Finas Esparsas (Baixa Cobertura)** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | ✅ **Aprovado ($\ge 95\%$)** |
-| **3. Gradiente Severo de Sombra (100% a 45% luz)** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | ✅ **Aprovado ($\ge 95\%$)** |
-| **4. Aglomerados de Gotas Sobrepostas (Split)** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | ✅ **Aprovado ($\ge 95\%$)** |
-| **5. Ruído de Granulação de Papel Real** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | ✅ **Aprovado ($\ge 95\%$)** |
-| **MÉTRICA AGREGADA GLOBAL** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | 🏆 **EXCELÊNCIA (100%)** |
+---
+
+## Tecnologias Utilizadas
+
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons, Motion |
+| **Computacao Visual** | HTML5 Canvas, Web Workers, Transformada de Distancia, Homografia Subpixel |
+| **Backend & Banco** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
+| **Armazenamento & PWA** | Vercel Blob Storage, Service Workers, Web App Manifest |
+| **Relatorios & Exportacao** | jsPDF, HTML2Canvas, gerador CSV nativo |
+| **Testes & Qualidade** | Vitest, TypeScript Strict Mode, TSX |
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## Execucao Local
 
-- **Frontend**: [React 19](https://react.dev/), [TypeScript 5.8](https://www.typescriptlang.org/), [Vite 6](https://vitejs.dev/), [TailwindCSS v4](https://tailwindcss.com/)
-- **Ícones & UI**: [Lucide React](https://lucide.dev/), [Motion](https://motion.dev/)
-- **Documentos**: [jsPDF](https://github.com/parallax/jsPDF)
-- **Backend Serverless**: [Vercel Serverless Functions](https://vercel.com/docs/functions)
-- **Banco de Dados**: [Neon Serverless PostgreSQL](https://neon.tech/) com driver `@neondatabase/serverless`
-- **Armazenamento de Imagens**: [Vercel Blob Storage](https://vercel.com/docs/storage/vercel-blob)
-- **Testes & Qualidade**: [Vitest](https://vitest.dev/), [TSX](https://github.com/privatenumber/tsx)
+### Pre-requisitos
+* Node.js versao 20 ou superior
+* npm ou yarn
 
----
+### Instrucoes
 
-## 💻 Instalação & Execução Local
-
-### Pré-requisitos
-- Node.js 20+ ou 22+
-- npm ou yarn
-
-### 1. Clonar o repositório
+1. Clone o repositorio:
 ```bash
 git clone https://github.com/ThyagoToledo/Gotas2.git
 cd Gotas2
 ```
 
-### 2. Instalar dependências
+2. Instale as dependencias:
 ```bash
 npm install
 ```
 
-### 3. Configurar variáveis de ambiente (Opcional para desenvolvimento local)
-Crie um arquivo `.env` com a conexão do Neon e do Vercel Blob (ou rode no modo mock offline):
-```env
-DATABASE_URL=postgres://usuario:senha@ep-exemplo.us-east-2.aws.neon.tech/neondb?sslmode=require
-BLOB_READ_WRITE_TOKEN=vercel_blob_token_aqui
-```
-
-### 4. Executar em modo de desenvolvimento
+3. Inicie o servidor de desenvolvimento:
 ```bash
 npm run dev
 ```
-Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 
-### 5. Executar os testes
+4. Execute os testes e a validacao de precisao:
 ```bash
-# Executa todos os testes unitários (101 testes)
+# Execucao dos 101 testes unitarios
 npm test
 
-# Executa o benchmark científico de 95%+
+# Execucao do benchmark de precisao cientifica
 npm run test:benchmark
 
-# Verifica tipagem estrita do TypeScript
+# Verificacao de tipos TypeScript
 npm run lint
 ```
 
-### 6. Gerar o build de produção
+5. Gere o pacote de producao:
 ```bash
 npm run build
 ```
 
 ---
 
-## 🔒 Segurança & Privacidade
+## Licenca
 
-- **Autenticação Segura**: Senhas protegidas por criptografia `scrypt` com salt individual criptográfico.
-- **Cookies HttpOnly**: Tokens de sessão com atributos `Secure`, `SameSite=Lax` e `HttpOnly`.
-- **Proteção contra Brute-Force**: Rate limiting distribuído no Neon com janelas deslizantes de 15 minutos e hash SHA-256 (nenhum IP ou senha em texto puro é persistido).
-- **Isolamento de Dados**: Análises, imagens e coordenadas de gotas são vinculadas estritamente ao `user_id` autenticado.
-
----
-
-## 📄 Licença
-
-Este projeto é desenvolvido com código 100% original sob a abordagem Clean-Room para o agronegócio de alta precisão. Todos os direitos reservados.
+Projeto desenvolvido com arquitetura proprietaria e independente sob metodologia Clean-Room. Todos os direitos reservados.
