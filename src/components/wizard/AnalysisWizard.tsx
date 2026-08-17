@@ -211,7 +211,19 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     executePipeline,
   ]);
 
+  const isSavedView = Boolean(initialAnalysis);
+
   const handleBack = () => {
+    // Se estiver visualizando uma análise salva existente:
+    if (isSavedView) {
+      if (currentStep === 6) {
+        setCurrentStep(5);
+      } else {
+        onCloseWizard();
+      }
+      return;
+    }
+
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
@@ -220,6 +232,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   };
 
   const getStepTitle = () => {
+    if (isSavedView) {
+      if (currentStep === 6) return 'Inspeção de Gotas';
+      return analysisState.title || 'Detalhes da Amostra';
+    }
     switch (currentStep) {
       case 1:
         return 'Análise';
@@ -238,6 +254,13 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     }
   };
 
+  const getStepText = () => {
+    if (isSavedView) {
+      return currentStep === 6 ? 'Inspeção' : '';
+    }
+    return `${currentStep} de 6`;
+  };
+
   // O wizard ocupa a tela inteira e não renderiza a barra lateral, então não pode
   // reservar a faixa dela (md:pl-[240px]): isso abria um vão vazio de 240px e jogava
   // todo o conteúdo para a direita no desktop.
@@ -245,7 +268,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     <div className="min-h-screen flex flex-col bg-surface dark:bg-background">
       <Header
         title={getStepTitle()}
-        stepText={`${currentStep} de 6`}
+        stepText={getStepText()}
         showBack={true}
         onBack={handleBack}
       />
@@ -346,8 +369,10 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           analysis={analysisState}
           fieldExperiments={fieldExperiments}
           preselectedFieldId={preselectedFieldId}
+          isExistingAnalysis={isSavedView}
           onViewDroplets={() => setCurrentStep(6)}
           onAdjustCalibration={() => setCurrentStep(4)}
+          onClose={onCloseWizard}
           onSaveToSample={async (fieldId, sampleName) => {
             const selectedField = fieldExperiments.find((field) => field.id === fieldId);
             const final = { ...analysisState, fieldId: fieldId || undefined, fieldName: selectedField?.name, crop: selectedField?.crop, title: sampleName };

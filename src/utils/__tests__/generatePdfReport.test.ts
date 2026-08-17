@@ -104,4 +104,36 @@ describe('generateAnalysisPdfReport', () => {
       'Não é possível gerar PDF com métricas inválidas (NaN/Infinity).'
     );
   });
+
+  it('gera relatório PDF com textos longos e múltiplos avisos sem erros', () => {
+    const analysis = createSampleAnalysis({
+      title: 'Talhão Fazenda Santa Maria - Setor Pivô Central 04 - Pulverização de Fungicida Sistêmico com Adjuvante Siliconado',
+      measurementQuality: {
+        status: 'LIMITADA',
+        effectiveDpi: 450,
+        orientationCorrected: true,
+        coverageReliable: true,
+        countDensityReliable: false,
+        sizeVolumeReliable: false,
+        warnings: [
+          'A resolução efetiva da imagem está no limite mínimo aceitável (450 DPI). Recomenda-se aproximar a câmera.',
+          'Iluminação heterogênea detectada com presença de sombras parciais no canto inferior esquerdo.',
+          'Identificada coalescência moderada de gotas com separação morfológica estimada.',
+        ],
+        algorithmVersion: '2.5.0',
+        captureQuality: {
+          version: 'capture-signals-v1',
+          calibrationStatus: 'NAO_CALIBRADO',
+          cardOccupancyPercent: 82.5,
+          focusLaplacianVariance: 340.2,
+          illuminationVariationPercent: 14.8,
+          darkPixelPercent: 0.2,
+          highlightPixelPercent: 1.1,
+          sampleCount: 1800,
+        },
+      },
+    });
+
+    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+  });
 });

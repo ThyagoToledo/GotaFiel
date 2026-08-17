@@ -16,18 +16,22 @@ interface Step5ResultProps {
   analysis: AnalysisData;
   fieldExperiments: FieldExperiment[];
   preselectedFieldId?: string;
+  isExistingAnalysis?: boolean;
   onViewDroplets: () => void;
   onSaveToSample: (fieldId: string, sampleName: string) => Promise<void> | void;
   onAdjustCalibration: () => void;
+  onClose?: () => void;
 }
 
 export const Step5Result: React.FC<Step5ResultProps> = ({
   analysis,
   fieldExperiments,
   preselectedFieldId,
+  isExistingAnalysis = false,
   onViewDroplets,
   onSaveToSample,
   onAdjustCalibration,
+  onClose,
 }) => {
   const [showSaveModal, setShowSaveModal] = useState(false);
   // Só aceita o talhão de origem se ele ainda existir na lista.
@@ -97,21 +101,23 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
 
   return (
     <div className="flex-1 flex flex-col max-w-[1200px] mx-auto w-full pb-32 px-4 pt-4">
-      {/* Step Progress Bar */}
-      <div className="w-full max-w-md mx-auto mb-3">
-        <div className="flex justify-between items-center text-xs text-on-surface-variant uppercase font-semibold mb-1">
-          <span>5 de 6</span>
-          <span>Resultado da Análise</span>
+      {/* Step Progress Bar (Apenas para novos cadastros) */}
+      {!isExistingAnalysis && (
+        <div className="w-full max-w-md mx-auto mb-3">
+          <div className="flex justify-between items-center text-xs text-on-surface-variant uppercase font-semibold mb-1">
+            <span>5 de 6</span>
+            <span>Resultado da Análise</span>
+          </div>
+          <div className="flex gap-1.5 w-full">
+            <div className="h-1 flex-1 bg-primary rounded-full" />
+            <div className="h-1 flex-1 bg-primary rounded-full" />
+            <div className="h-1 flex-1 bg-primary rounded-full" />
+            <div className="h-1 flex-1 bg-primary rounded-full" />
+            <div className="h-1 flex-1 bg-primary rounded-full" />
+            <div className="h-1 flex-1 bg-surface-variant rounded-full" />
+          </div>
         </div>
-        <div className="flex gap-1.5 w-full">
-          <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-surface-variant rounded-full" />
-        </div>
-      </div>
+      )}
 
       <div className="w-full max-w-md mx-auto flex-1 flex flex-col gap-5">
         {/* Qualidade técnica da medição — não é um veredito agronômico. */}
@@ -397,37 +403,92 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
 
       {/* Bottom Action Area */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 dark:bg-surface-dim/95 backdrop-blur-md border-t border-outline-variant z-40">
-        <div className="max-w-md mx-auto flex gap-2">
-          <button
-            type="button"
-            onClick={handleGeneratePdf}
-            className="h-[52px] px-3.5 bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
-            title="Baixar Relatório PDF"
-          >
-            <Download className="w-4 h-4" />
-            <span>PDF</span>
-          </button>
+        {isExistingAnalysis ? (
+          <div className="max-w-md mx-auto flex gap-2">
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-[52px] px-4 bg-surface-container hover:bg-surface-container-high text-on-surface font-bold text-xs sm:text-sm rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+              >
+                Voltar
+              </button>
+            )}
 
-          <button
-            type="button"
-            onClick={onAdjustCalibration}
-            disabled={!hasSourceImage || Boolean(analysis.remoteOnly)}
-            className="flex-1 h-[52px] bg-transparent text-primary font-bold text-xs sm:text-sm rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors cursor-pointer"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            <span>Calibrar</span>
-          </button>
+            <button
+              type="button"
+              onClick={handleGeneratePdf}
+              className="h-[52px] px-3.5 bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+              title="Baixar Relatório PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span>PDF</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setShowSaveModal(true)}
-            disabled={Boolean(analysis.remoteOnly)}
-            className="flex-[2] h-[52px] bg-primary text-on-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-xs"
-          >
-            <Save className="w-4 h-4" />
-            <span>Salvar Amostra</span>
-          </button>
-        </div>
+            {hasSourceImage && !analysis.remoteOnly && (
+              <button
+                type="button"
+                onClick={onAdjustCalibration}
+                className="h-[52px] px-3 bg-transparent text-on-surface-variant hover:text-on-surface font-bold text-xs rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors cursor-pointer"
+                title="Recalibrar parâmetros"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className="hidden sm:inline">Recalibrar</span>
+              </button>
+            )}
+
+            {hasSourceImage ? (
+              <button
+                type="button"
+                onClick={onViewDroplets}
+                className="flex-1 h-[52px] bg-primary text-on-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-xs"
+              >
+                <ImageIcon className="w-4 h-4" />
+                <span>Inspecionar</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-[52px] bg-primary text-on-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-xs"
+              >
+                <span>Concluir</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="max-w-md mx-auto flex gap-2">
+            <button
+              type="button"
+              onClick={handleGeneratePdf}
+              className="h-[52px] px-3.5 bg-surface-container hover:bg-surface-container-high text-primary font-bold text-xs rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+              title="Baixar Relatório PDF"
+            >
+              <Download className="w-4 h-4" />
+              <span>PDF</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onAdjustCalibration}
+              disabled={!hasSourceImage || Boolean(analysis.remoteOnly)}
+              className="flex-1 h-[52px] bg-transparent text-primary font-bold text-xs sm:text-sm rounded-xl border border-outline-variant flex items-center justify-center gap-1.5 hover:bg-surface-container transition-colors cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Calibrar</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowSaveModal(true)}
+              disabled={Boolean(analysis.remoteOnly)}
+              className="flex-[2] h-[52px] bg-primary text-on-primary font-bold text-xs sm:text-sm rounded-xl flex items-center justify-center gap-1.5 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-xs"
+            >
+              <Save className="w-4 h-4" />
+              <span>Salvar Amostra</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Modal to Save to Sample Field */}
