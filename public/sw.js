@@ -7,7 +7,7 @@
  * comum na lavoura.
  */
 const CACHE_NAME = 'gotafiel-v2';
-const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icon.svg', '/banner.jpg'];
+const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-maskable.svg', '/app-icon.png', '/apple-touch-icon.png', '/banner.jpg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

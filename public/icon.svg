@@ -1,7 +1,140 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#006439"/>
-  <path d="M256 88c-62 88-124 158-124 232a124 124 0 0 0 248 0c0-74-62-144-124-232z" fill="#f6fbf3"/>
-  <circle cx="216" cy="330" r="18" fill="#006439"/>
-  <circle cx="286" cy="282" r="12" fill="#006439"/>
-  <circle cx="264" cy="366" r="9" fill="#006439"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="gf-bg" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#0b2e1b"/>
+      <stop offset="55%" stop-color="#04160c"/>
+      <stop offset="100%" stop-color="#010804"/>
+    </radialGradient>
+
+    <!-- Droplet Glow Gradient -->
+    <radialGradient id="gf-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e599" stop-opacity="0.35"/>
+      <stop offset="70%" stop-color="#00b060" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#00e599" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Outer Droplet Ring (Cyan-Emerald Neon Rim) -->
+    <linearGradient id="gf-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe"/>
+      <stop offset="30%" stop-color="#38ef7d"/>
+      <stop offset="70%" stop-color="#00b060"/>
+      <stop offset="100%" stop-color="#006439"/>
+    </linearGradient>
+
+    <!-- Droplet Body Shading -->
+    <linearGradient id="gf-body" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#1de9b6"/>
+      <stop offset="25%" stop-color="#00c853"/>
+      <stop offset="60%" stop-color="#007e33"/>
+      <stop offset="100%" stop-color="#00431b"/>
+    </linearGradient>
+
+    <!-- Inner Agricultural Leaf Gradient -->
+    <linearGradient id="gf-leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d4fc79"/>
+      <stop offset="45%" stop-color="#96e6a1"/>
+      <stop offset="100%" stop-color="#38ef7d"/>
+    </linearGradient>
+
+    <!-- Golden Spray Droplet Analytics Gradient -->
+    <linearGradient id="gf-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff176"/>
+      <stop offset="50%" stop-color="#ffd54f"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </linearGradient>
+
+    <!-- Specular Glass Highlights -->
+    <linearGradient id="gf-glass-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Drop Shadows and Filters -->
+    <filter id="gf-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="gf-neon" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Clip Path for Squircle Glass Highlight -->
+    <clipPath id="gf-squircle-clip">
+      <rect width="512" height="512" rx="124" ry="124"/>
+    </clipPath>
+  </defs>
+
+  <!-- Base Icon Squircle Canvas -->
+  <g clip-path="url(#gf-squircle-clip)">
+    <!-- Deep Canvas Background -->
+    <rect width="512" height="512" fill="url(#gf-bg)"/>
+
+    <!-- Ambient Center Luminous Aura -->
+    <circle cx="256" cy="270" r="190" fill="url(#gf-glow)"/>
+
+    <!-- Subtle Inset Edge Border -->
+    <rect width="508" height="508" x="2" y="2" rx="122" ry="122" fill="none" stroke="#1d4a30" stroke-width="2" opacity="0.7"/>
+    <rect width="510" height="510" x="1" y="1" rx="123" ry="123" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+    <!-- Droplet Assembly with Depth Shadow -->
+    <g filter="url(#gf-shadow)">
+      <!-- Droplet Outer Glow Rim (Halo) -->
+      <path d="M 256,64 C 256,64 394,228 394,332 A 138,138 0 0,1 118,332 C 118,228 256,64 256,64 Z"
+            fill="none" stroke="url(#gf-rim)" stroke-width="18" opacity="0.4" filter="url(#gf-neon)"/>
+
+      <!-- Droplet Outer Border Neon Contour -->
+      <path d="M 256,72 C 256,72 388,232 388,332 A 132,132 0 0,1 124,332 C 124,232 256,72 256,72 Z"
+            fill="none" stroke="url(#gf-rim)" stroke-width="10" opacity="0.95"/>
+
+      <!-- Main Hydro-Droplet Core -->
+      <path d="M 256,80 C 256,80 380,236 380,332 A 124,124 0 0,1 132,332 C 132,236 256,80 256,80 Z"
+            fill="url(#gf-body)"/>
+
+      <!-- Fluid Shading Shadow Layer inside Droplet -->
+      <path d="M 256,80 C 256,80 380,236 380,332 A 124,124 0 0,1 190,450 C 290,440 360,360 360,280 C 360,200 290,130 256,80 Z"
+            fill="#022a14" opacity="0.5"/>
+
+      <!-- Stylized Precision Agricultural Sprout (Forms the 'G' & Growth Motif) -->
+      <path d="M 256,125 C 272,190 345,248 345,325 C 345,378 300,416 254,416 C 210,416 178,382 186,328 C 193,280 232,215 256,125 Z"
+            fill="url(#gf-leaf)" filter="url(#gf-shadow)"/>
+
+      <!-- Internal Leaf Spine / Main Stem -->
+      <path d="M 256,145 C 252,215 228,295 248,396"
+            fill="none" stroke="#004d20" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+
+      <!-- Secondary Lateral Veins -->
+      <path d="M 246,230 C 274,250 310,270 326,295" fill="none" stroke="#004d20" stroke-width="5.5" stroke-linecap="round" opacity="0.65"/>
+      <path d="M 240,280 C 268,300 300,320 316,345" fill="none" stroke="#004d20" stroke-width="5.5" stroke-linecap="round" opacity="0.65"/>
+      <path d="M 235,330 C 255,346 280,364 294,385" fill="none" stroke="#004d20" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+
+      <!-- Golden Droplet Analytics Particles (Precision Calibration Points) -->
+      <g filter="url(#gf-neon)">
+        <circle cx="165" cy="275" r="12" fill="url(#gf-gold)"/>
+        <circle cx="150" cy="335" r="15" fill="url(#gf-gold)"/>
+        <circle cx="178" cy="390" r="10" fill="url(#gf-gold)"/>
+
+        <circle cx="348" cy="285" r="13" fill="url(#gf-gold)"/>
+        <circle cx="332" cy="350" r="16" fill="url(#gf-gold)"/>
+        <circle cx="295" cy="402" r="11" fill="url(#gf-gold)"/>
+      </g>
+
+      <!-- Inner Micro Node Specular Reflections -->
+      <circle cx="162" cy="271" r="3.5" fill="#ffffff" opacity="0.9"/>
+      <circle cx="146" cy="330" r="4.5" fill="#ffffff" opacity="0.9"/>
+      <circle cx="345" cy="280" r="4" fill="#ffffff" opacity="0.9"/>
+      <circle cx="328" cy="344" r="5" fill="#ffffff" opacity="0.9"/>
+    </g>
+
+    <!-- Top Curved Glass Specular Sheen (Apple Style Gloss Finish) -->
+    <path d="M 0,0 L 512,0 L 512,170 C 370,220 200,240 0,160 Z"
+          fill="url(#gf-glass-sheen)"/>
+    <path d="M 120,40 C 240,40 380,80 440,160 C 360,110 240,80 120,40 Z"
+          fill="#ffffff" opacity="0.18"/>
+  </g>
 </svg>

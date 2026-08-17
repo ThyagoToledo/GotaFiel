@@ -44,8 +44,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center text-center px-2 truncate">
-          <h1 className="font-semibold text-[20px] text-primary dark:text-primary-fixed truncate">
-            {title}
+          <h1 className="font-semibold text-[20px] text-primary dark:text-primary-fixed truncate flex items-center justify-center gap-2">
+            {title === 'GotaFiel' && (
+              <img src="/icon.svg" alt="GotaFiel Icon" className="w-6 h-6 rounded-lg shadow-xs shrink-0" />
+            )}
+            <span>{title}</span>
           </h1>
           {subtitle && (
             <span className="text-xs text-on-surface-variant font-normal">
