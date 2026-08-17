@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw, Sparkles, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw, Sparkles, Smartphone, CheckCircle2, Cookie } from 'lucide-react';
 import { AnalysisData, DEFAULT_ENGINE_MODE, DEFAULT_NOZZLE_CRITERIA, EngineMode, NozzleCriteria, NozzleCriteriaMode } from '../types';
 import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
 import { usePwaInstall } from '../hooks/usePwaInstall';
@@ -428,6 +428,20 @@ export const MoreView: React.FC<MoreViewProps> = ({
                 )}
               </span>
             </div>
+          </button>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem('gotafiel_cookie_consent');
+              window.location.reload();
+            }}
+            className="w-full flex items-center justify-between p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer text-sm font-medium text-on-surface"
+          >
+            <div className="flex items-center gap-2.5">
+              <Cookie className="w-4 h-4 text-primary" />
+              <span>Privacidade & Cookies (LGPD)</span>
+            </div>
+            <span className="text-[11px] text-primary font-bold">Redefinir</span>
           </button>
 
           <button

@@ -10,6 +10,7 @@ import { TalhaoDetailView } from './components/TalhaoDetailView';
 import { CalculatorsView } from './components/CalculatorsView';
 import { MoreView } from './components/MoreView';
 import { InstallAppBanner } from './components/InstallAppBanner';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { ActiveTab, AnalysisData, DEFAULT_ENGINE_MODE, DEFAULT_NOZZLE_CRITERIA, EngineMode, FieldExperiment, NozzleCalibrationSession, NozzleCriteria } from './types';
 import { sanitizeNozzleCriteria } from './utils/sprayAnalytics';
 
@@ -190,6 +191,7 @@ export default function App() {
       {activeTab === 'more' && <MoreView isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} onClearData={handleClearData} recentAnalyses={recentAnalyses} nozzleCriteria={nozzleCriteria} onChangeNozzleCriteria={(criteria) => setNozzleCriteria(sanitizeNozzleCriteria(criteria))} engineMode={engineMode} onChangeEngineMode={setEngineMode} userName={authUser.name} onLogout={handleLogout} />}
       <BottomNav activeTab={activeTab} onChangeTab={(tab) => tab === 'analysis' ? handleStartNewAnalysis() : (setActiveTab(tab), setIsWizardOpen(false))} />
       <InstallAppBanner />
+      <CookieConsentBanner />
     </>}
   </div>;
 }

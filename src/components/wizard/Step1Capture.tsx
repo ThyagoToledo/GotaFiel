@@ -11,9 +11,12 @@ import {
   Layers,
   CheckCircle2,
   Activity,
+  Loader2,
+  Navigation,
 } from 'lucide-react';
 import { CanopyPosition } from '../../types';
 import { computeLaplacianSharpness } from '../../utils/sprayAnalytics';
+import { extractGpsFromImageFile } from '../../utils/exifGps';
 
 interface Step1CaptureProps {
   onImageSelected: (
@@ -32,6 +35,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const focusCheckIntervalRef = useRef<any>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   // Buffers estáticos reutilizados para evitar pressão no Garbage Collector (GC)
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -43,41 +47,105 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
 
   // Canopy Position & GPS State
   const [canopyPos, setCanopyPos] = useState<CanopyPosition>('livre');
-  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
-  // Tenta obter coordenadas GPS em background
+  // Tenta obter coordenadas GPS em background com estratégia de camadas (Rápida + GNSS Alta Precisão)
   const requestGps = () => {
-    if ('geolocation' in navigator) {
-      setIsLocating(true);
-      navigator.geolocation.getCurrentPosition(
+    if (!('geolocation' in navigator)) {
+      setGpsError('GPS não suportado neste navegador');
+      return;
+    }
+
+    setIsLocating(true);
+    setGpsError(null);
+
+    // 1ª Tentativa Rápida (Torre/Wi-Fi/Cache Recente em smartphones)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+        setIsLocating(false);
+      },
+      () => {
+        // Fallback se rápido falhar: aguarda satélites GNSS
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
+
+    // 2ª Tentativa de Alta Precisão (GNSS do smartphone) com timeout estendido
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+        setIsLocating(false);
+      },
+      (err) => {
+        if (!gpsLocation) {
+          if (err.code === err.PERMISSION_DENIED) {
+            setGpsError('Permissão de GPS recusada');
+          } else if (err.code === err.POSITION_UNAVAILABLE) {
+            setGpsError('Sinal de GPS indisponível');
+          } else {
+            setGpsError('Tempo esgotado ao buscar satélites');
+          }
+        }
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+
+    // 3ª Monitoramento contínuo em background enquanto o usuário enquadra a foto
+    try {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           setGpsLocation({
             latitude: pos.coords.latitude,
             longitude: pos.coords.longitude,
+            accuracy: pos.coords.accuracy,
           });
           setIsLocating(false);
+          setGpsError(null);
         },
-        (err) => {
-          console.warn('GPS não disponível ou permissão recusada:', err);
-          setIsLocating(false);
-        },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 60000, timeout: 20000 }
       );
+    } catch (e) {
+      console.debug('WatchPosition não suportado:', e);
     }
   };
 
   useEffect(() => {
     requestGps();
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
   }, []);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Extrai coordenadas EXIF da foto do smartphone caso o GPS do navegador estivesse lento ou inativo
+      const exifGps = await extractGpsFromImageFile(file);
+      const effectiveGps = exifGps || (gpsLocation ? { latitude: gpsLocation.latitude, longitude: gpsLocation.longitude } : undefined);
+
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          onImageSelected(reader.result, gpsLocation || undefined, canopyPos);
+          onImageSelected(reader.result, effectiveGps, canopyPos);
         }
       };
       reader.readAsDataURL(file);
@@ -270,26 +338,50 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
       </div>
 
       {/* GPS Location Status Indicator */}
-      <div className="w-full max-w-sm mb-4 flex items-center justify-between px-3 py-2 bg-surface-container rounded-xl border border-outline-variant/60 text-[11px] text-on-surface-variant">
-        <div className="flex items-center gap-1.5">
-          <MapPin className={`w-3.5 h-3.5 ${gpsLocation ? 'text-primary' : 'text-on-surface-variant'}`} />
-          <span>
-            {gpsLocation
-              ? `GPS: ${gpsLocation.latitude.toFixed(4)}, ${gpsLocation.longitude.toFixed(4)}`
-              : isLocating
-                ? 'Obtendo GPS...'
-                : 'GPS não detectado'}
-          </span>
+      <div className={`w-full max-w-sm mb-4 flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-[11px] transition-all ${
+        gpsLocation
+          ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-700/60 text-emerald-950 dark:text-emerald-200'
+          : isLocating
+            ? 'bg-brand-navy/5 dark:bg-brand-navy/20 border-brand-navy/20 text-on-surface'
+            : 'bg-surface-container border-outline-variant/60 text-on-surface-variant'
+      }`}>
+        <div className="flex items-center gap-2 min-w-0">
+          {isLocating ? (
+            <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+          ) : (
+            <MapPin className={`w-4 h-4 shrink-0 ${gpsLocation ? 'text-primary' : 'text-on-surface-variant'}`} />
+          )}
+          <div className="flex flex-col truncate">
+            <span className="font-semibold truncate">
+              {gpsLocation
+                ? `GPS: ${gpsLocation.latitude.toFixed(5)}, ${gpsLocation.longitude.toFixed(5)}`
+                : isLocating
+                  ? 'Buscando sinal de satélites GPS...'
+                  : gpsError
+                    ? gpsError
+                    : 'GPS aguardando autorização'}
+            </span>
+            {gpsLocation?.accuracy && (
+              <span className="text-[9px] opacity-80">
+                Precisão: ±{Math.round(gpsLocation.accuracy)}m
+              </span>
+            )}
+          </div>
         </div>
-        {!gpsLocation && (
-          <button
-            type="button"
-            onClick={requestGps}
-            className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
-          >
-            Ativar GPS
-          </button>
-        )}
+
+        <button
+          type="button"
+          onClick={requestGps}
+          disabled={isLocating}
+          className={`shrink-0 ml-2 px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+            gpsLocation
+              ? 'bg-primary/10 text-primary hover:bg-primary/20'
+              : 'bg-primary text-on-primary hover:bg-primary-container shadow-xs'
+          }`}
+        >
+          <Navigation className="w-3 h-3" />
+          {gpsLocation ? 'Atualizar' : isLocating ? 'Buscando...' : 'Ativar GPS'}
+        </button>
       </div>
 
       {/* Card Visual Illustration */}
