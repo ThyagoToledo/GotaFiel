@@ -16,6 +16,7 @@ interface AnalysisWizardProps {
   fieldExperiments: FieldExperiment[];
   initialAnalysis?: AnalysisData | null;
   preselectedFieldId?: string;
+  recentAnalysesCount?: number;
   defaultEngineMode?: EngineMode;
   onCloseWizard: () => void;
   onSaveAnalysis: (analysis: AnalysisData) => Promise<void> | void;
@@ -32,11 +33,13 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   fieldExperiments,
   initialAnalysis,
   preselectedFieldId,
+  recentAnalysesCount = 0,
   defaultEngineMode,
   onCloseWizard,
   onSaveAnalysis,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(initialAnalysis ? 5 : 1);
+  const [pipelineDirty, setPipelineDirty] = useState<boolean>(!initialAnalysis);
 
   const [corners, setCorners] = useState<CropCorners>(DEFAULT_CORNERS);
   const [method, setMethod] = useState<BinarizationMethod>(() => {
@@ -179,9 +182,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     [meanFilterPasses, fillHoles]
   );
 
-  // Trigger processing when parameters or image change
+  // Trigger processing when parameters or image change (somente para novas análises ou ajustes manuais)
   useEffect(() => {
-    if (analysisState.imageUrl) {
+    if (analysisState.imageUrl && pipelineDirty) {
       executePipeline(
         analysisState.imageUrl,
         corners,
@@ -196,6 +199,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       );
     }
   }, [
+    pipelineDirty,
     analysisState.imageUrl,
     corners,
     analysisState.cardSizeMm,
@@ -289,6 +293,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 1 && (
         <Step1Capture
           onImageSelected={(img, gpsCoords, canopyPosition) => {
+            setPipelineDirty(true);
             setBinaryMaskDataUrl('');
             setAnalysisState((prev) => ({
               ...prev,
@@ -317,8 +322,12 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
         <Step2Crop
           imageUrl={analysisState.imageUrl}
           cardColor={analysisState.cardColor}
-          onChangeCardColor={(color) => setAnalysisState((prev) => ({ ...prev, cardColor: color }))}
+          onChangeCardColor={(color) => {
+            setPipelineDirty(true);
+            setAnalysisState((prev) => ({ ...prev, cardColor: color }));
+          }}
           onNext={(selectedCorners) => {
+            setPipelineDirty(true);
             setCorners(selectedCorners);
             setCurrentStep(3);
           }}
@@ -328,34 +337,67 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 3 && (
         <Step3Scale
           cardSizeMm={analysisState.cardSizeMm}
-          onChangeCardSize={(size) => setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }))}
+          onChangeCardSize={(size) => {
+            setPipelineDirty(true);
+            setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }));
+          }}
           rectWidthPx={analysisState.rectWidthPx}
           rectHeightPx={analysisState.rectHeightPx}
           limitedBySource={rasterLimitedBySource}
-          onNext={() => setCurrentStep(4)}
+          onNext={() => {
+            setPipelineDirty(true);
+            setCurrentStep(4);
+          }}
         />
       )}
 
       {currentStep === 4 && (
         <Step4Sensitivity
           sensitivity={analysisState.sensitivity}
-          onChangeSensitivity={(sens) => setAnalysisState((prev) => ({ ...prev, sensitivity: sens }))}
+          onChangeSensitivity={(sens) => {
+            setPipelineDirty(true);
+            setAnalysisState((prev) => ({ ...prev, sensitivity: sens }));
+          }}
           method={method}
-          onChangeMethod={(m) => setMethod(m)}
+          onChangeMethod={(m) => {
+            setPipelineDirty(true);
+            setMethod(m);
+          }}
           minDropletUm={minDropletUm}
-          onChangeMinDropletUm={(val) => setMinDropletUm(val)}
+          onChangeMinDropletUm={(val) => {
+            setPipelineDirty(true);
+            setMinDropletUm(val);
+          }}
           discardBorder={discardBorder}
-          onChangeDiscardBorder={(val) => setDiscardBorder(val)}
+          onChangeDiscardBorder={(val) => {
+            setPipelineDirty(true);
+            setDiscardBorder(val);
+          }}
           meanFilterPasses={meanFilterPasses}
-          onChangeMeanFilterPasses={setMeanFilterPasses}
+          onChangeMeanFilterPasses={(val) => {
+            setPipelineDirty(true);
+            setMeanFilterPasses(val);
+          }}
           fillHoles={fillHoles}
-          onChangeFillHoles={setFillHoles}
+          onChangeFillHoles={(val) => {
+            setPipelineDirty(true);
+            setFillHoles(val);
+          }}
           splitOverlappingDroplets={splitOverlappingDroplets}
-          onChangeSplitOverlappingDroplets={setSplitOverlappingDroplets}
+          onChangeSplitOverlappingDroplets={(val) => {
+            setPipelineDirty(true);
+            setSplitOverlappingDroplets(val);
+          }}
           filterArtifacts={filterArtifacts}
-          onChangeFilterArtifacts={setFilterArtifacts}
+          onChangeFilterArtifacts={(val) => {
+            setPipelineDirty(true);
+            setFilterArtifacts(val);
+          }}
           normalizeIllumination={normalizeIllumination}
-          onChangeNormalizeIllumination={setNormalizeIllumination}
+          onChangeNormalizeIllumination={(val) => {
+            setPipelineDirty(true);
+            setNormalizeIllumination(val);
+          }}
           binaryMaskDataUrl={binaryMaskDataUrl}
           isProcessing={isProcessing}
           detectedDroplets={analysisState.totalDroplets}
@@ -369,9 +411,13 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           analysis={analysisState}
           fieldExperiments={fieldExperiments}
           preselectedFieldId={preselectedFieldId}
+          recentAnalysesCount={recentAnalysesCount}
           isExistingAnalysis={isSavedView}
           onViewDroplets={() => setCurrentStep(6)}
-          onAdjustCalibration={() => setCurrentStep(4)}
+          onAdjustCalibration={() => {
+            setPipelineDirty(true);
+            setCurrentStep(4);
+          }}
           onClose={onCloseWizard}
           onSaveToSample={async (fieldId, sampleName) => {
             const selectedField = fieldExperiments.find((field) => field.id === fieldId);

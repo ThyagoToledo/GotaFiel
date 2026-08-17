@@ -16,6 +16,7 @@ interface Step5ResultProps {
   analysis: AnalysisData;
   fieldExperiments: FieldExperiment[];
   preselectedFieldId?: string;
+  recentAnalysesCount?: number;
   isExistingAnalysis?: boolean;
   onViewDroplets: () => void;
   onSaveToSample: (fieldId: string, sampleName: string) => Promise<void> | void;
@@ -27,6 +28,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   analysis,
   fieldExperiments,
   preselectedFieldId,
+  recentAnalysesCount = 0,
   isExistingAnalysis = false,
   onViewDroplets,
   onSaveToSample,
@@ -40,11 +42,19 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
     : fieldExperiments[0]?.id || '';
   const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
 
-  // Próximo número de amostra do talhão, em vez de um número aleatório que sugeria
-  // uma sequência inexistente ("Amostra 7" num talhão com 2 amostras).
+  // Próximo número sequencial da amostra no talhão ou contagem global de análises
   const defaultSampleName = (fieldId: string) => {
-    const field = fieldExperiments.find((f) => f.id === fieldId);
-    return `Amostra ${(field?.samples.length ?? 0) + 1}`;
+    if (fieldId) {
+      const field = fieldExperiments.find((f) => f.id === fieldId);
+      if (field) {
+        return `Amostra ${field.samples.length + 1}`;
+      }
+    }
+    const totalExisting = Math.max(
+      recentAnalysesCount,
+      fieldExperiments.reduce((acc, f) => acc + f.samples.length, 0)
+    );
+    return `Amostra ${totalExisting + 1}`;
   };
   const [sampleNameInput, setSampleNameInput] = useState(defaultSampleName(initialFieldId));
   const [pdfGeneratedToast, setPdfGeneratedToast] = useState(false);
