@@ -132,6 +132,9 @@ export async function ensureSchema(): Promise<void> {
       await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS algorithm_version TEXT NOT NULL DEFAULT 'legacy'`;
       await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS mean_filter_passes INTEGER NOT NULL DEFAULT 0`;
       await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS fill_holes BOOLEAN NOT NULL DEFAULT FALSE`;
+      await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 7)`;
+      await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS longitude NUMERIC(10, 7)`;
+      await sql`ALTER TABLE gotas_analyses ADD COLUMN IF NOT EXISTS canopy_position TEXT`;
     })().catch((err) => {
       schemaPromise = undefined;
       throw err;

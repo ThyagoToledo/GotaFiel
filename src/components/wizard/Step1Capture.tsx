@@ -1,8 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Lightbulb, X, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Camera,
+  Image as ImageIcon,
+  Lightbulb,
+  X,
+  RefreshCw,
+  AlertCircle,
+  MapPin,
+  Sparkles,
+  Layers,
+  CheckCircle2,
+  Activity,
+} from 'lucide-react';
+import { CanopyPosition } from '../../types';
 
 interface Step1CaptureProps {
-  onImageSelected: (imageUrl: string) => void;
+  onImageSelected: (
+    imageUrl: string,
+    gpsCoords?: { latitude: number; longitude: number },
+    canopyPosition?: CanopyPosition
+  ) => void;
 }
 
 export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) => {
@@ -13,6 +30,41 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
   const [webcamError, setWebcamError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const focusCheckIntervalRef = useRef<any>(null);
+
+  // Focus & Sharpness Meter State
+  const [sharpnessScore, setSharpnessScore] = useState<number>(0);
+  const [sharpnessStatus, setSharpnessStatus] = useState<'ruim' | 'medio' | 'otimo'>('ruim');
+
+  // Canopy Position & GPS State
+  const [canopyPos, setCanopyPos] = useState<CanopyPosition>('livre');
+  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+
+  // Tenta obter coordenadas GPS em background
+  const requestGps = () => {
+    if ('geolocation' in navigator) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGpsLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+          setIsLocating(false);
+        },
+        (err) => {
+          console.warn('GPS não disponível ou permissão recusada:', err);
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    }
+  };
+
+  useEffect(() => {
+    requestGps();
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -20,7 +72,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          onImageSelected(reader.result);
+          onImageSelected(reader.result, gpsLocation || undefined, canopyPos);
         }
       };
       reader.readAsDataURL(file);
@@ -28,8 +80,60 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     }
   };
 
+  // Cálculo da variância do Laplaciano para medição de foco em tempo real
+  const calculateLaplacianVariance = (video: HTMLVideoElement): number => {
+    const canvas = document.createElement('canvas');
+    const width = 160;
+    const height = 90;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return 0;
+
+    // Amostra a área central
+    ctx.drawImage(video, 0, 0, width, height);
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    // Escala de cinza
+    const gray = new Float32Array(width * height);
+    for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+      gray[j] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+
+    // Filtro Laplaciano 3x3
+    let sum = 0;
+    let sumSq = 0;
+    let count = 0;
+
+    for (let y = 1; y < height - 1; y++) {
+      for (let x = 1; x < width - 1; x++) {
+        const idx = y * width + x;
+        const lap =
+          gray[idx - width] +
+          gray[idx + width] +
+          gray[idx - 1] +
+          gray[idx + 1] -
+          4 * gray[idx];
+
+        sum += lap;
+        sumSq += lap * lap;
+        count++;
+      }
+    }
+
+    if (count === 0) return 0;
+    const mean = sum / count;
+    const variance = sumSq / count - mean * mean;
+    return variance;
+  };
+
   // Encerra stream de vídeo
   const stopWebcam = () => {
+    if (focusCheckIntervalRef.current) {
+      clearInterval(focusCheckIntervalRef.current);
+      focusCheckIntervalRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -38,12 +142,11 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     setWebcamError(null);
   };
 
-  // Inicia webcam no desktop quando disponível
+  // Inicia webcam e foco em tempo real
   const startWebcam = async () => {
     setWebcamError(null);
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        // Fallback direto para o input nativo de câmera
         cameraInputRef.current?.click();
         return;
       }
@@ -62,11 +165,26 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+
+        // Monitor de foco (~10 FPS)
+        focusCheckIntervalRef.current = setInterval(() => {
+          if (videoRef.current && !videoRef.current.paused && !videoRef.current.ended) {
+            const variance = calculateLaplacianVariance(videoRef.current);
+            setSharpnessScore(Math.round(variance));
+
+            if (variance >= 120) {
+              setSharpnessStatus('otimo');
+            } else if (variance >= 50) {
+              setSharpnessStatus('medio');
+            } else {
+              setSharpnessStatus('ruim');
+            }
+          }
+        }, 120);
       }
     } catch (err) {
-      console.warn('Webcam não disponível ou permissão negada, utilizando seletor nativo:', err);
+      console.warn('Webcam não disponível, usando seletor nativo:', err);
       stopWebcam();
-      // Abre o seletor nativo como fallback
       cameraInputRef.current?.click();
     }
   };
@@ -84,13 +202,15 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
     stopWebcam();
-    onImageSelected(dataUrl);
+    onImageSelected(dataUrl, gpsLocation || undefined, canopyPos);
   };
 
-  // Trata clique em "Tirar foto"
   const handleTakePhotoClick = () => {
-    // Detecta se é dispositivo mobile (touch / tela pequena) para priorizar o app nativo de câmera
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 768);
+    requestGps();
+    const isMobile =
+      /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      ('ontouchstart' in window && window.innerWidth < 768);
+
     if (isMobile) {
       cameraInputRef.current?.click();
     } else {
@@ -100,6 +220,9 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
 
   useEffect(() => {
     return () => {
+      if (focusCheckIntervalRef.current) {
+        clearInterval(focusCheckIntervalRef.current);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
@@ -112,11 +235,68 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
       <div className="w-full max-w-sm mb-4">
         <div className="flex justify-between items-center text-xs text-on-surface-variant uppercase font-semibold mb-1">
           <span>Passo 1 de 6</span>
-          <span>Captura</span>
+          <span>Captura & Metadados</span>
         </div>
         <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
           <div className="bg-primary h-full w-[16.66%] transition-all duration-300" />
         </div>
+      </div>
+
+      {/* Canopy Position Selector */}
+      <div className="w-full max-w-sm bg-surface-container-lowest border border-outline-variant rounded-2xl p-3.5 shadow-sm mb-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5 text-primary" />
+            Posição do Cartão no Dossel
+          </span>
+          <span className="text-[10px] text-on-surface-variant">Opcional</span>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {(
+            [
+              { key: 'topo', label: 'Topo' },
+              { key: 'medio', label: 'Médio' },
+              { key: 'baixeiro', label: 'Baixeiro' },
+              { key: 'livre', label: 'Livre' },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => setCanopyPos(item.key)}
+              className={`py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                canopyPos === item.key
+                  ? 'bg-primary text-on-primary shadow-xs ring-1 ring-primary'
+                  : 'bg-surface text-on-surface-variant hover:bg-surface-container border border-outline-variant/60'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* GPS Location Status Indicator */}
+      <div className="w-full max-w-sm mb-4 flex items-center justify-between px-3 py-2 bg-surface-container rounded-xl border border-outline-variant/60 text-[11px] text-on-surface-variant">
+        <div className="flex items-center gap-1.5">
+          <MapPin className={`w-3.5 h-3.5 ${gpsLocation ? 'text-primary' : 'text-on-surface-variant'}`} />
+          <span>
+            {gpsLocation
+              ? `GPS: ${gpsLocation.latitude.toFixed(4)}, ${gpsLocation.longitude.toFixed(4)}`
+              : isLocating
+                ? 'Obtendo GPS...'
+                : 'GPS não detectado'}
+          </span>
+        </div>
+        {!gpsLocation && (
+          <button
+            type="button"
+            onClick={requestGps}
+            className="text-[10px] font-bold text-primary hover:underline cursor-pointer"
+          >
+            Ativar GPS
+          </button>
+        )}
       </div>
 
       {/* Card Visual Illustration */}
@@ -140,13 +320,9 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
           <li>Evite flash direto, reflexos e edição da imagem.</li>
           <li>Prefira a imagem original na maior resolução disponível.</li>
         </ul>
-        <p className="text-on-surface-variant text-[11px] mt-4 opacity-80">
-          Somente a foto escolhida por você será processada localmente no navegador.
-        </p>
       </div>
 
-      {/* Inputs ocultos dedicados: um para galeria e outro para câmera nativa */}
-      {/* 1. Galeria: SEM atributo capture para permitir navegar fotos */}
+      {/* Hidden file inputs */}
       <input
         type="file"
         ref={galleryInputRef}
@@ -154,8 +330,6 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
         accept="image/*"
         className="hidden"
       />
-
-      {/* 2. Câmera: COM capture='environment' para acionar o app de câmera no mobile */}
       <input
         type="file"
         ref={cameraInputRef}
@@ -165,14 +339,14 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
         className="hidden"
       />
 
-      {/* Modal de Câmera/Webcam para Desktop */}
+      {/* Live Camera Viewfinder with Real-time Focus & Sharpness Assistant */}
       {isWebcamOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl flex flex-col">
             <div className="p-4 bg-surface-container-high border-b border-outline-variant flex justify-between items-center">
               <span className="text-sm font-bold text-on-surface flex items-center gap-2">
                 <Camera className="w-4 h-4 text-primary" />
-                Câmera ao Vivo
+                Assistente de Foco em Tempo Real
               </span>
               <button
                 type="button"
@@ -191,9 +365,32 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
                 muted
                 className="w-full h-full object-contain"
               />
-              <div className="absolute inset-x-8 inset-y-6 border-2 border-dashed border-white/60 rounded-lg pointer-events-none flex items-center justify-center">
-                <span className="text-[11px] text-white/90 bg-black/60 px-2 py-1 rounded">
-                  Enquadre o cartão hidrossensível aqui
+
+              {/* Dynamic Focus Reticle Overlay */}
+              <div
+                className={`absolute inset-x-10 inset-y-8 rounded-xl pointer-events-none flex flex-col items-center justify-between p-3 border-2 transition-all ${
+                  sharpnessStatus === 'otimo'
+                    ? 'border-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(52,211,153,0.4)]'
+                    : sharpnessStatus === 'medio'
+                      ? 'border-amber-400 bg-amber-500/10'
+                      : 'border-white/50 border-dashed bg-black/20'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-sm text-[11px] font-bold text-white shadow-xs">
+                  <Activity className="w-3.5 h-3.5 text-primary" />
+                  {sharpnessStatus === 'otimo' ? (
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Foco Excelente ({sharpnessScore})
+                    </span>
+                  ) : sharpnessStatus === 'medio' ? (
+                    <span className="text-amber-300">Ajustando Foco ({sharpnessScore})</span>
+                  ) : (
+                    <span className="text-white/80">Aproxime e Estabilize</span>
+                  )}
+                </div>
+
+                <span className="text-[10px] text-white/90 bg-black/60 px-2 py-0.5 rounded">
+                  Enquadre o cartão (76 × 26 mm)
                 </span>
               </div>
             </div>

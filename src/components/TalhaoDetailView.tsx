@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle2,
   AlertTriangle,
@@ -10,11 +10,17 @@ import {
   Info,
   FlaskConical,
   Sparkles,
+  Columns,
+  MapPin,
+  List,
 } from 'lucide-react';
-import { FieldExperiment, SampleCardSummary } from '../types';
+import { AnalysisData, FieldExperiment, SampleCardSummary } from '../types';
+import { FieldSamplesMap } from './FieldSamplesMap';
+import { SampleComparatorModal } from './SampleComparatorModal';
 
 interface TalhaoDetailViewProps {
   experiments: FieldExperiment[];
+  recentAnalyses?: AnalysisData[];
   onAddSampleToField: (fieldId: string) => void;
   onAddNewField: (name: string, crop: string) => void;
   onDeleteField?: (fieldId: string) => void;
@@ -23,6 +29,7 @@ interface TalhaoDetailViewProps {
 
 export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
   experiments,
+  recentAnalyses = [],
   onAddSampleToField,
   onAddNewField,
   onDeleteField,
@@ -31,10 +38,15 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
   const [selectedFieldId, setSelectedFieldId] = useState<string>(experiments[0]?.id || '');
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [showDeleteFieldModal, setShowDeleteFieldModal] = useState(false);
+  const [showComparatorModal, setShowComparatorModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'lista' | 'mapa'>('lista');
   const [fieldNameInput, setFieldNameInput] = useState('');
   const [cropInput, setCropInput] = useState('Soja');
 
   const currentField = experiments.find((f) => f.id === selectedFieldId) || experiments[0];
+  const fieldAnalyses = recentAnalyses.filter(
+    (a) => a.fieldId === currentField?.id || currentField?.samples.some((s) => s.id === a.id)
+  );
 
   // Calculate field averages
   const sampleCount = currentField?.samples.length || 0;
@@ -117,29 +129,64 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
           </div>
 
           {sampleCount > 0 && (
-            <div className="flex items-center gap-1.5 text-[11px] font-bold">
-              {adequateCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-quality-good/15 text-quality-good border border-quality-good/30">
-                  {adequateCount} Adequadas
-                </span>
+            <div className="flex items-center gap-2">
+              {sampleCount >= 2 && (
+                <button
+                  type="button"
+                  onClick={() => setShowComparatorModal(true)}
+                  className="h-8 px-2.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Columns className="w-3.5 h-3.5" />
+                  Comparar
+                </button>
               )}
-              {limitedCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-quality-regular/15 text-quality-regular border border-quality-regular/30">
-                  {limitedCount} Limitadas
-                </span>
-              )}
-              {inconclusiveCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-quality-poor/15 text-quality-poor border border-quality-poor/30">
-                  {inconclusiveCount} Inconclusivas
-                </span>
-              )}
+
+              <button
+                type="button"
+                onClick={() => setViewMode(viewMode === 'lista' ? 'mapa' : 'lista')}
+                className="h-8 px-2.5 bg-surface border border-outline-variant hover:bg-surface-container text-on-surface rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {viewMode === 'lista' ? (
+                  <>
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    Ver Mapa
+                  </>
+                ) : (
+                  <>
+                    <List className="w-3.5 h-3.5 text-primary" />
+                    Ver Lista
+                  </>
+                )}
+              </button>
+
+              <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-bold ml-2">
+                {adequateCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-quality-good/15 text-quality-good border border-quality-good/30">
+                    {adequateCount} Adequadas
+                  </span>
+                )}
+                {limitedCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-quality-regular/15 text-quality-regular border border-quality-regular/30">
+                    {limitedCount} Limitadas
+                  </span>
+                )}
+                {inconclusiveCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-quality-poor/15 text-quality-poor border border-quality-poor/30">
+                    {inconclusiveCount} Inconclusivas
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Samples List / Empty State */}
-      {!currentField || currentField.samples.length === 0 ? (
+      {/* Map View or Samples List */}
+      {viewMode === 'mapa' ? (
+        <div className="my-2">
+          <FieldSamplesMap samples={fieldAnalyses} fieldName={currentField?.name} />
+        </div>
+      ) : !currentField || currentField.samples.length === 0 ? (
         <div className="bg-surface-container-lowest border border-dashed border-outline-variant rounded-2xl p-8 flex flex-col items-center justify-center text-center my-6">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
             <Sparkles className="w-7 h-7 text-primary" />
@@ -377,6 +424,15 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Comparador de Amostras Lado a Lado */}
+      {showComparatorModal && (
+        <SampleComparatorModal
+          analyses={fieldAnalyses.length > 0 ? fieldAnalyses : recentAnalyses}
+          initialSelectedIds={fieldAnalyses.map((a) => a.id)}
+          onClose={() => setShowComparatorModal(false)}
+        />
       )}
     </main>
   );

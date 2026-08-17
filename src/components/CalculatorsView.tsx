@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { calculateVolumeDeCalda, evaluateNozzles, calculateWeatherRisk } from '../utils/sprayAnalytics';
 import { DEFAULT_NOZZLE_CRITERIA, NozzleCalibrationSession, NozzleCriteria } from '../types';
+import { NozzleSelectorCalculator } from './NozzleSelectorCalculator';
+import { TankMixingGuide } from './TankMixingGuide';
 
 interface CalculatorsViewProps {
   nozzleSession: NozzleCalibrationSession;
@@ -27,6 +29,7 @@ interface CalculatorsViewProps {
 }
 
 type TargetCropType = 'fungicida_contato' | 'fungicida_sistemico' | 'inseticida' | 'herbicida_pos' | 'herbicida_pre';
+type CalculatorSubTab = 'volume' | 'pontas' | 'mistura' | 'afericao' | 'clima' | 'diagnostico';
 
 const TARGET_RECOMMENDATIONS: Record<TargetCropType, { label: string; minDensity: number; maxDensity: number; desc: string }> = {
   fungicida_contato: { label: 'Fungicida de Contato', minDensity: 50, maxDensity: 70, desc: 'Alta densidade de gotas requerida para cobertura protetora completa.' },
@@ -41,7 +44,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   onSaveNozzleSession,
   nozzleCriteria = DEFAULT_NOZZLE_CRITERIA,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'volume' | 'afericao' | 'clima' | 'diagnostico'>('volume');
+  const [activeSubTab, setActiveSubTab] = useState<CalculatorSubTab>('volume');
 
   // Diagnóstico Rápido de Gotas State
   const [simDensity, setSimDensity] = useState<number>(45);
@@ -171,50 +174,78 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   return (
     <main className="flex-1 pb-28 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
       {/* Subtabs Selector */}
-      <div className="flex bg-surface-container rounded-xl p-1 border border-outline-variant mb-6 max-w-md mx-auto shadow-sm">
+      <div className="grid grid-cols-3 sm:grid-cols-6 bg-surface-container rounded-2xl p-1.5 border border-outline-variant mb-6 max-w-3xl mx-auto shadow-sm gap-1">
         <button
           onClick={() => setActiveSubTab('volume')}
-          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
             activeSubTab === 'volume'
-              ? 'bg-surface text-primary shadow-sm font-extrabold'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
           }`}
         >
           Volume Calda
         </button>
         <button
+          onClick={() => setActiveSubTab('pontas')}
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
+            activeSubTab === 'pontas'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+          }`}
+        >
+          Seletor Pontas
+        </button>
+        <button
+          onClick={() => setActiveSubTab('mistura')}
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
+            activeSubTab === 'mistura'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
+          }`}
+        >
+          Ordem Mistura
+        </button>
+        <button
           onClick={() => setActiveSubTab('afericao')}
-          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
             activeSubTab === 'afericao'
-              ? 'bg-surface text-primary shadow-sm font-extrabold'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
           }`}
         >
           Aferição Bicos
         </button>
         <button
           onClick={() => setActiveSubTab('clima')}
-          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
             activeSubTab === 'clima'
-              ? 'bg-surface text-primary shadow-sm font-extrabold'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
           }`}
         >
           Clima & Deriva
         </button>
         <button
           onClick={() => setActiveSubTab('diagnostico')}
-          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+          className={`py-2.5 px-1 min-h-[42px] text-[10px] sm:text-xs font-bold rounded-xl transition-all cursor-pointer text-center ${
             activeSubTab === 'diagnostico'
-              ? 'bg-surface text-primary shadow-sm font-extrabold'
-              : 'text-on-surface-variant hover:text-on-surface'
+              ? 'bg-surface text-primary shadow-xs font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
           }`}
         >
-          Diagnóstico Gotas
+          Diagnóstico
         </button>
       </div>
 
-      {activeSubTab === 'volume' ? (
+      {activeSubTab === 'pontas' ? (
+        <div className="max-w-2xl mx-auto">
+          <NozzleSelectorCalculator />
+        </div>
+      ) : activeSubTab === 'mistura' ? (
+        <div className="max-w-2xl mx-auto">
+          <TankMixingGuide />
+        </div>
+      ) : activeSubTab === 'volume' ? (
         /* VOLUME DE CALDA CALCULATOR */
         <div className="flex flex-col gap-5 max-w-md mx-auto">
           {/* Quick Presets */}

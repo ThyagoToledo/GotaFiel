@@ -265,12 +265,15 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
 
       {currentStep === 1 && (
         <Step1Capture
-          onImageSelected={(img) => {
+          onImageSelected={(img, gpsCoords, canopyPosition) => {
             setBinaryMaskDataUrl('');
             setAnalysisState((prev) => ({
               ...prev,
               imageUrl: img,
               rectifiedImageUrl: undefined,
+              latitude: gpsCoords?.latitude,
+              longitude: gpsCoords?.longitude,
+              canopyPosition: canopyPosition || 'livre',
               droplets: [],
               histogram: [],
               mm2PerPixel: undefined,

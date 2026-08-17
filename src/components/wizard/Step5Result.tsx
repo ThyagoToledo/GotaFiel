@@ -299,6 +299,22 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
               <span className="font-medium text-on-surface">Dimensões do Cartão</span>
               <span className="font-semibold text-on-surface">{analysis.cardSizeMm.width} × {analysis.cardSizeMm.height} mm</span>
             </div>
+
+            {analysis.canopyPosition && (
+              <div className="flex justify-between items-center p-3.5">
+                <span className="font-medium text-on-surface">Posição no Dossel</span>
+                <span className="font-bold text-primary uppercase">{analysis.canopyPosition}</span>
+              </div>
+            )}
+
+            {analysis.latitude !== undefined && analysis.longitude !== undefined && (
+              <div className="flex justify-between items-center p-3.5">
+                <span className="font-medium text-on-surface">Localização GPS</span>
+                <span className="font-semibold text-on-surface text-xs font-mono">
+                  {analysis.latitude.toFixed(4)}, {analysis.longitude.toFixed(4)}
+                </span>
+              </div>
+            )}
           </div>
           <p className="text-[10px] text-on-surface-variant leading-relaxed">
             *Estimativas de diâmetro e volume dependem da relação de espalhamento adotada e não equivalem a medição direta em laboratório.

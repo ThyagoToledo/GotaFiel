@@ -62,6 +62,8 @@ export interface DropletItem {
   isSplitCluster?: boolean;
 }
 
+export type CanopyPosition = 'topo' | 'medio' | 'baixeiro' | 'livre';
+
 export interface AnalysisData {
   id: string;
   title: string; // e.g. "Talhão 4 — Amostra 3"
@@ -115,6 +117,11 @@ export interface AnalysisData {
   /** Metadados de confiabilidade disponíveis nas análises da geração 3 ou posterior. */
   measurementQuality?: MeasurementQuality;
 
+  // Geolocalização & Posição no Dossel
+  latitude?: number;
+  longitude?: number;
+  canopyPosition?: CanopyPosition;
+
   // Inspection droplets array
   droplets: DropletItem[];
 }
@@ -129,6 +136,9 @@ export interface SampleCardSummary {
   coverageReliable?: boolean;
   countDensityReliable?: boolean;
   sizeVolumeReliable?: boolean;
+  latitude?: number;
+  longitude?: number;
+  canopyPosition?: CanopyPosition;
 }
 
 export interface FieldExperiment {

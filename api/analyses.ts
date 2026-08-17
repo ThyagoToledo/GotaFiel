@@ -34,6 +34,9 @@ type AnalysisInput = {
   asabeCategory?: unknown;
   imageUrl?: unknown;
   rectifiedImageUrl?: unknown;
+  latitude?: unknown;
+  longitude?: unknown;
+  canopyPosition?: unknown;
   measurementQuality?: {
     status?: unknown;
     effectiveDpi?: unknown;
@@ -144,6 +147,9 @@ function mapRow(row: Record<string, unknown>) {
     asabeCategory: row.asabe_category,
     imageUrl,
     rectifiedImageUrl,
+    latitude: row.latitude !== null && row.latitude !== undefined ? Number(row.latitude) : undefined,
+    longitude: row.longitude !== null && row.longitude !== undefined ? Number(row.longitude) : undefined,
+    canopyPosition: typeof row.canopy_position === 'string' ? row.canopy_position : undefined,
     droplets: [],
     remoteOnly: true,
     measurementQuality: {
@@ -232,6 +238,9 @@ function values(input: AnalysisInput) {
     countDensityReliable, sizeVolumeReliable, qualityWarnings: expectedQuality.warnings,
     algorithmVersion: ANALYSIS_ALGORITHM_VERSION,
     captureQuality: expectedQuality.captureQuality ?? null,
+    latitude: number(input.latitude, -90, 90),
+    longitude: number(input.longitude, -180, 180),
+    canopyPosition: text(input.canopyPosition, 30),
   };
 }
 
@@ -261,7 +270,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
           dv09_um, volume_l_ha, verdict, verdict_score, verdict_message, asabe_category,
           quality_status, effective_dpi, orientation_corrected, coverage_reliable,
           count_density_reliable, size_volume_reliable, quality_warnings, algorithm_version
-          , capture_quality
+          , capture_quality, latitude, longitude, canopy_position
         FROM gotas_analyses WHERE user_id = ${user.id} ORDER BY created_at DESC LIMIT 200
       `) as unknown as Array<Record<string, unknown>>;
       return sendJson(res, 200, { analyses: rows.map((row) => mapRow(row as Record<string, unknown>)) });
@@ -288,21 +297,22 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
         verdict, verdict_score, verdict_message, asabe_category, quality_status, effective_dpi,
         orientation_corrected, coverage_reliable, count_density_reliable, size_volume_reliable,
         quality_warnings, algorithm_version
-        , capture_quality
+        , capture_quality, latitude, longitude, canopy_position
       ) VALUES (
         ${user.id}, ${text(body.id, 120)}, ${row.title}, ${row.fieldId}, ${row.fieldName}, ${row.crop}, ${row.imageUrl}, ${row.rectifiedImageUrl}, ${row.cardWidth}, ${row.cardHeight},
         ${row.sensitivity}, ${row.method}, ${row.meanFilterPasses}, ${row.fillHoles}, ${row.totalDroplets}, ${row.density}, ${row.coveragePercent}, ${row.span}, ${row.vmdUm},
         ${row.dv01Um}, ${row.dv09Um}, ${row.volumeLHa}, ${row.verdict}, ${row.verdictScore}, ${row.verdictMessage}, ${row.asabeCategory},
         ${row.qualityStatus}, ${row.effectiveDpi}, ${row.orientationCorrected}, ${row.coverageReliable},
         ${row.countDensityReliable}, ${row.sizeVolumeReliable}, ${JSON.stringify(row.qualityWarnings)}::jsonb,
-        ${row.algorithmVersion}, ${row.captureQuality ? JSON.stringify(row.captureQuality) : null}::jsonb
+        ${row.algorithmVersion}, ${row.captureQuality ? JSON.stringify(row.captureQuality) : null}::jsonb,
+        ${row.latitude}, ${row.longitude}, ${row.canopyPosition}
       )
       RETURNING id, title, field_id, field_name, crop, image_url, rectified_image_url, created_at, card_width_mm, card_height_mm, sensitivity, method, mean_filter_passes, fill_holes,
         total_droplets, density, coverage_percent, span, vmd_um, dv01_um, dv09_um, volume_l_ha, verdict,
         verdict_score, verdict_message, asabe_category, quality_status, effective_dpi,
         orientation_corrected, coverage_reliable, count_density_reliable, size_volume_reliable,
         quality_warnings, algorithm_version
-        , capture_quality
+        , capture_quality, latitude, longitude, canopy_position
     `) as unknown as Array<Record<string, unknown>>;
     return sendJson(res, 201, { analysis: mapRow(rows[0] as Record<string, unknown>) });
   } catch (error) {
