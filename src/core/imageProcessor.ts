@@ -6,7 +6,7 @@ import {
   ProcessedAnalysisMetrics,
   SampleHistogramBin,
 } from './types';
-import { DropletItem } from '../types';
+import { DropletItem, ASABECategory } from '../types';
 
 /**
  * Target physical resolution of the rectified raster: 0.0423 mm per pixel (600 dpi).
@@ -1113,6 +1113,20 @@ export function interpolateVolumePercentile(
 }
 
 /**
+ * Classifica o espectro de gotas segundo a norma internacional ASABE S572.1 / ANSI
+ * a partir do Diâmetro Mediano Volumétrico (DV0,5 / DMV em µm).
+ */
+export function classifyASABESpectrum(dv05Um: number): ASABECategory {
+  if (dv05Um <= 0 || !Number.isFinite(dv05Um)) return 'Não classificada';
+  if (dv05Um < 145) return 'Muito Fina';
+  if (dv05Um <= 225) return 'Fina';
+  if (dv05Um <= 325) return 'Média';
+  if (dv05Um <= 400) return 'Grossa';
+  if (dv05Um <= 500) return 'Muito Grossa';
+  return 'Extremamente Grossa';
+}
+
+/**
  * Computes every published metric from a droplet histogram.
  *
  * Takes the RASTER dimensions (rectWidthPx / rectHeightPx) rather than a linear mm/px
@@ -1254,7 +1268,7 @@ export function computeMetricsFromHistogram(
     verdict: 'NAO_AVALIADO',
     verdictScore: 0,
     verdictMessage: 'A adequação agronômica depende do alvo, cultura, produto e condições de aplicação.',
-    asabeCategory: 'Não classificada',
+    asabeCategory: classifyASABESpectrum(roundedVmd),
   };
 }
 
