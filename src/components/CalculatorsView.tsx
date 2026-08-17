@@ -525,7 +525,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
                           </span>
                         )}
                         {isClean && (
-                          <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider">
+                          <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider">
                             LIMPAR
                           </span>
                         )}
@@ -860,7 +860,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
                     isDensityAdequateGeneral
                       ? 'bg-primary text-on-primary'
                       : isDensityIntermediate
-                      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200'
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60'
                       : 'bg-error-container text-on-error-container'
                   }`}>
                     {isDensityAdequateGeneral ? 'Bom (≥50)' : isDensityIntermediate ? 'Intermediário (25-50)' : 'Insuficiente (<25)'}

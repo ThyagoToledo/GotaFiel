@@ -66,8 +66,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         {/* Densidade - Amarelo Ouro */}
         <div className="bg-surface-container-lowest border border-brand-yellow/30 dark:border-brand-yellow/40 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-md bg-brand-yellow/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+          <span className="text-[11px] font-extrabold text-amber-950 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-brand-yellow/15 text-amber-800 dark:text-amber-400 flex items-center justify-center">
               <Award className="w-3 h-3" />
             </div>
             Densidade

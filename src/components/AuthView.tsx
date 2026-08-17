@@ -59,17 +59,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
               Tecnologia & Metrologia de Pulverização
             </p>
           </div>
-
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30 flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
-              Clean-Room Metrology
-            </span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-navy/10 text-brand-navy dark:text-blue-300 border border-brand-navy/20 flex items-center gap-1">
-              <ShieldCheck className="w-2.5 h-2.5" />
-              Neon Cloud
-            </span>
-          </div>
         </div>
 
         {/* Form Title */}

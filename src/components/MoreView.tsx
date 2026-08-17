@@ -481,18 +481,26 @@ export const MoreView: React.FC<MoreViewProps> = ({
             </span>
           </div>
 
-          <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant">
-            <span className="flex items-center gap-1">
-              Desenvolvido por <strong>Thyago Toledo</strong>
-            </span>
-            <a
-              href="https://github.com/ThyagoToledo/GotaFiel"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
-            >
-              GitHub do Projeto
-            </a>
+          <div className="pt-3 border-t border-outline-variant/60 flex flex-col gap-2 text-xs text-on-surface-variant">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span>
+                Desenvolvido por <strong>Thyago Toledo</strong>
+              </span>
+              <a
+                href="https://github.com/ThyagoToledo/GotaFiel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+              >
+                GitHub do Projeto
+              </a>
+            </div>
+
+            <div className="text-[11px] text-on-surface-variant/90 border-t border-outline-variant/40 pt-2 flex flex-col gap-0.5">
+              <span className="font-semibold text-on-surface">Consultoria & Validação Agronômica:</span>
+              <span>• Eng. Agrônomo <strong>Carlos Alberto</strong></span>
+              <span>• Eng. Agrônomo <strong>Marco Antônio Moreira de Freitas</strong></span>
+            </div>
           </div>
         </section>
       </div>

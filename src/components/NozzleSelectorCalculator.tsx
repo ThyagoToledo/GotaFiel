@@ -289,8 +289,8 @@ export const NozzleSelectorCalculator: React.FC = () => {
                         nozzle.status === 'ideal'
                           ? 'text-emerald-700 dark:text-emerald-300'
                           : nozzle.status === 'acceptable'
-                            ? 'text-amber-700 dark:text-amber-300'
-                            : 'text-error'
+                            ? 'text-amber-900 dark:text-amber-300 font-bold'
+                            : 'text-error font-bold'
                       }`}
                     >
                       {nozzle.statusLabel}

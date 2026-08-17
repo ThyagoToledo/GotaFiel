@@ -18,134 +18,110 @@
 </p>
 
 <p align="center">
-  GotaFiel e uma plataforma de visao computacional e calibracao agronomica para analise de cartoes hidrossensiveis de pulverizacao agricola. O software processa imagens de deposicao de defensivos, quantifica densidade de gotas, cobertura percentual e diametros volumetricos (DV0.1, DV0.5/DMV, DV0.9, Span), alem de oferecer calibracao de bicos pulverizadores, monitoramento termodinamico de Delta T e suporte a operacao offline em campo via Progressive Web App (PWA).
+  GotaFiel é uma plataforma de visão computacional e metrologia agrícola para análise de cartões hidrossensíveis de pulverização. O software processa imagens de deposição de defensivos, quantifica densidade de gotas, cobertura percentual e diâmetros volumétricos (DV0,1, DV0,5/DMV, DV0,9, Span), além de oferecer seleção de pontas ISO 10625, ordem de mistura WALES, monitoramento termodinâmico de Delta T e suporte a operação 100% offline em campo via Progressive Web App (PWA).
 </p>
 
 ---
 
-## Indice
+## Índice
 
-* [Visao Geral](#visao-geral)
+* [Visão Geral](#visao-geral)
 * [Componentes Principais](#componentes-principais)
-* [Validacao de Testes](#validacao-de-testes)
+* [Validação de Testes](#validacao-de-testes)
 * [Tecnologias Utilizadas](#tecnologias-utilizadas)
-* [Estrutura de Diretorios](#estrutura-de-diretorios)
-* [Execucao Local](#execucao-local)
-* [Autor](#autor)
-* [Licenca](#licenca)
+* [Documentação Completa](#documentacao-completa)
+* [Execução Local](#execucao-local)
+* [Equipe & Créditos](#equipe--creditos)
+* [Licença](#licenca)
 
 ---
 
-## Visao Geral
+<a name="visao-geral"></a>
+## Visão Geral
 
-O **GotaFiel** transforma fotografias de cartoes hidrossensiveis capturadas por smartphones ou cameras em diagnosticos quantitativos de pulverizacao. Construido sob a metodologia Clean-Room, todo o pipeline de processamento foi desenvolvido em TypeScript puro com execucao em Web Workers, permitindo realizar medicoes com precisao milimetrica mesmo sem sinal de internet na lavoura.
+O **GotaFiel** transforma fotografias de cartões hidrossensíveis capturadas por smartphones ou câmeras em diagnósticos quantitativos de pulverização. Construído sob metodologia Clean-Room, todo o pipeline de processamento foi desenvolvido em TypeScript puro com execução em Web Workers, permitindo realizar medições com precisão milimétrica mesmo sem sinal de internet na lavoura.
 
 ---
 
+<a name="componentes-principais"></a>
 ## Componentes Principais
 
-### Visao Computacional & Motores de Segmentacao
-* **Motor Hibrido Adaptativo:** Fusao espectral azul-amarelo e luminancia, normalizacao de iluminacao para compensacao de sombras e separacao morfologica de gotas aglomeradas por transformada de distancia.
-* **Motor Cromatico:** Binarizacao espectral direta pelo diferencial cromatico com limiarizacao automatica de Otsu.
-* **Motor Monocromatico:** Binarizacao em escala de cinza por densidade optica e suavizacao espacial.
-* **Calibracao Fisica:** Retificacao geometrica por homografia subpixel e calculo preciso de area fisica por pixel (mm2/pixel).
+### Visão Computacional & Motores de Segmentação
+* **Motor Híbrido Adaptativo:** Fusão espectral azul-amarelo e luminância, normalização de iluminação para compensação de sombras e separação morfológica de gotas aglomeradas por transformada de distância.
+* **Motor Cromático:** Binarização espectral direta pelo diferencial cromático com limiarização automática de Otsu.
+* **Motor Monocromático:** Binarização em escala de cinza por densidade óptica e suavização espacial.
+* **Calibração Física:** Retificação geométrica por homografia subpixel e cálculo de área física por pixel (mm²/pixel).
+* **Assistente de Foco em Tempo Real:** Análise instantânea de nitidez via variância do Laplaciano no visor da câmera.
 
-### Ferramentas de Campo & Diagnostico Agronomico
-* **Afericao de Bicos:** Cronometro de coleta de 60 segundos com sinal sonoro, calculo de desvio relativo/absoluto e graficos divergentes para identificacao de desgaste ou obstrucao.
-* **Calculadora de Volume de Calda:** Determinacao da taxa de aplicacao em L/ha em funcao da vazao, espacamento e velocidade de trabalho.
-* **Clima & Risco de Deriva (Delta T):** Avaliacao termodinamica de bulbo umido (Stull, 2011) para prevencao de evaporacao de gotas finas e deriva por vento.
-* **Diagnostico Rapido:** Simulacao de densidade e cobertura para alvos especificos (fungicidas de contato, sistemicos, inseticidas e herbicidas).
-
-### Mobilidade & Persistencia
-* **Progressive Web App (PWA):** Instalacao direta no celular ou computador com Service Worker para execucao completa sem sinal de internet na lavoura.
-* **Persistencia Distribuida:** Armazenamento relacional serverless no Neon PostgreSQL e imagens privadas no Vercel Blob com protecao de taxa (Rate Limiting).
-* **Exportacao de Relatorios:** Geracao client-side de documentos tecnicos em PDF e planilhas estruturadas em CSV.
+### Ferramentas de Campo & Diagnóstico Agronômico
+* **Seletor de Pontas ISO 10625:** Dimensionamento hidráulico de bicos (01 Laranja a 08 Branca) com cálculo de pressão exata em bar e PSI.
+* **Guia de Ordem de Tanque WALES & Jar Test:** Sequência agronômica padronizada de adição de produtos e cronômetro de 15 minutos para teste de compatibilidade.
+* **Aferição de Bicos na Barra:** Cronômetro de coleta de 60 segundos com sinal sonoro, cálculo de desvio relativo/absoluto e gráficos de desgaste ou obstrução.
+* **Comparador de Dossel & Penetração Foliar:** Avaliação simultânea de topo, médio e baixeiro com diagnóstico de cobertura.
+* **Mapeamento Geoespacial Foliar:** Visualização de amostras por talhão em mapa interativo OpenStreetMap com geolocalização GPS.
+* **Clima & Risco de Deriva (Delta T):** Avaliação termodinâmica de bulbo úmido (Stull, 2011) para prevenção de evaporação e deriva.
 
 ---
 
-## Validacao de Testes
+<a name="validacao-de-testes"></a>
+## Validação de Testes
 
-O software e validado continuamente por uma suite automatizada de testes e benchmarks de visao computacional contra padroes de referencia:
+O software é validado continuamente por uma suíte automatizada de testes e benchmarks de visão computacional contra padrões de referência:
 
-| Cenario de Teste | Precisao | Recall | F1-Score | IoU (Jaccard) | Erro Contagem | Erro Cobertura | Status |
+| Cenário de Teste | Precisão | Recall | F1-Score | IoU (Jaccard) | Erro Contagem | Acurácia DMV | Status |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **1. Padrao Geometrico de Calibracao (25 gotas)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
-| **2. Gotas Finas Esparsas (Baixa Cobertura)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
-| **3. Gradiente Severo de Sombra (100% a 45% luz)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
-| **4. Aglomerados com Constricao (Split)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
-| **5. Ruido de Papel Real** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
-| **Metrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **0,000 p.p.** | **Meta Atingida (>= 95%)** |
-
-Para a analise comparativa aprofundada frente ao DepositScan, DropScan, Gotas (Embrapa) e ImageJ, consulte o [Estudo Cientifico e Comparacao de Softwares](docs/ESTUDO-CIENTIFICO-E-COMPARACAO-SOFTWARE.md).
+| **1. Espectro Fino (Fungicida / Inseticida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 98,64% | Aprovado |
+| **2. Espectro Médio (Fungicida Sistêmico)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 100,00% | Aprovado |
+| **3. Espectro Grosso Anti-Deriva (Herbicida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,98% | Aprovado |
+| **4. Aglomerados com Separação Morfológica** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 97,67% | Aprovado |
+| **5. Gradiente de Sombra & Iluminação (45%)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,49% | Aprovado |
+| **6. Rejeição de Fibras e Poeira** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,86% | Aprovado |
+| **Métrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **≥ 97,6%** | **Meta Atingida (≥ 95%)** |
 
 ---
 
+<a name="tecnologias-utilizadas"></a>
 ## Tecnologias Utilizadas
 
 | Camada | Tecnologias |
 |---|---|
-| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons, Motion |
-| **Computacao Visual** | HTML5 Canvas, Web Workers, Transformada de Distancia, Homografia Subpixel |
+| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons |
+| **Computação Visual** | HTML5 Canvas, Web Workers, Transformada de Distância, Homografia Subpixel |
 | **Backend & Banco** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
-| **Armazenamento & PWA** | Vercel Blob Storage, Service Workers, Web App Manifest |
-| **Relatorios & Exportacao** | jsPDF, HTML2Canvas, gerador CSV nativo |
-| **Testes & Qualidade** | Vitest, TypeScript Strict Mode, TSX |
+| **Mapeamento & GPS** | Leaflet, OpenStreetMap Tile Layer |
+| **PWA & Offline** | Service Workers, Cache Storage API, Web App Manifest |
+| **Relatórios & Exportação** | jsPDF, HTML2Canvas, gerador CSV estruturado |
+| **Testes & Qualidade** | Vitest (134 testes), TypeScript Strict Mode, TSX |
 
 ---
 
-<details>
-  <summary><b>Estrutura de Diretorios</b></summary>
+<a name="documentacao-completa"></a>
+## Documentação Completa
 
-```text
-GotaFiel/
-├── api/                     # Serverless endpoints (autenticacao, analises e rate limit)
-│   ├── auth/                # Rotas de login, cadastro, sessao e logout
-│   ├── analyses/            # CRUD de amostras e sincronizacao com o Neon
-│   └── lib/                 # Conexao com banco Neon, hash de senhas e utilitarios HTTP
-├── public/                  # Ativos estaticos e configuracoes PWA
-│   ├── icon.svg             # Vetor principal do icone da aplicacao
-│   ├── icon-maskable.svg    # Icone adaptativo com area de seguranca para Android
-│   ├── app-icon.png         # Icone em alta resolucao para instalacao PWA
-│   ├── banner.jpg           # Banner oficial do GotaFiel
-│   ├── manifest.webmanifest # Manifesto da aplicacao web progressiva
-│   └── sw.js                # Service Worker para cache e uso offline
-├── src/
-│   ├── core/                # Nucleo de visao computacional e binarizacao
-│   │   ├── imageProcessor.ts     # Pipeline de processamento e extracao de metricas
-│   │   ├── analysisCore.ts       # Algoritmos de segmentacao e rotulacao de gotas
-│   │   ├── imageWorker.ts        # Execucao assincrona em Web Worker
-│   │   └── validationMetrics.ts  # Metricas estatisticas de validacao e IoU
-│   ├── components/          # Componentes visuais da interface de usuario
-│   │   ├── wizard/          # Assistente de analise em 6 etapas
-│   │   ├── CalculatorsView.tsx   # Calculadoras agronomicas e diagnosticos
-│   │   ├── InstallAppBanner.tsx  # Banner de instalacao PWA
-│   │   ├── TalhaoDetailView.tsx  # Gestao de experimentos e talhoes
-│   │   └── MoreView.tsx          # Configuracoes de motores e criterios
-│   ├── hooks/               # Custom hooks React (PWA, camera, eventos)
-│   └── utils/               # Geradores de relatorio PDF, CSV e calculos climaticos
-├── scripts/                 # Suites de validacao e benchmarks cientificos
-│   └── benchmarkRunner.ts   # Executor de validacao de precisao (>= 95%)
-└── package.json             # Dependencias e scripts do projeto
-```
-</details>
+Para aprofundamento técnico, consulte os documentos disponíveis na pasta [`docs/`](docs/):
+
+* [**Arquitetura Técnica & Metodologia Científica**](docs/ARQUITETURA-E-METODOLOGIA.md)
+* [**Manual do Usuário & Guia de Campo**](docs/MANUAL-DO-USUARIO.md)
+* [**Estudo Científico e Comparação de Softwares**](docs/ESTUDO-CIENTIFICO-E-COMPARACAO-SOFTWARE.md)
+* [**Plano de Validação Científica (Meta ≥ 95%)**](docs/PLANO-VALIDACAO-CIENTIFICA.md)
+* [**Protocolo de Coleta e Validação em Campo**](docs/PROTOCOLO-COLETA-VALIDACAO.md)
+* [**Resultados dos Testes do Algoritmo**](docs/RESULTADOS-TESTES-ALGORITMO.md)
+* [**Auditoria de Segurança & Rate Limiting**](docs/SECURITY-AUDIT.md)
+* [**Autenticação e Persistência Neon**](docs/NEON-AUTH.md)
+* [**Roadmap & Sugestões de Novas Funcionalidades**](docs/ROADMAP-E-NOVAS-FUNCIONALIDADES.md)
 
 ---
 
-## Execucao Local
+<a name="execucao-local"></a>
+## Execução Local
 
-### Pre-requisitos
-* Node.js versao 20 ou superior
-* npm ou yarn
-
-### Instrucoes
-
-1. Clone o repositorio:
+1. Clone o repositório:
 ```bash
 git clone https://github.com/ThyagoToledo/GotaFiel.git
 cd GotaFiel
 ```
 
-2. Instale as dependencias:
+2. Instale as dependências:
 ```bash
 npm install
 ```
@@ -155,41 +131,69 @@ npm install
 npm run dev
 ```
 
-4. Execute os testes e a validacao de precisao:
+4. Execute os testes e a validação de precisão:
 ```bash
-# Execucao dos 101 testes unitarios
+# Execução dos 134 testes unitários automatizados
 npm test
 
-# Execucao do benchmark de precisao cientifica
-npm run test:benchmark
+# Execução do benchmark científico (95%+)
+npm run test:scientific
 
-# Verificacao de tipos TypeScript
+# Verificação estrita de tipos TypeScript
 npm run lint
 ```
 
-5. Gere o pacote de producao:
+5. Gere o pacote de produção:
 ```bash
 npm run build
 ```
 
 ---
 
-## Autor
+<a name="equipe--creditos"></a>
+## Equipe & Créditos
 
 <div align="center">
-  <a href="https://github.com/ThyagoToledo">
-    <img src="https://github.com/ThyagoToledo.png" width="100px" alt="Thyago Toledo" style="border-radius: 50%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);" />
-  </a>
-  <br />
-  <sub><b>Thyago Toledo</b></sub>
-  <br />
-  <a href="https://github.com/ThyagoToledo">
-    <img src="https://img.shields.io/badge/GitHub-ThyagoToledo-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub de Thyago Toledo" />
-  </a>
+  <table style="border: none; border-collapse: collapse; margin: auto;">
+    <tr>
+      <td align="center" style="padding: 16px;">
+        <a href="https://github.com/ThyagoToledo">
+          <img src="https://github.com/ThyagoToledo.png" width="100px" alt="Thyago Toledo" style="border-radius: 50%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);" />
+        </a>
+        <br />
+        <b>Thyago Toledo</b>
+        <br />
+        <sub>Engenharia de Software & Visão Computacional</sub>
+        <br />
+        <a href="https://github.com/ThyagoToledo">
+          <img src="https://img.shields.io/badge/GitHub-ThyagoToledo-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+        </a>
+      </td>
+      <td align="center" style="padding: 16px;">
+        <div style="width: 100px; height: 100px; border-radius: 50%; background: #006439; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+          CA
+        </div>
+        <br />
+        <b>Carlos Alberto</b>
+        <br />
+        <sub>Engenheiro Agrônomo · Consultoria de Campo</sub>
+      </td>
+      <td align="center" style="padding: 16px;">
+        <div style="width: 100px; height: 100px; border-radius: 50%; background: #0f2438; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+          MF
+        </div>
+        <br />
+        <b>Marco Antônio Moreira de Freitas</b>
+        <br />
+        <sub>Engenheiro Agrônomo · Validação Agronômica</sub>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ---
 
-## Licenca
+<a name="licenca"></a>
+## Licença
 
-Projeto desenvolvido com arquitetura proprietaria e independente sob metodologia Clean-Room. Todos os direitos reservados.
+Projeto desenvolvido com arquitetura proprietária e independente sob metodologia Clean-Room. Todos os direitos reservados.

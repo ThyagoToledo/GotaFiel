@@ -195,9 +195,9 @@ export const TankMixingGuide: React.FC = () => {
                       <strong>Exemplos:</strong> {step.examples}
                     </div>
                     {step.warning && (
-                      <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 font-medium flex items-start gap-1.5 mt-1">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                        <span>{step.warning}</span>
+                      <div className="p-2.5 rounded-xl bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-amber-950 dark:text-amber-200 font-semibold flex items-start gap-2 mt-1 shadow-xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-800 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <span className="text-[11px] leading-relaxed">{step.warning}</span>
                       </div>
                     )}
                   </div>
@@ -240,7 +240,7 @@ export const TankMixingGuide: React.FC = () => {
                 onClick={() => setIsJarTimerRunning(!isJarTimerRunning)}
                 className={`h-9 px-4 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                   isJarTimerRunning
-                    ? 'bg-amber-600 text-white hover:bg-amber-700'
+                    ? 'bg-amber-700 text-white hover:bg-amber-800'
                     : 'bg-primary text-on-primary hover:bg-primary-container'
                 }`}
               >
@@ -269,15 +269,15 @@ export const TankMixingGuide: React.FC = () => {
             </h4>
 
             <div className="flex flex-col gap-2">
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-900 dark:text-emerald-200">
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 text-[11px] text-emerald-950 dark:text-emerald-200">
                 <strong>Calda Compatível (Aprovada):</strong> Líquido homogêneo, emulsão leitosa estável ou suspensão uniforme sem separação após 15 minutos.
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200">
+              <div className="p-3 rounded-xl bg-amber-100/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-[11px] text-amber-950 dark:text-amber-200">
                 <strong>Incompatibilidade Física Leve:</strong> Pequena separação de fase que se homogeneíza facilmente com leve agitação. Exige agitação contínua no tanque.
               </div>
 
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-900 dark:text-red-200">
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700/60 text-[11px] text-red-950 dark:text-red-200">
                 <strong>Incompatibilidade Severa (Reprovada):</strong> Formação de pasta, grumos grossos, precipitação de cristais no fundo ou separação oleosa irreversível. <strong>Não aplicar no pulverizador!</strong>
               </div>
             </div>

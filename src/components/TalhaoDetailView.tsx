@@ -166,7 +166,7 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
                   </span>
                 )}
                 {limitedCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-quality-regular/15 text-quality-regular border border-quality-regular/30">
+                  <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60 font-bold">
                     {limitedCount} Limitadas
                   </span>
                 )}
@@ -287,7 +287,7 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
                 <div>
                   <h2 className="font-extrabold text-sm sm:text-base text-on-surface uppercase tracking-wide flex items-center gap-2">
                     Média Consolidada do Talhão
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow/20 text-amber-950 dark:text-amber-300 border border-brand-yellow/40">
                       {currentField.crop}
                     </span>
                   </h2>
@@ -304,7 +304,7 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
 
               <div className="grid grid-cols-3 gap-2 pt-3 border-t border-outline-variant/60">
                 <div className="flex flex-col">
-                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider">Densidade</span>
+                  <span className="text-[11px] text-amber-950 dark:text-amber-300 font-extrabold uppercase tracking-wider">Densidade</span>
                   <div className="flex items-baseline gap-1 mt-0.5">
                     <span className="font-black text-xl sm:text-2xl text-on-surface">{avgDensity}</span>
                     <span className="text-[10px] text-on-surface-variant font-medium">gotas/cm²</span>

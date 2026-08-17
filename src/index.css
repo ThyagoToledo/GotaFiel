@@ -23,6 +23,19 @@
   --color-background: #f6fbf3;
   --color-on-background: #181d19;
 
+  /* Escala de Amarelo / Amber com Alto Contraste para Tema Claro e Escuro */
+  --color-amber-50: #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-300: #fcd34d;
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+  --color-amber-900: #78350f;
+  --color-amber-950: #451a03;
+
   /* Cores Adicionais da Paleta Agronômica: Amarelo Ouro e Azul Escuro Navy */
   --color-brand-yellow: #f59e0b;
   --color-brand-yellow-container: #fef3c7;
@@ -41,13 +54,13 @@
 
   --color-quality-great: #0B7A3B;
   --color-quality-good: #3E9C42;
-  --color-quality-regular: #B77900;
+  --color-quality-regular: #92400E;
   --color-quality-poor: #C62828;
   --color-quality-runoff: #8E0000;
 
   --color-asabe-very-fine: #E53935;
   --color-asabe-fine: #FF7F27;
-  --color-asabe-medium: #FFD600;
+  --color-asabe-medium: #D97706;
   --color-asabe-coarse: #2492FF;
   --color-asabe-very-coarse: #009124;
   --color-asabe-extremely-coarse: #1A1A2E;
@@ -92,6 +105,7 @@
   --color-brand-navy: #0a1726;
   --color-brand-navy-container: #172a46;
   --color-on-brand-navy-container: #93c5fd;
+  --color-quality-regular: #FCD34D;
 }
 
 .theme-switching *,
