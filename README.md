@@ -76,6 +76,8 @@ O software e validado continuamente por uma suite automatizada de testes e bench
 | **5. Ruido de Papel Real** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
 | **Metrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **0,000 p.p.** | **Meta Atingida (>= 95%)** |
 
+Para a analise comparativa aprofundada frente ao DepositScan, DropScan, Gotas (Embrapa) e ImageJ, consulte o [Estudo Cientifico e Comparacao de Softwares](docs/ESTUDO-CIENTIFICO-E-COMPARACAO-SOFTWARE.md).
+
 ---
 
 ## Tecnologias Utilizadas

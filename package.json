@@ -15,6 +15,7 @@
     "clean": "rm -rf dist server.js",
     "test": "vitest run",
     "test:benchmark": "tsx scripts/benchmarkRunner.ts",
+    "test:scientific": "tsx scripts/advancedScientificBenchmark.ts",
     "verify:calibration": "tsx scripts/verifyCalibration.ts",
     "lint": "tsc --noEmit"
   },
