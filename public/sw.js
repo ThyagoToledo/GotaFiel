@@ -1,13 +1,13 @@
 /*
- * Service worker do Spray Analysis.
+ * Service worker do GotaFiel — Análise de Pulverização Agrícola.
  *
  * Estratégia: network-first com fallback ao cache para navegações (nunca serve um
  * deploy velho quando há rede), e cache-first para assets com hash no nome (imutáveis
  * por construção do Vite). Depois da primeira visita o app abre sem sinal — cenário
  * comum na lavoura.
  */
-const CACHE_NAME = 'spray-analysis-v1';
-const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'gotafiel-v2';
+const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icon.svg', '/banner.jpg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

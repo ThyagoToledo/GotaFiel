@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw, Sparkles } from 'lucide-react';
+import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw, Sparkles, Smartphone, CheckCircle2 } from 'lucide-react';
 import { AnalysisData, DEFAULT_ENGINE_MODE, DEFAULT_NOZZLE_CRITERIA, EngineMode, NozzleCriteria, NozzleCriteriaMode } from '../types';
 import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 interface MoreViewProps {
   isDarkMode: boolean;
@@ -35,6 +36,9 @@ export const MoreView: React.FC<MoreViewProps> = ({
   userName,
   onLogout,
 }) => {
+  const { isInstalled, isIOS, hasNativePrompt, promptInstall } = usePwaInstall();
+  const [showIosTip, setShowIosTip] = useState(false);
+
   // Rascunho local para os campos numéricos: deixa o usuário apagar e redigitar sem
   // que a normalização reescreva o valor a cada tecla.
   const [cleanDraft, setCleanDraft] = useState(String(nozzleCriteria.cleanThresholdPercent));
@@ -58,6 +62,15 @@ export const MoreView: React.FC<MoreViewProps> = ({
     nozzleCriteria.cleanThresholdPercent === DEFAULT_NOZZLE_CRITERIA.cleanThresholdPercent &&
     nozzleCriteria.replaceThresholdPercent === DEFAULT_NOZZLE_CRITERIA.replaceThresholdPercent;
 
+  const handleInstallClick = async () => {
+    if (hasNativePrompt) {
+      await promptInstall();
+    } else if (isIOS) {
+      setShowIosTip(!showIosTip);
+    } else {
+      alert('Para instalar, use o menu do seu navegador (três pontinhos ou ícone de instalação na barra de endereço) e selecione "Instalar GotaFiel".');
+    }
+  };
 
   return (
     <main className="flex-1 pb-24 px-4 pt-4 max-w-[1200px] mx-auto w-full md:pl-[236px]">
@@ -72,6 +85,52 @@ export const MoreView: React.FC<MoreViewProps> = ({
             {onLogout && <button onClick={onLogout} className="h-10 px-3 rounded-lg border border-outline-variant text-xs font-bold text-error hover:bg-error-container/20">Sair</button>}
           </section>
         )}
+
+        {/* Instalação do Aplicativo / PWA */}
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
+              <Smartphone className="w-4 h-4 text-primary" />
+              APLICATIVO & USO OFFLINE
+            </h2>
+            {isInstalled ? (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" />
+                Instalado
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                PWA Disponível
+              </span>
+            )}
+          </div>
+
+          <p className="text-[11px] text-on-surface-variant leading-relaxed">
+            O GotaFiel pode ser instalado diretamente no seu celular ou computador. Ele abre instantaneamente sem barra do navegador e funciona mesmo sem sinal de internet na lavoura.
+          </p>
+
+          {!isInstalled && (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="w-full h-11 bg-primary text-on-primary font-bold text-xs rounded-xl flex items-center justify-center gap-2 hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+              >
+                <Download className="w-4 h-4" />
+                {isIOS ? 'Como Instalar no iPhone/iPad' : 'Instalar Aplicativo GotaFiel'}
+              </button>
+
+              {showIosTip && (
+                <div className="p-3 bg-surface-container rounded-xl text-[11px] text-on-surface-variant leading-relaxed border border-outline-variant/60 flex flex-col gap-1">
+                  <strong>No Safari do iPhone/iPad:</strong>
+                  <span>1. Toque no botão <strong>Compartilhar</strong> (ícone com seta para cima na barra inferior).</span>
+                  <span>2. Selecione <strong>"Adicionar à Tela de Início"</strong>.</span>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Theme Settings */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">

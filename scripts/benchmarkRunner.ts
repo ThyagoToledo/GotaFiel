@@ -144,7 +144,7 @@ const fmtPct = (val: number | null) => (val === null ? 'N/A' : `${(val * 100).to
 const fmtNum = (val: number, dec = 2) => val.toFixed(dec).replace('.', ',');
 
 console.log('\n========================================================================');
-console.log('       GOTAS2 — RELATÓRIO DE BENCHMARK E VALIDAÇÃO CIENTÍFICA          ');
+console.log('       GOTAFIEL — RELATÓRIO DE BENCHMARK E VALIDAÇÃO CIENTÍFICA        ');
 console.log('       Meta de Aceitação: Precisão, Recall e F1 >= 95,00 %             ');
 console.log('========================================================================\n');
 

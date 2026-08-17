@@ -1,14 +1,15 @@
 {
-  "name": "Spray Analysis — Análise de Pulverização",
-  "short_name": "Spray Analysis",
-  "description": "Análise de cartões hidrossensíveis: densidade de gotas, cobertura, DMV e espectro ASABE.",
+  "name": "GotaFiel — Análise de Pulverização",
+  "short_name": "GotaFiel",
+  "description": "Análise de alta precisão de cartões hidrossensíveis de pulverização agrícola, calibração de bicos e diagnóstico de campo.",
   "lang": "pt-BR",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#f6fbf3",
   "theme_color": "#006439",
+  "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
       "src": "/icon.svg",
