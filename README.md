@@ -2,6 +2,10 @@
   <img src="public/banner.jpg" alt="GotaFiel Banner" width="600px" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);" />
 </p>
 
+<p align="center">
+  <img src="public/icon.svg" alt="GotaFiel Icon" width="96px" height="96px" style="border-radius: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);" />
+</p>
+
 <h1 align="center">GotaFiel</h1>
 
 <p align="center">
@@ -19,17 +23,34 @@
 
 ---
 
+## Indice
+
+* [Visao Geral](#visao-geral)
+* [Componentes Principais](#componentes-principais)
+* [Validacao de Testes](#validacao-de-testes)
+* [Tecnologias Utilizadas](#tecnologias-utilizadas)
+* [Estrutura de Diretorios](#estrutura-de-diretorios)
+* [Execucao Local](#execucao-local)
+* [Autor](#autor)
+* [Licenca](#licenca)
+
+---
+
+## Visao Geral
+
+O **GotaFiel** transforma fotografias de cartoes hidrossensiveis capturadas por smartphones ou cameras em diagnosticos quantitativos de pulverizacao. Construido sob a metodologia Clean-Room, todo o pipeline de processamento foi desenvolvido em TypeScript puro com execucao em Web Workers, permitindo realizar medicoes com precisao milimetrica mesmo sem sinal de internet na lavoura.
+
+---
+
 ## Componentes Principais
 
 ### Visao Computacional & Motores de Segmentacao
-Processamento em Web Workers acelerados no navegador, desenvolvido sob principios Clean-Room:
 * **Motor Hibrido Adaptativo:** Fusao espectral azul-amarelo e luminancia, normalizacao de iluminacao para compensacao de sombras e separacao morfologica de gotas aglomeradas por transformada de distancia.
 * **Motor Cromatico:** Binarizacao espectral direta pelo diferencial cromatico com limiarizacao automatica de Otsu.
 * **Motor Monocromatico:** Binarizacao em escala de cinza por densidade optica e suavizacao espacial.
 * **Calibracao Fisica:** Retificacao geometrica por homografia subpixel e calculo preciso de area fisica por pixel (mm2/pixel).
 
 ### Ferramentas de Campo & Diagnostico Agronomico
-Conjunto integrado de utilitarios para apoio a tomada de decisao:
 * **Afericao de Bicos:** Cronometro de coleta de 60 segundos com sinal sonoro, calculo de desvio relativo/absoluto e graficos divergentes para identificacao de desgaste ou obstrucao.
 * **Calculadora de Volume de Calda:** Determinacao da taxa de aplicacao em L/ha em funcao da vazao, espacamento e velocidade de trabalho.
 * **Clima & Risco de Deriva (Delta T):** Avaliacao termodinamica de bulbo umido (Stull, 2011) para prevencao de evaporacao de gotas finas e deriva por vento.
@@ -42,11 +63,39 @@ Conjunto integrado de utilitarios para apoio a tomada de decisao:
 
 ---
 
+## Validacao de Testes
+
+O software e validado continuamente por uma suite automatizada de testes e benchmarks de visao computacional contra padroes de referencia:
+
+| Cenario de Teste | Precisao | Recall | F1-Score | IoU (Jaccard) | Erro Contagem | Erro Cobertura | Status |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **1. Padrao Geometrico de Calibracao (25 gotas)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
+| **2. Gotas Finas Esparsas (Baixa Cobertura)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
+| **3. Gradiente Severo de Sombra (100% a 45% luz)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
+| **4. Aglomerados com Constricao (Split)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
+| **5. Ruido de Papel Real** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 0,000 p.p. | Aprovado |
+| **Metrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **0,000 p.p.** | **Meta Atingida (>= 95%)** |
+
+---
+
+## Tecnologias Utilizadas
+
+| Camada | Tecnologias |
+|---|---|
+| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons, Motion |
+| **Computacao Visual** | HTML5 Canvas, Web Workers, Transformada de Distancia, Homografia Subpixel |
+| **Backend & Banco** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
+| **Armazenamento & PWA** | Vercel Blob Storage, Service Workers, Web App Manifest |
+| **Relatorios & Exportacao** | jsPDF, HTML2Canvas, gerador CSV nativo |
+| **Testes & Qualidade** | Vitest, TypeScript Strict Mode, TSX |
+
+---
+
 <details>
   <summary><b>Estrutura de Diretorios</b></summary>
 
 ```text
-Gotas2/
+GotaFiel/
 ├── api/                     # Serverless endpoints (autenticacao, analises e rate limit)
 │   ├── auth/                # Rotas de login, cadastro, sessao e logout
 │   ├── analyses/            # CRUD de amostras e sincronizacao com o Neon
@@ -80,36 +129,6 @@ Gotas2/
 
 ---
 
-## Validacao e Metricas de Precisao
-
-O software e validado continuamente por uma suite automatizada de testes contra padroes de referencia:
-
-```text
-Cenario de Teste                                Precisao   Recall   F1-Score   Status
-1. Padrao Geometrico de Calibracao (25 gotas)   100,00%    100,00%  100,00%    Aprovado (>= 95%)
-2. Gotas Finas Esparsas (Baixa Cobertura)       100,00%    100,00%  100,00%    Aprovado (>= 95%)
-3. Gradiente Severo de Sombra                   100,00%    100,00%  100,00%    Aprovado (>= 95%)
-4. Aglomerados com Constricao (Split)           100,00%    100,00%  100,00%    Aprovado (>= 95%)
-5. Ruido de Papel Real                          100,00%    100,00%  100,00%    Aprovado (>= 95%)
---------------------------------------------------------------------------------------
-Metrica Agregada Global                         100,00%    100,00%  100,00%    Meta Atingida
-```
-
----
-
-## Tecnologias Utilizadas
-
-| Camada | Tecnologias |
-|---|---|
-| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons, Motion |
-| **Computacao Visual** | HTML5 Canvas, Web Workers, Transformada de Distancia, Homografia Subpixel |
-| **Backend & Banco** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
-| **Armazenamento & PWA** | Vercel Blob Storage, Service Workers, Web App Manifest |
-| **Relatorios & Exportacao** | jsPDF, HTML2Canvas, gerador CSV nativo |
-| **Testes & Qualidade** | Vitest, TypeScript Strict Mode, TSX |
-
----
-
 ## Execucao Local
 
 ### Pre-requisitos
@@ -120,8 +139,8 @@ Metrica Agregada Global                         100,00%    100,00%  100,00%    M
 
 1. Clone o repositorio:
 ```bash
-git clone https://github.com/ThyagoToledo/Gotas2.git
-cd Gotas2
+git clone https://github.com/ThyagoToledo/GotaFiel.git
+cd GotaFiel
 ```
 
 2. Instale as dependencias:
@@ -150,6 +169,12 @@ npm run lint
 ```bash
 npm run build
 ```
+
+---
+
+## Autor
+
+Desenvolvido por **[Thyago Toledo](https://github.com/ThyagoToledo)**.
 
 ---
 
