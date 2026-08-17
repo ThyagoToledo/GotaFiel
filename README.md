@@ -174,7 +174,17 @@ npm run build
 
 ## Autor
 
-Desenvolvido por **[Thyago Toledo](https://github.com/ThyagoToledo)**.
+<div align="center">
+  <a href="https://github.com/ThyagoToledo">
+    <img src="https://github.com/ThyagoToledo.png" width="100px" alt="Thyago Toledo" style="border-radius: 50%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);" />
+  </a>
+  <br />
+  <sub><b>Thyago Toledo</b></sub>
+  <br />
+  <a href="https://github.com/ThyagoToledo">
+    <img src="https://img.shields.io/badge/GitHub-ThyagoToledo-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub de Thyago Toledo" />
+  </a>
+</div>
 
 ---
 
