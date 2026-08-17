@@ -149,6 +149,7 @@ export default function App() {
     setEngineMode(DEFAULT_ENGINE_MODE);
     localStorage.removeItem('spray_nozzle_session');
     localStorage.removeItem('gotafiel_engine_mode');
+    localStorage.removeItem('gotafiel_install_banner_dismissed');
     alert('Preferências locais limpas. As análises da sua conta permanecem no Neon.');
   };
 
