@@ -1,5 +1,5 @@
-﻿import React, { useState } from 'react';
-import { Camera, ChevronRight, Search, Trash2, Activity, Award, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { Camera, ChevronRight, Search, Trash2, Activity, Award, Layers, Sparkles, Droplets, ArrowUpRight } from 'lucide-react';
 import { AnalysisData } from '../types';
 
 interface HomeViewProps {
@@ -21,7 +21,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Compute stats across recent analyses
+  // Métricas agregadas das análises
   const totalCount = recentAnalyses.length;
   const coverageAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.coverageReliable);
   const densityAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.countDensityReliable);
@@ -32,58 +32,77 @@ export const HomeView: React.FC<HomeViewProps> = ({
     ? Math.round(densityAnalyses.reduce((acc, a) => acc + a.density, 0) / densityAnalyses.length)
     : '—';
 
-  // w-full no main é obrigatório: sem largura definida, `mx-auto` num item de
-  // flex-column faz o elemento virar fit-content e adotar o próprio min-content, o que
-  // esticava a página para 388px num aparelho de 360px e criava rolagem horizontal.
   return (
     <main className="px-4 pt-5 max-w-[1200px] mx-auto w-full pb-28 md:pl-[236px]">
-      {/* Overview Dashboard Header Cards */}
+      {/* 1. Dashboard Overview Cards com Paleta Verde, Navy e Ouro */}
       <div className="grid grid-cols-3 gap-2.5 mb-5">
-        <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-            <Layers className="w-3.5 h-3.5 text-primary" /> Total
+        {/* Total Amostras - Navy */}
+        <div className="bg-surface-container-lowest border border-brand-navy/15 dark:border-brand-navy/30 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-brand-navy dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-brand-navy/10 text-brand-navy dark:text-blue-300 flex items-center justify-center">
+              <Layers className="w-3 h-3" />
+            </div>
+            Total
           </span>
           <div className="mt-2 flex items-baseline gap-1">
-            <span className="font-extrabold text-2xl text-on-surface">{totalCount}</span>
-            <span className="text-[11px] text-on-surface-variant font-medium">amostras</span>
+            <span className="font-black text-2xl text-on-surface">{totalCount}</span>
+            <span className="text-[10px] text-on-surface-variant font-medium">amostras</span>
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-            <Activity className="w-3.5 h-3.5 text-primary" /> Cobertura
+        {/* Cobertura - Verde Primário */}
+        <div className="bg-surface-container-lowest border border-primary/15 dark:border-primary/30 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-primary dark:text-primary-fixed uppercase tracking-wider flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+              <Activity className="w-3 h-3" />
+            </div>
+            Cobertura
           </span>
           <div className="mt-2 flex items-baseline gap-1">
-            <span className="font-extrabold text-2xl text-on-surface">{avgCoverage}</span>
-            <span className="text-[11px] text-on-surface-variant font-medium">% médio</span>
+            <span className="font-black text-2xl text-on-surface">{avgCoverage}</span>
+            <span className="text-[10px] text-on-surface-variant font-medium">% médio</span>
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-          <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider flex items-center gap-1">
-            <Award className="w-3.5 h-3.5 text-primary" /> Densidade de Gotas
+        {/* Densidade - Amarelo Ouro */}
+        <div className="bg-surface-container-lowest border border-brand-yellow/30 dark:border-brand-yellow/40 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-md bg-brand-yellow/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <Award className="w-3 h-3" />
+            </div>
+            Densidade
           </span>
           <div className="mt-2 flex items-baseline gap-1">
-            <span className="font-extrabold text-2xl text-on-surface">{avgDensity}</span>
-            <span className="text-[11px] text-on-surface-variant font-medium">gotas/cm²</span>
+            <span className="font-black text-2xl text-on-surface">{avgDensity}</span>
+            <span className="text-[10px] text-on-surface-variant font-medium">gotas/cm²</span>
           </div>
         </div>
       </div>
 
-      {/* Primary Action Button */}
+      {/* 2. Botão de Ação Primária em Destaque */}
       <button
+        type="button"
         onClick={onStartNewAnalysis}
-        className="w-full bg-primary text-on-primary h-[110px] rounded-2xl flex flex-col items-center justify-center gap-2 hover:bg-primary-container active:scale-[0.99] transition-all outline-none shadow-md mb-6 cursor-pointer"
+        className="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary h-[105px] rounded-2xl flex flex-col items-center justify-center gap-2 hover:opacity-95 active:scale-[0.99] transition-all outline-none shadow-md mb-6 cursor-pointer group relative overflow-hidden"
       >
-        <Camera className="w-10 h-10 stroke-[2]" />
-        <span className="font-bold text-base tracking-wide">NOVA ANÁLISE DE CARTÃO</span>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 pointer-events-none" />
+        <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+          <Camera className="w-6 h-6 stroke-[2.5]" />
+        </div>
+        <span className="font-black text-sm sm:text-base tracking-wider uppercase flex items-center gap-2">
+          Nova Análise de Cartão
+          <ArrowUpRight className="w-4 h-4 opacity-80" />
+        </span>
       </button>
 
-      {/* Recentes Section */}
-      <section>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-          <h2 className="font-bold text-xs text-on-surface-variant uppercase tracking-widest">
-            ANÁLISES RECENTES ({filteredAnalyses.length})
+      {/* 3. Seção de Análises Recentes */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="font-bold text-xs text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+            Análises Recentes
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-container font-black">
+              {filteredAnalyses.length}
+            </span>
           </h2>
 
           {recentAnalyses.length > 0 && (
@@ -101,8 +120,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {filteredAnalyses.length === 0 ? (
-          <div className="bg-surface-container-lowest border border-dashed border-outline-variant rounded-xl p-8 text-center text-on-surface-variant text-xs">
-            Nenhuma análise encontrada. Clique em &quot;Nova Análise de Cartão&quot; acima para realizar sua primeira leitura.
+          /* Empty State com Cartão Hidrossensível Ilustrado */
+          <div className="bg-surface-container-lowest border-2 border-dashed border-outline-variant rounded-3xl p-8 text-center flex flex-col items-center gap-4 shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-brand-yellow/15 border border-brand-yellow/30 flex items-center justify-center text-amber-700 dark:text-amber-300 shadow-xs">
+              <Droplets className="w-8 h-8" />
+            </div>
+
+            <div className="max-w-sm flex flex-col gap-1">
+              <h3 className="font-bold text-sm text-on-surface">
+                Nenhum cartão analisado ainda
+              </h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed">
+                Posicione seu cartão hidrossensível amarelo sobre uma superfície plana e clique no botão verde acima para fotografar e calcular as gotas.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onStartNewAnalysis}
+              className="h-10 px-5 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center gap-2 shadow-sm hover:bg-primary-container cursor-pointer"
+            >
+              <Camera className="w-4 h-4" />
+              Realizar Primeira Análise
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -111,43 +151,59 @@ export const HomeView: React.FC<HomeViewProps> = ({
               let qualityLabel = 'Inconclusiva';
               if (item.measurementQuality?.status === 'ADEQUADA') {
                 dotColorClass = 'bg-quality-good';
-                qualityLabel = 'Leitura adequada';
+                qualityLabel = 'Adequada';
               } else if (item.measurementQuality?.status === 'LIMITADA') {
                 dotColorClass = 'bg-quality-regular';
-                qualityLabel = 'Leitura limitada';
+                qualityLabel = 'Limitada';
               }
 
               return (
                 <div
                   key={item.id}
-                  className="bg-surface-container-lowest border border-outline-variant rounded-xl p-3.5 flex items-center justify-between shadow-xs hover:border-primary/50 transition-all cursor-pointer group"
+                  className="bg-surface-container-lowest border border-outline-variant/70 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between shadow-xs hover:border-primary/50 transition-all cursor-pointer group"
                 >
                   <div
                     onClick={() => onSelectAnalysis(item)}
                     className="flex items-center gap-3.5 flex-1 min-w-0"
                   >
-                    <div className={`w-3 h-3 rounded-full ${dotColorClass} shrink-0`} />
+                    {/* Thumbnail da imagem ou ícone estilizado */}
+                    {item.imageUrl ? (
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-black/10 border border-outline-variant/40 shrink-0 flex items-center justify-center">
+                        <img
+                          src={item.rectifiedImageUrl || item.imageUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-surface-container border border-outline-variant/60 flex items-center justify-center shrink-0">
+                        <Droplets className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+
                     <div className="flex flex-col truncate">
-                      <span className="font-bold text-sm text-on-surface truncate">
-                        {item.title}
-                      </span>
-                      {/* truncate também aqui: sem ele o subtítulo era cortado no meio
-                          de um caractere pelo overflow do pai, sem reticências. */}
-                      <span className="text-xs text-on-surface-variant truncate">
-                        {qualityLabel} · {item.density} gotas/cm² · {item.coveragePercent}% cobertura
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-on-surface truncate">
+                          {item.title}
+                        </span>
+                        <span className={`w-2 h-2 rounded-full ${dotColorClass} shrink-0`} title={qualityLabel} />
+                      </div>
+                      <span className="text-xs text-on-surface-variant truncate mt-0.5">
+                        <strong>{item.density}</strong> gotas/cm² · <strong>{item.coveragePercent}%</strong> cob. · {item.vmdUm} µm
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs font-medium text-on-surface-variant">{item.date}</span>
+                    <span className="text-[11px] font-medium text-on-surface-variant hidden sm:inline">{item.date}</span>
                     {onDeleteAnalysis && (
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           onDeleteAnalysis(item.id);
                         }}
-                        className="text-on-surface-variant/40 hover:text-error w-10 h-10 -mr-2 flex items-center justify-center rounded-full transition-colors"
+                        className="text-on-surface-variant/40 hover:text-error w-9 h-9 flex items-center justify-center rounded-xl hover:bg-error-container/20 transition-colors cursor-pointer"
                         title="Excluir"
                         aria-label="Excluir análise"
                       >

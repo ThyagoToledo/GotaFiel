@@ -23,6 +23,18 @@
   --color-background: #f6fbf3;
   --color-on-background: #181d19;
 
+  /* Cores Adicionais da Paleta Agronômica: Amarelo Ouro e Azul Escuro Navy */
+  --color-brand-yellow: #f59e0b;
+  --color-brand-yellow-container: #fef3c7;
+  --color-on-brand-yellow-container: #78350f;
+  --color-brand-gold: #d97706;
+
+  --color-brand-navy: #0f2438;
+  --color-brand-navy-container: #1e3a5f;
+  --color-brand-navy-light: #2563eb;
+  --color-on-brand-navy: #ffffff;
+  --color-on-brand-navy-container: #dbeafe;
+
   --color-cartao-amarelo: #F5D800;
   --color-gota-azul: #3D2FD6;
   --color-overlay-ciano: #00E5FF;
@@ -45,8 +57,6 @@
   --color-error: #ba1a1a;
   --color-on-error: #ffffff;
   --color-on-secondary: #ffffff;
-  /* Papéis "fixed" do Material 3: mantêm o mesmo tom nos dois temas, por isso não
-     aparecem no bloco .dark abaixo. */
   --color-primary-fixed: #a8f3c1;
   --color-secondary-fixed: #8bd9a8;
 
@@ -73,13 +83,17 @@
   --color-on-error: #690005;
   --color-error-container: #93000a;
   --color-on-error-container: #ffdad6;
-  /* Ponto quase-preto da classe "Extremamente Grossa" sumiria sobre fundo escuro. */
   --color-asabe-extremely-coarse: #d9d9e3;
+
+  /* Dark mode para Amarelo e Navy */
+  --color-brand-yellow: #fbbf24;
+  --color-brand-yellow-container: #78350f;
+  --color-on-brand-yellow-container: #fef3c7;
+  --color-brand-navy: #0a1726;
+  --color-brand-navy-container: #172a46;
+  --color-on-brand-navy-container: #93c5fd;
 }
 
-/* Durante a troca de tema o Chrome não retarget-eia transições de cor baseadas em
-   variáveis CSS e o texto fica preso na cor do tema anterior. O App aplica esta
-   classe por ~120ms enquanto alterna a classe .dark. */
 .theme-switching *,
 .theme-switching *::before,
 .theme-switching *::after {
@@ -94,71 +108,68 @@ body {
   min-height: 100vh;
 }
 
-/* Custom range slider styling for maximum visibility and mobile touchability.
-   A caixa do input tem 44px de altura (alvo de toque confortável com luva) enquanto o
-   trilho visível continua com 10px, desenhado no pseudo-elemento. Antes o próprio input
-   media 10px e só o thumb era acertável. */
-input[type=range] {
+/* Custom range slider styling */
+input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  width: 100%;
-  height: 44px;
   background: transparent;
-  outline: none;
+  height: 44px;
   cursor: pointer;
-  margin: 0;
+  position: relative;
 }
 
-input[type=range]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 9999px;
+  background-color: var(--color-surface-container-highest);
+  border: 1px solid var(--color-outline-variant);
+}
+
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  height: 28px;
-  width: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #006439;
+  background-color: var(--color-primary);
   border: 3px solid #ffffff;
-  cursor: pointer;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s ease, background-color 0.15s ease;
-  /* Centraliza o thumb sobre o trilho de 10px: (10 - 28) / 2 */
-  margin-top: -9px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  margin-top: -7px;
+  cursor: grab;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-input[type=range]::-webkit-slider-thumb:hover {
+input[type='range']:active::-webkit-slider-thumb {
   transform: scale(1.15);
+  cursor: grabbing;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
-input[type=range]::-webkit-slider-thumb:active {
-  transform: scale(1.25);
-  background: #1b7f4d;
-}
-
-input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
+input[type='range']::-moz-range-track {
   height: 10px;
-  cursor: pointer;
   border-radius: 9999px;
-  background: var(--color-outline);
+  background-color: var(--color-surface-container-highest);
+  border: 1px solid var(--color-outline-variant);
 }
 
-input[type=range]::-moz-range-thumb {
-  height: 28px;
-  width: 28px;
+input[type='range']::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #006439;
+  background-color: var(--color-primary);
   border: 3px solid #ffffff;
-  cursor: pointer;
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
-input[type=range]::-moz-range-track {
-  width: 100%;
-  height: 10px;
-  cursor: pointer;
-  border-radius: 9999px;
-  background: var(--color-outline);
+input[type='range']:active::-moz-range-thumb {
+  transform: scale(1.15);
+  cursor: grabbing;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
 }
 
-input[type=range]:focus {
-  outline: none;
+.custom-map-pin {
+  background: transparent;
+  border: none;
 }

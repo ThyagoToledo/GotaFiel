@@ -280,13 +280,16 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
           })}
 
           {/* Média do Talhão Card */}
-          <article className="bg-primary-container/10 border-2 border-primary-container/60 rounded-xl overflow-hidden flex flex-col relative shadow-sm mt-2">
-            <div className="absolute left-0 top-0 bottom-0 w-3 bg-quality-great" />
+          <article className="bg-gradient-to-br from-surface-container-lowest via-surface-container-lowest to-brand-navy/5 border-2 border-primary/40 dark:border-primary/60 rounded-2xl overflow-hidden flex flex-col relative shadow-sm mt-2">
+            <div className="absolute left-0 top-0 bottom-0 w-2.5 bg-primary" />
             <div className="p-4 pl-6 flex flex-col gap-3">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="font-extrabold text-base md:text-lg text-on-surface uppercase tracking-wide">
-                    MÉDIA DO TALHÃO
+                  <h2 className="font-extrabold text-sm sm:text-base text-on-surface uppercase tracking-wide flex items-center gap-2">
+                    Média Consolidada do Talhão
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30">
+                      {currentField.crop}
+                    </span>
                   </h2>
                   <div className="mt-0.5 flex items-center gap-1">
                     <span className="text-xs font-semibold text-on-surface-variant">
@@ -294,30 +297,32 @@ export const TalhaoDetailView: React.FC<TalhaoDetailViewProps> = ({
                     </span>
                   </div>
                 </div>
-                <Award className="w-8 h-8 text-quality-great" />
+                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Award className="w-6 h-6" />
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-primary-container/20">
+              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-outline-variant/60">
                 <div className="flex flex-col">
-                  <span className="text-xs text-on-surface-variant font-medium">Nº de Gotas Média</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-2xl text-on-surface">{avgDensity}</span>
-                    <span className="text-[11px] text-on-surface-variant">gotas/cm²</span>
+                  <span className="text-[11px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider">Densidade</span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="font-black text-xl sm:text-2xl text-on-surface">{avgDensity}</span>
+                    <span className="text-[10px] text-on-surface-variant font-medium">gotas/cm²</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col">
-                  <span className="text-xs text-on-surface-variant font-medium">Cobertura Média</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-2xl text-on-surface">{avgCoverage}</span>
-                    <span className="text-[11px] text-on-surface-variant">%</span>
+                  <span className="text-[11px] text-primary dark:text-primary-fixed font-bold uppercase tracking-wider">Cobertura</span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="font-black text-xl sm:text-2xl text-on-surface">{avgCoverage}</span>
+                    <span className="text-[10px] text-on-surface-variant font-medium">%</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col">
-                  <span className="text-xs text-on-surface-variant font-medium">Span Médio</span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-extrabold text-2xl text-on-surface">{avgSpan}</span>
+                  <span className="text-[11px] text-brand-navy dark:text-blue-300 font-bold uppercase tracking-wider">Span Médio</span>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="font-black text-xl sm:text-2xl text-on-surface">{avgSpan}</span>
                   </div>
                 </div>
               </div>

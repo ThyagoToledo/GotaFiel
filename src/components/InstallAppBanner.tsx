@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, X, Smartphone, Monitor, Share, CheckCircle2, Sparkles } from 'lucide-react';
+import { Download, X, Smartphone, CheckCircle2, Sparkles } from 'lucide-react';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 
 export const InstallAppBanner: React.FC = () => {
@@ -35,26 +35,30 @@ export const InstallAppBanner: React.FC = () => {
     <>
       <aside
         aria-label="Instalar aplicativo"
-        className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:bottom-6 z-50 max-w-md bg-surface-container-lowest border-2 border-primary/30 rounded-2xl p-4 shadow-2xl backdrop-blur-lg animate-in fade-in slide-in-from-bottom-5 duration-300"
+        className="fixed bottom-20 left-4 right-4 md:left-auto md:right-6 md:bottom-6 z-50 max-w-md bg-surface-container-lowest/95 border-2 border-primary/40 dark:border-primary/60 rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-5 duration-300"
       >
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-md">
-            <Smartphone className="w-6 h-6 md:hidden" />
-            <Monitor className="w-6 h-6 hidden md:block" />
+        <div className="flex items-start gap-3.5">
+          {/* Official App Icon Branding */}
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-br from-brand-navy to-primary p-0.5 shadow-md shrink-0 flex items-center justify-center">
+            <img
+              src="/icon.svg"
+              alt="GotaFiel Logo"
+              className="w-full h-full rounded-[14px] object-cover"
+            />
           </div>
 
-          <div className="flex-1 flex flex-col gap-1 pr-6">
-            <div className="flex items-center gap-1.5">
+          <div className="flex-1 flex flex-col gap-1 pr-5">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-xs font-black text-on-surface uppercase tracking-wider">
                 Instalar GotaFiel
               </span>
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 flex items-center gap-0.5">
-                <Sparkles className="w-2.5 h-2.5" />
-                App Rápido
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30 flex items-center gap-0.5">
+                <Sparkles className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+                Offline na Lavoura
               </span>
             </div>
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
-              Instale como aplicativo no seu celular ou computador para abrir instantaneamente e usar offline na lavoura.
+              Instale o app direto no seu celular para leitura instantânea de cartões e uso 100% offline no campo.
             </p>
 
             <div className="flex items-center gap-2 mt-2">
@@ -100,46 +104,40 @@ export const InstallAppBanner: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowIosModal(false)}
-                className="w-7 h-7 rounded-lg text-on-surface-variant hover:bg-surface-container flex items-center justify-center cursor-pointer"
+                className="w-7 h-7 rounded-lg text-on-surface-variant hover:text-on-surface flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <ol className="text-xs text-on-surface-variant space-y-3 pl-1 leading-relaxed">
-              <li className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-primary text-on-primary font-bold text-[11px] flex items-center justify-center shrink-0">
+            <p className="text-xs text-on-surface-variant leading-relaxed">
+              No navegador Safari do iOS, siga estes 2 passos simples:
+            </p>
+
+            <div className="flex flex-col gap-3 text-xs bg-surface-container rounded-xl p-3.5 border border-outline-variant/60">
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-brand-navy text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
                   1
                 </span>
                 <span>
-                  No Safari, toque no botão <strong>Compartilhar</strong> (ícone de quadrado com seta para cima <Share className="w-3.5 h-3.5 inline mx-1 text-primary" /> na barra inferior).
+                  Toque no botão <strong>Compartilhar</strong> (ícone com seta para cima na barra inferior do Safari).
                 </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-primary text-on-primary font-bold text-[11px] flex items-center justify-center shrink-0">
+              </div>
+
+              <div className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
                   2
                 </span>
                 <span>
-                  Role o menu e selecione <strong>"Adicionar à Tela de Início"</strong>.
+                  Role a lista para baixo e toque em <strong>&quot;Adicionar à Tela de Início&quot;</strong>.
                 </span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <span className="w-5 h-5 rounded-full bg-primary text-on-primary font-bold text-[11px] flex items-center justify-center shrink-0">
-                  3
-                </span>
-                <span>
-                  Toque em <strong>"Adicionar"</strong> no canto superior direito para fixar o GotaFiel no seu aparelho!
-                </span>
-              </li>
-            </ol>
+              </div>
+            </div>
 
             <button
               type="button"
-              onClick={() => {
-                setShowIosModal(false);
-                handleDismiss();
-              }}
-              className="w-full h-11 bg-primary text-on-primary font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+              onClick={() => setShowIosModal(false)}
+              className="h-10 rounded-xl bg-primary text-on-primary font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
             >
               <CheckCircle2 className="w-4 h-4" />
               Entendi

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Droplets, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Sparkles, ShieldCheck, Droplets } from 'lucide-react';
 import { api, AuthUser } from '../api/client';
 
 interface AuthViewProps {
@@ -40,20 +40,103 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
 
   return (
     <main className="min-h-screen bg-surface dark:bg-background flex items-center justify-center p-4">
-      <section className="w-full max-w-sm bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-lg">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <img src="/icon.svg" alt="GotaFiel Logo" className="w-16 h-16 rounded-2xl shadow-md" />
-          <span className="text-primary font-extrabold text-2xl tracking-tight">GotaFiel</span>
+      <section className="w-full max-w-sm bg-surface-container-lowest border border-outline-variant/80 rounded-3xl p-6 sm:p-7 shadow-xl flex flex-col gap-5">
+        {/* App Logo & Branding */}
+        <div className="flex flex-col items-center justify-center text-center gap-2.5">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-navy via-primary to-primary-container p-0.5 shadow-lg flex items-center justify-center">
+            <img
+              src="/icon.svg"
+              alt="GotaFiel Logo"
+              className="w-full h-full rounded-[14px] object-cover"
+            />
+          </div>
+
+          <div>
+            <h2 className="text-primary font-black text-2xl tracking-tight flex items-center justify-center gap-1.5">
+              GotaFiel
+            </h2>
+            <p className="text-xs text-on-surface-variant font-medium mt-0.5">
+              Tecnologia & Metrologia de Pulverização
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30 flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5 text-amber-600 dark:text-amber-400" />
+              Clean-Room Metrology
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-navy/10 text-brand-navy dark:text-blue-300 border border-brand-navy/20 flex items-center gap-1">
+              <ShieldCheck className="w-2.5 h-2.5" />
+              Neon Cloud
+            </span>
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-on-surface text-center mt-6">{mode === 'login' ? 'Entrar' : 'Criar usuário'}</h1>
-        <p className="text-sm text-on-surface-variant text-center mt-2 leading-relaxed">Suas análises e imagens privadas ficam separadas por usuário e só aparecem depois da autenticação.</p>
-        {error && <div role="alert" className="mt-5 p-3 rounded-xl bg-error-container text-on-error-container border border-error/40 text-xs leading-relaxed">{error}</div>}
-        <form onSubmit={submit} className="flex flex-col gap-4 mt-6">
-          <label className="flex flex-col gap-1.5 text-xs font-semibold text-on-surface-variant">Nome<input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={80} autoComplete="username" className="h-12 rounded-xl border border-outline-variant bg-surface px-3 text-base text-on-surface focus:outline-none focus:border-primary" placeholder="Seu nome" /></label>
-          <label className="flex flex-col gap-1.5 text-xs font-semibold text-on-surface-variant">Senha<input value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} maxLength={200} type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} className="h-12 rounded-xl border border-outline-variant bg-surface px-3 text-base text-on-surface focus:outline-none focus:border-primary" placeholder="Mínimo de 8 caracteres" /></label>
-          <button disabled={isSubmitting} className="h-12 rounded-xl bg-primary text-on-primary font-bold flex items-center justify-center gap-2 disabled:opacity-50">{mode === 'login' ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}{isSubmitting ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}</button>
+
+        {/* Form Title */}
+        <div className="text-center">
+          <h1 className="text-xl font-bold text-on-surface">
+            {mode === 'login' ? 'Acessar sua Conta' : 'Criar Novo Cadastro'}
+          </h1>
+          <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+            Seus dados, fotos e históricos de talhões ficam salvos e sincronizados com segurança.
+          </p>
+        </div>
+
+        {error && (
+          <div role="alert" className="p-3 rounded-xl bg-error-container text-on-error-container border border-error/40 text-xs leading-relaxed">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1 text-xs font-bold text-on-surface-variant">
+            Nome de Usuário
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              minLength={2}
+              maxLength={80}
+              autoComplete="username"
+              className="h-11 rounded-xl border border-outline-variant bg-surface px-3.5 text-sm text-on-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs"
+              placeholder="Digite seu nome ou usuário"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs font-bold text-on-surface-variant">
+            Senha
+            <input
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              minLength={8}
+              maxLength={200}
+              type="password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              className="h-11 rounded-xl border border-outline-variant bg-surface px-3.5 text-sm text-on-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs"
+              placeholder="Mínimo de 8 caracteres"
+            />
+          </label>
+
+          <button
+            disabled={isSubmitting}
+            className="h-12 rounded-xl bg-primary text-on-primary font-bold text-sm flex items-center justify-center gap-2 shadow-md hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 mt-1"
+          >
+            {mode === 'login' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+            {isSubmitting ? 'Validando…' : mode === 'login' ? 'Entrar no GotaFiel' : 'Criar Conta Gratuita'}
+          </button>
         </form>
-        <button type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} className="w-full mt-4 text-sm text-primary font-semibold hover:underline">{mode === 'login' ? 'Ainda não tenho conta' : 'Já tenho uma conta'}</button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode(mode === 'login' ? 'register' : 'login');
+            setError('');
+          }}
+          className="text-xs text-primary font-bold hover:underline text-center cursor-pointer py-1"
+        >
+          {mode === 'login' ? 'Ainda não tem conta? Crie uma agora' : 'Já possui cadastro? Clique para entrar'}
+        </button>
       </section>
     </main>
   );

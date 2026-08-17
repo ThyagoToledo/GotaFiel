@@ -441,11 +441,60 @@ export const MoreView: React.FC<MoreViewProps> = ({
           </button>
         </section>
 
-        {/* About App */}
-        <div className="text-center py-2 text-xs text-on-surface-variant">
-          <p className="font-semibold text-primary">Spray Analysis — Agro-Precision System</p>
-          <p className="mt-0.5">Versão 2.5.0 · Offline Ready</p>
-        </div>
+        {/* About App Branding Card */}
+        <section className="bg-gradient-to-br from-surface-container-lowest via-surface-container-lowest to-brand-navy/5 border border-outline-variant rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-navy to-primary p-0.5 shadow-md shrink-0 flex items-center justify-center">
+              <img
+                src="/icon.svg"
+                alt="GotaFiel Logo"
+                className="w-full h-full rounded-[14px] object-cover"
+              />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base text-on-surface flex items-center gap-2">
+                GotaFiel
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  v2.5.0
+                </span>
+              </h3>
+              <p className="text-xs text-on-surface-variant font-medium">
+                Metrologia & Análise Digital de Pulverização Agrícola
+              </p>
+            </div>
+          </div>
+
+          <p className="text-xs text-on-surface-variant leading-relaxed">
+            Plataforma científica para leitura de cartões hidrossensíveis, calibração ISO 10625 de bicos, ordem WALES de tanque e mapeamento geoespacial da deposição foliar.
+          </p>
+
+          {/* Badges de Destaque */}
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
+            <span className="px-2.5 py-1 rounded-lg bg-brand-navy/10 text-brand-navy dark:text-blue-300 border border-brand-navy/20">
+              Clean-Room Metrology
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30">
+              PWA 100% Offline
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20">
+              Neon PostgreSQL
+            </span>
+          </div>
+
+          <div className="pt-3 border-t border-outline-variant/60 flex items-center justify-between text-xs text-on-surface-variant">
+            <span className="flex items-center gap-1">
+              Desenvolvido por <strong>Thyago Toledo</strong>
+            </span>
+            <a
+              href="https://github.com/ThyagoToledo/GotaFiel"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1"
+            >
+              GitHub do Projeto
+            </a>
+          </div>
+        </section>
       </div>
     </main>
   );
