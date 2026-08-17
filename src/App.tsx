@@ -9,7 +9,7 @@ import { AnalysisWizard } from './components/wizard/AnalysisWizard';
 import { TalhaoDetailView } from './components/TalhaoDetailView';
 import { CalculatorsView } from './components/CalculatorsView';
 import { MoreView } from './components/MoreView';
-import { ActiveTab, AnalysisData, DEFAULT_NOZZLE_CRITERIA, FieldExperiment, NozzleCalibrationSession, NozzleCriteria } from './types';
+import { ActiveTab, AnalysisData, DEFAULT_ENGINE_MODE, DEFAULT_NOZZLE_CRITERIA, EngineMode, FieldExperiment, NozzleCalibrationSession, NozzleCriteria } from './types';
 import { sanitizeNozzleCriteria } from './utils/sprayAnalytics';
 
 const EMPTY_NOZZLE_SESSION: NozzleCalibrationSession = {
@@ -52,6 +52,7 @@ export default function App() {
   const [recentAnalyses, setRecentAnalyses] = useState<AnalysisData[]>([]);
   const [fieldExperiments, setFieldExperiments] = useState<FieldExperiment[]>([]);
   const [nozzleSession, setNozzleSession] = useState<NozzleCalibrationSession>(EMPTY_NOZZLE_SESSION);
+  const [engineMode, setEngineMode] = useState<EngineMode>(() => (localStorage.getItem('gotafiel_engine_mode') as EngineMode) || DEFAULT_ENGINE_MODE);
   const [nozzleCriteria, setNozzleCriteria] = useState<NozzleCriteria>(() => {
     const saved = localStorage.getItem('spray_nozzle_criteria');
     return sanitizeNozzleCriteria(saved ? JSON.parse(saved) : null);
@@ -79,6 +80,11 @@ export default function App() {
     try { localStorage.setItem('spray_nozzle_criteria', JSON.stringify(nozzleCriteria)); }
     catch { setStorageError('Não foi possível salvar as preferências locais.'); }
   }, [nozzleCriteria]);
+
+  useEffect(() => {
+    try { localStorage.setItem('gotafiel_engine_mode', engineMode); }
+    catch { setStorageError('Não foi possível salvar o motor de análise padrão.'); }
+  }, [engineMode]);
 
   const toggleDarkMode = () => {
     document.documentElement.classList.add('theme-switching');
@@ -139,7 +145,9 @@ export default function App() {
   const handleClearData = () => {
     setNozzleSession(EMPTY_NOZZLE_SESSION);
     setNozzleCriteria(DEFAULT_NOZZLE_CRITERIA);
+    setEngineMode(DEFAULT_ENGINE_MODE);
     localStorage.removeItem('spray_nozzle_session');
+    localStorage.removeItem('gotafiel_engine_mode');
     alert('Preferências locais limpas. As análises da sua conta permanecem no Neon.');
   };
 
@@ -164,20 +172,20 @@ export default function App() {
     } catch (error) { if (!(error instanceof Error && error.name === 'AbortError')) alert('Não foi possível compartilhar o relatório.'); }
   };
 
-  const getPageHeaderTitle = () => ({ home: 'Gotas 2', analysis: 'Gotas 2', experiments: 'Experimentos & Talhões', calculators: 'Calculadoras Agrícolas', more: 'Ajustes & Mais' }[activeTab]);
+  const getPageHeaderTitle = () => ({ home: 'GotaFiel', analysis: 'GotaFiel', experiments: 'Experimentos & Talhões', calculators: 'Calculadoras Agrícolas', more: 'Ajustes & Mais' }[activeTab]);
 
   if (authLoading) return <div className="min-h-screen bg-surface dark:bg-background flex items-center justify-center text-primary font-semibold">Validando sua conta…</div>;
   if (!authUser) return <AuthView onAuthenticated={handleAuthenticated} initialError={authError} />;
 
   return <div className="min-h-screen bg-surface dark:bg-background text-on-surface antialiased flex flex-col font-corpo selection:bg-primary-container selection:text-on-primary-container">
     {storageError && <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[60] w-[min(92vw,26rem)] bg-error-container text-on-error-container border border-error/40 rounded-xl p-3 shadow-lg flex items-start gap-2.5"><AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" /><span className="text-[11px] leading-relaxed flex-1">{storageError}</span><button onClick={() => setStorageError('')} aria-label="Fechar aviso">×</button></div>}
-    {isWizardOpen ? <AnalysisWizard fieldExperiments={fieldExperiments} initialAnalysis={selectedAnalysis} preselectedFieldId={preselectedFieldId} onCloseWizard={() => { setIsWizardOpen(false); setSelectedAnalysis(null); setPreselectedFieldId(undefined); }} onSaveAnalysis={handleSaveNewAnalysis} /> : <>
+    {isWizardOpen ? <AnalysisWizard fieldExperiments={fieldExperiments} initialAnalysis={selectedAnalysis} preselectedFieldId={preselectedFieldId} defaultEngineMode={engineMode} onCloseWizard={() => { setIsWizardOpen(false); setSelectedAnalysis(null); setPreselectedFieldId(undefined); }} onSaveAnalysis={handleSaveNewAnalysis} /> : <>
       <Header title={getPageHeaderTitle()} isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} showShare={activeTab === 'experiments'} onShare={handleShareReport} />
       {activeTab === 'home' && <HomeView recentAnalyses={recentAnalyses} onStartNewAnalysis={() => handleStartNewAnalysis()} onSelectAnalysis={handleSelectAnalysis} onDeleteAnalysis={handleDeleteAnalysis} />}
       {activeTab === 'analysis' && <HomeView recentAnalyses={recentAnalyses} onStartNewAnalysis={() => handleStartNewAnalysis()} onSelectAnalysis={handleSelectAnalysis} onDeleteAnalysis={handleDeleteAnalysis} />}
       {activeTab === 'experiments' && <TalhaoDetailView experiments={fieldExperiments} onAddSampleToField={(fieldId) => handleStartNewAnalysis(fieldId)} onAddNewField={handleAddNewField} onDeleteField={handleDeleteField} onDeleteSample={handleDeleteSample} />}
       {activeTab === 'calculators' && <CalculatorsView nozzleSession={nozzleSession} onSaveNozzleSession={setNozzleSession} nozzleCriteria={nozzleCriteria} />}
-      {activeTab === 'more' && <MoreView isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} onClearData={handleClearData} recentAnalyses={recentAnalyses} nozzleCriteria={nozzleCriteria} onChangeNozzleCriteria={(criteria) => setNozzleCriteria(sanitizeNozzleCriteria(criteria))} userName={authUser.name} onLogout={handleLogout} />}
+      {activeTab === 'more' && <MoreView isDarkMode={isDarkMode} onToggleDarkMode={toggleDarkMode} onClearData={handleClearData} recentAnalyses={recentAnalyses} nozzleCriteria={nozzleCriteria} onChangeNozzleCriteria={(criteria) => setNozzleCriteria(sanitizeNozzleCriteria(criteria))} engineMode={engineMode} onChangeEngineMode={setEngineMode} userName={authUser.name} onLogout={handleLogout} />}
       <BottomNav activeTab={activeTab} onChangeTab={(tab) => tab === 'analysis' ? handleStartNewAnalysis() : (setActiveTab(tab), setIsWizardOpen(false))} />
     </>}
   </div>;

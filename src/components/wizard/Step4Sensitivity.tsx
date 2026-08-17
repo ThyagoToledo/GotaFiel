@@ -85,7 +85,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
     ? 'Híbrido Adaptativo'
     : localMethod === 'chromatic'
       ? 'Cromático'
-      : 'Compatível em cinza';
+      : 'Monocromático';
 
   return (
     <div className="flex-1 flex flex-col max-w-[1200px] mx-auto w-full pb-36 px-4 pt-4">
@@ -140,7 +140,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
               <span className="text-xs font-bold">Nenhuma gota detectada</span>
               <span className="text-[11px] leading-relaxed">
                 {localMethod === 'gotas-legacy'
-                  ? 'O método GOTAS (Cinza) só separa manchas bem mais escuras que o papel. Experimente o método Híbrido ou Cromático.'
+                  ? 'O método monocromático em cinza só separa manchas com alto contraste de luminância. Experimente o método Híbrido ou Cromático.'
                   : 'Ajuste a sensibilidade do limiar, reduza o tamanho mínimo de gota ou refaça o corte do cartão no passo 2.'}
               </span>
             </div>
@@ -190,8 +190,8 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                   : 'bg-surface-container text-on-surface-variant hover:text-on-surface border-outline-variant'
               }`}
             >
-              <span>Cinza (GOTAS)</span>
-              <span className="text-[9px] opacity-80 font-normal">Histórico</span>
+              <span>Monocromático</span>
+              <span className="text-[9px] opacity-80 font-normal">Escala de cinza</span>
             </button>
           </div>
         </section>
@@ -207,7 +207,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                 </label>
                 <span className="text-[11px] text-on-surface-variant">
                   {localMethod === 'gotas-legacy'
-                    ? 'Ajuste do limiar histórico GOTAS (-50 a +50)'
+                    ? 'Ajuste do limiar de densidade óptica (-50 a +50)'
                     : 'Ajuste fino de Otsu (-50 a +50)'}
                 </span>
               </div>

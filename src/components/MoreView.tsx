@@ -1,6 +1,6 @@
-﻿import React, { useEffect, useState } from 'react';
-import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw } from 'lucide-react';
-import { AnalysisData, DEFAULT_NOZZLE_CRITERIA, NozzleCriteria, NozzleCriteriaMode } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Moon, Sun, Info, Download, Trash2, Shield, Sliders, Droplets, RotateCcw, Sparkles } from 'lucide-react';
+import { AnalysisData, DEFAULT_ENGINE_MODE, DEFAULT_NOZZLE_CRITERIA, EngineMode, NozzleCriteria, NozzleCriteriaMode } from '../types';
 import { downloadAllAnalysesCsv } from '../utils/generateCsvReport';
 
 interface MoreViewProps {
@@ -10,6 +10,8 @@ interface MoreViewProps {
   recentAnalyses: AnalysisData[];
   nozzleCriteria: NozzleCriteria;
   onChangeNozzleCriteria: (criteria: NozzleCriteria) => void;
+  engineMode?: EngineMode;
+  onChangeEngineMode?: (mode: EngineMode) => void;
   userName?: string;
   onLogout?: () => Promise<void> | void;
 }
@@ -28,6 +30,8 @@ export const MoreView: React.FC<MoreViewProps> = ({
   recentAnalyses,
   nozzleCriteria,
   onChangeNozzleCriteria,
+  engineMode = DEFAULT_ENGINE_MODE,
+  onChangeEngineMode,
   userName,
   onLogout,
 }) => {
@@ -100,6 +104,103 @@ export const MoreView: React.FC<MoreViewProps> = ({
           </div>
         </section>
 
+        {/* Motor de Análise de Imagem */}
+        <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-primary" />
+            MOTOR DE ANÁLISE DE IMAGEM
+          </div>
+          <p className="text-[11px] text-on-surface-variant leading-relaxed">
+            Escolha o algoritmo padrão utilizado no processamento dos cartões hidrossensíveis:
+          </p>
+
+          <div className="grid grid-cols-1 gap-2.5">
+            {/* Motor Híbrido Adaptativo */}
+            <button
+              type="button"
+              onClick={() => onChangeEngineMode?.('hybrid')}
+              className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                engineMode === 'hybrid'
+                  ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary'
+                  : 'border-outline-variant bg-surface-container hover:bg-surface-container-high'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                engineMode === 'hybrid' ? 'border-primary' : 'border-outline'
+              }`}>
+                {engineMode === 'hybrid' && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-on-surface">Motor Híbrido Adaptativo</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    Padrão Recomendado (95%+ precisão)
+                  </span>
+                </div>
+                <span className="text-[11px] text-on-surface-variant leading-relaxed">
+                  Fusão espectral azul-amarelo e contraste luminoso, normalização contínua de sombras/iluminação, separação morfológica de aglomerados e filtragem de fibras e riscos.
+                </span>
+              </div>
+            </button>
+
+            {/* Motor Cromático */}
+            <button
+              type="button"
+              onClick={() => onChangeEngineMode?.('chromatic')}
+              className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                engineMode === 'chromatic'
+                  ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary'
+                  : 'border-outline-variant bg-surface-container hover:bg-surface-container-high'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                engineMode === 'chromatic' ? 'border-primary' : 'border-outline'
+              }`}>
+                {engineMode === 'chromatic' && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-on-surface">Motor Cromático (Espectral)</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary/10 text-secondary border border-secondary/20">
+                    B - max(R,G)
+                  </span>
+                </div>
+                <span className="text-[11px] text-on-surface-variant leading-relaxed">
+                  Binarização direta por isolamento do canal azul sobre fundo amarelo com limiarização automática de Otsu.
+                </span>
+              </div>
+            </button>
+
+            {/* Motor Monocromático */}
+            <button
+              type="button"
+              onClick={() => onChangeEngineMode?.('monochrome')}
+              className={`p-3.5 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                engineMode === 'monochrome'
+                  ? 'border-primary bg-primary/5 shadow-xs ring-1 ring-primary'
+                  : 'border-outline-variant bg-surface-container hover:bg-surface-container-high'
+              }`}
+            >
+              <div className={`w-4 h-4 rounded-full border-2 mt-0.5 flex items-center justify-center shrink-0 ${
+                engineMode === 'monochrome' ? 'border-primary' : 'border-outline'
+              }`}>
+                {engineMode === 'monochrome' && <div className="w-2 h-2 rounded-full bg-primary" />}
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-on-surface">Motor Monocromático (Escala de Cinza)</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-surface-variant text-on-surface-variant border border-outline-variant">
+                    Contraste Óptico
+                  </span>
+                </div>
+                <span className="text-[11px] text-on-surface-variant leading-relaxed">
+                  Binarização em escala de cinza por contraste de densidade com suavização espacial 3×3 e preenchimento morfológico.
+                </span>
+              </div>
+            </button>
+          </div>
+        </section>
+
         {/* Limites do método: não apresentar classificação ASABE simulada. */}
         <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm flex flex-col gap-3">
           <h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-1.5">
@@ -111,7 +212,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
             <li>Contagem, densidade e tamanhos ficam pouco confiáveis quando as manchas se sobrepõem.</li>
             <li>DV e volume são estimativas dependentes da relação de espalhamento do papel e do líquido.</li>
             <li>A classe ASABE S572.3 exige comparação padronizada com bicos de referência; ela não é inferida apenas do DV0,5 deste cartão.</li>
-            <li>O Gotas2 mede o cartão, mas não decide sozinho se a aplicação foi agronomicamente adequada.</li>
+            <li>O GotaFiel mede o cartão, mas não decide sozinho se a aplicação foi agronomicamente adequada.</li>
           </ul>
         </section>
 

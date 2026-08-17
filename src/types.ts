@@ -6,6 +6,9 @@ export type QualityVerdict = 'NAO_AVALIADO' | 'GREET' | 'BOM' | 'REGULAR' | 'RUI
 
 export type ASABECategory = 'Não classificada' | 'Muito Fina' | 'Fina' | 'Média' | 'Grossa' | 'Muito Grossa' | 'Extremamente Grossa';
 
+export type EngineMode = 'hybrid' | 'chromatic' | 'monochrome';
+export const DEFAULT_ENGINE_MODE: EngineMode = 'hybrid';
+
 export type MeasurementQualityStatus = 'ADEQUADA' | 'LIMITADA' | 'INCONCLUSIVA';
 
 /**

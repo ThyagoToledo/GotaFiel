@@ -7,7 +7,7 @@ import { Step3Scale } from './Step3Scale';
 import { Step4Sensitivity } from './Step4Sensitivity';
 import { Step5Result } from './Step5Result';
 import { Step6Inspection } from './Step6Inspection';
-import { AnalysisData, DropletItem, FieldExperiment } from '../../types';
+import { AnalysisData, DropletItem, EngineMode, FieldExperiment } from '../../types';
 import { CropCorners, BinarizationMethod, AnalysisParams } from '../../core/types';
 import { runImagePipeline, PipelineResult } from '../../core/workerPipeline';
 import { recalculateAnalysisData } from '../../utils/sprayAnalytics';
@@ -16,6 +16,7 @@ interface AnalysisWizardProps {
   fieldExperiments: FieldExperiment[];
   initialAnalysis?: AnalysisData | null;
   preselectedFieldId?: string;
+  defaultEngineMode?: EngineMode;
   onCloseWizard: () => void;
   onSaveAnalysis: (analysis: AnalysisData) => Promise<void> | void;
 }
@@ -31,13 +32,19 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
   fieldExperiments,
   initialAnalysis,
   preselectedFieldId,
+  defaultEngineMode,
   onCloseWizard,
   onSaveAnalysis,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(initialAnalysis ? 5 : 1);
 
   const [corners, setCorners] = useState<CropCorners>(DEFAULT_CORNERS);
-  const [method, setMethod] = useState<BinarizationMethod>('hybrid');
+  const [method, setMethod] = useState<BinarizationMethod>(() => {
+    if (initialAnalysis?.analysisMethod) return initialAnalysis.analysisMethod;
+    if (defaultEngineMode === 'monochrome') return 'gotas-legacy';
+    if (defaultEngineMode === 'chromatic') return 'chromatic';
+    return 'hybrid';
+  });
   const [minDropletUm, setMinDropletUm] = useState<number>(50);
   const [discardBorder, setDiscardBorder] = useState<boolean>(true);
   const [meanFilterPasses, setMeanFilterPasses] = useState<number>(1);

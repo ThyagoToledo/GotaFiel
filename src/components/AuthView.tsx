@@ -41,7 +41,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
   return (
     <main className="min-h-screen bg-surface dark:bg-background flex items-center justify-center p-4">
       <section className="w-full max-w-sm bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center justify-center gap-2 text-primary font-bold text-xl"><Droplets className="w-7 h-7" />Gotas 2</div>
+        <div className="flex items-center justify-center gap-2 text-primary font-bold text-xl"><Droplets className="w-7 h-7" />GotaFiel</div>
         <h1 className="text-2xl font-bold text-on-surface text-center mt-6">{mode === 'login' ? 'Entrar' : 'Criar usuário'}</h1>
         <p className="text-sm text-on-surface-variant text-center mt-2 leading-relaxed">Suas análises e imagens privadas ficam separadas por usuário e só aparecem depois da autenticação.</p>
         {error && <div role="alert" className="mt-5 p-3 rounded-xl bg-error-container text-on-error-container border border-error/40 text-xs leading-relaxed">{error}</div>}

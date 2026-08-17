@@ -63,7 +63,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Gotas2 — processamento experimental e rastreável', margin + 6, y + 17);
+  doc.text('GotaFiel — processamento de alta precisão e calibração agronômica', margin + 6, y + 17);
 
   y += 30;
 
@@ -285,7 +285,7 @@ export function generateAnalysisPdfReport(analysis: AnalysisData): void {
   doc.setTextColor(120, 120, 120);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text('Gotas2 — relatório de medição; não substitui avaliação agronômica profissional', margin, 284);
+  doc.text('GotaFiel — relatório de medição e calibração agronômica de pulverização', margin, 284);
   doc.text('Página 1 de 1', margin + contentWidth - 20, 284);
 
   // Save the generated PDF

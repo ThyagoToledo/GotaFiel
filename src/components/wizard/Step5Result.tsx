@@ -183,6 +183,21 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
           </section>
         )}
 
+        {/* Alerta de Excesso e Risco de Escorrimento (> 75%) */}
+        {analysis.coveragePercent >= 75 && (
+          <section className="p-4 rounded-xl bg-error-container text-on-error-container border border-error/40 shadow-sm flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-error">
+                Alerta Crítico: Excesso / Risco de Escorrimento (≥ 75%)
+              </span>
+              <p className="text-[11px] leading-relaxed opacity-90">
+                A cobertura do alvo atingiu o ponto de saturação ({analysis.coveragePercent.toLocaleString('pt-BR')}%). Aplicações com cobertura excessiva provocam coalescência de gotas e escorrimento foliar para o solo, gerando perda econômica de calda e risco de fitotoxicidade.
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* Acima de ~20% de cobertura as manchas se encostam com frequência, e um
             aglomerado é lido como uma única gota grande. A cobertura em si continua
             válida (é razão de pixels); contagem, DMV e span é que degradam. */}
@@ -197,7 +212,18 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
             <div className="border border-outline-variant rounded-lg p-4 bg-surface-container-lowest shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <span className="text-sm font-medium text-on-surface">Densidade de gotas</span>
-                {!quality.countDensityReliable && <span className="text-[10px] font-bold text-quality-regular">LIMITADA</span>}
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    analysis.density >= 50
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : analysis.density >= 25
+                        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20'
+                        : 'bg-error-container text-on-error-container border border-error/20'
+                  }`}>
+                    {analysis.density >= 50 ? 'Bom (≥50)' : analysis.density >= 25 ? 'Intermediário (25-50)' : 'Insuficiente (<25)'}
+                  </span>
+                  {!quality.countDensityReliable && <span className="text-[10px] font-bold text-quality-regular">LIMITADA</span>}
+                </div>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="font-bold text-3xl text-primary">{analysis.density.toLocaleString('pt-BR')}</span>

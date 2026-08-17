@@ -1,4 +1,4 @@
-/** Métricas puras para comparar a saída do Gotas2 com uma referência independente. */
+/** Métricas puras para comparar a saída do algoritmo GotaFiel com uma referência independente. */
 export interface BinarySegmentationMetrics {
   truePositive: number;
   falsePositive: number;

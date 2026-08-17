@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calculator,
   Copy,
@@ -26,12 +26,27 @@ interface CalculatorsViewProps {
   nozzleCriteria?: NozzleCriteria;
 }
 
+type TargetCropType = 'fungicida_contato' | 'fungicida_sistemico' | 'inseticida' | 'herbicida_pos' | 'herbicida_pre';
+
+const TARGET_RECOMMENDATIONS: Record<TargetCropType, { label: string; minDensity: number; maxDensity: number; desc: string }> = {
+  fungicida_contato: { label: 'Fungicida de Contato', minDensity: 50, maxDensity: 70, desc: 'Alta densidade de gotas requerida para cobertura protetora completa.' },
+  fungicida_sistemico: { label: 'Fungicida Sistêmico', minDensity: 30, maxDensity: 40, desc: 'Média densidade; absorção translaminar e sistêmica no tecido foliar.' },
+  inseticida: { label: 'Inseticida', minDensity: 20, maxDensity: 30, desc: 'Densidade intermediária focada no dossel e hábito da praga.' },
+  herbicida_pos: { label: 'Herbicida Pós-emergência', minDensity: 20, maxDensity: 30, desc: 'Gotas médias a grossas para atingir folhas de plantas daninhas com baixa deriva.' },
+  herbicida_pre: { label: 'Herbicida Pré-emergência', minDensity: 15, maxDensity: 20, desc: 'Gotas grossas para atingir solo ou palhada com segurança.' },
+};
+
 export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
   nozzleSession,
   onSaveNozzleSession,
   nozzleCriteria = DEFAULT_NOZZLE_CRITERIA,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'volume' | 'afericao' | 'clima'>('volume');
+  const [activeSubTab, setActiveSubTab] = useState<'volume' | 'afericao' | 'clima' | 'diagnostico'>('volume');
+
+  // Diagnóstico Rápido de Gotas State
+  const [simDensity, setSimDensity] = useState<number>(45);
+  const [simCoverage, setSimCoverage] = useState<number>(18);
+  const [selectedTarget, setSelectedTarget] = useState<TargetCropType>('fungicida_sistemico');
 
   // Volume de Calda State
   const [vazao, setVazao] = useState<number>(0.8);
@@ -186,6 +201,16 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
           }`}
         >
           Clima & Deriva
+        </button>
+        <button
+          onClick={() => setActiveSubTab('diagnostico')}
+          className={`flex-1 py-3 min-h-[44px] text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
+            activeSubTab === 'diagnostico'
+              ? 'bg-surface text-primary shadow-sm font-extrabold'
+              : 'text-on-surface-variant hover:text-on-surface'
+          }`}
+        >
+          Diagnóstico Gotas
         </button>
       </div>
 
@@ -537,7 +562,7 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
             Salvar Aferição de Bicos
           </button>
         </div>
-      ) : (
+      ) : activeSubTab === 'clima' ? (
         /* CLIMA & RISCO DE DERIVA CALCULATOR */
         <div className="flex flex-col gap-5 max-w-md mx-auto">
           {(() => {
@@ -662,6 +687,174 @@ export const CalculatorsView: React.FC<CalculatorsViewProps> = ({
                   </div>
                 </div>
               </>
+            );
+          })()}
+        </div>
+      ) : (
+        /* DIAGNÓSTICO RÁPIDO DE PULVERIZAÇÃO */
+        <div className="flex flex-col gap-5 max-w-md mx-auto">
+          {/* Target Selection */}
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col gap-2.5">
+            <label className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              Tipo de Aplicação / Alvo:
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(Object.keys(TARGET_RECOMMENDATIONS) as TargetCropType[]).map((key) => {
+                const target = TARGET_RECOMMENDATIONS[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedTarget(key)}
+                    className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-all cursor-pointer ${
+                      selectedTarget === key
+                        ? 'border-primary bg-primary/10 text-primary font-bold shadow-xs'
+                        : 'border-outline-variant bg-surface text-on-surface-variant hover:text-on-surface'
+                    }`}
+                  >
+                    <span className="text-xs font-bold">{target.label}</span>
+                    <span className="text-[10px] opacity-80">{target.minDensity} a {target.maxDensity} gotas/cm²</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-on-surface-variant leading-relaxed mt-1">
+              {TARGET_RECOMMENDATIONS[selectedTarget].desc}
+            </p>
+          </div>
+
+          {/* Density & Coverage Inputs */}
+          <form className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+            {/* Densidade */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center text-xs font-bold text-on-surface">
+                <span>Densidade de Gotas:</span>
+                <span className="text-primary font-extrabold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
+                  {simDensity} gotas/cm²
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="120"
+                step="1"
+                value={simDensity}
+                onChange={(e) => setSimDensity(Number(e.target.value))}
+                style={{
+                  background: `linear-gradient(to right, #006439 0%, #006439 ${(simDensity / 120) * 100}%, #becabe ${(simDensity / 120) * 100}%, #becabe 100%)`,
+                }}
+                className="w-full h-2.5 rounded-full cursor-pointer appearance-none"
+              />
+              <div className="flex justify-between text-[10px] text-on-surface-variant">
+                <span>0</span>
+                <span>25 (Mínimo)</span>
+                <span>50 (Ideal)</span>
+                <span>120+</span>
+              </div>
+            </div>
+
+            {/* Cobertura */}
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-outline-variant/60">
+              <div className="flex justify-between items-center text-xs font-bold text-on-surface">
+                <span>Cobertura Estimada:</span>
+                <span className={`font-extrabold px-2 py-0.5 rounded border ${
+                  simCoverage >= 75
+                    ? 'bg-error-container text-on-error-container border-error/30'
+                    : 'bg-primary/10 text-primary border border-primary/20'
+                }`}>
+                  {simCoverage}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={simCoverage}
+                onChange={(e) => setSimCoverage(Number(e.target.value))}
+                style={{
+                  background: `linear-gradient(to right, ${simCoverage >= 75 ? '#ba1a1a' : '#006439'} 0%, ${simCoverage >= 75 ? '#ba1a1a' : '#006439'} ${simCoverage}%, #becabe ${simCoverage}%, #becabe 100%)`,
+                }}
+                className="w-full h-2.5 rounded-full cursor-pointer appearance-none"
+              />
+              <div className="flex justify-between text-[10px] text-on-surface-variant">
+                <span>0%</span>
+                <span>20% (Ideal)</span>
+                <span>50%</span>
+                <span className="text-error font-bold">75%+ (Escorrimento)</span>
+              </div>
+            </div>
+          </form>
+
+          {/* Diagnostic Result Card */}
+          {(() => {
+            const target = TARGET_RECOMMENDATIONS[selectedTarget];
+            const isRunoff = simCoverage >= 75;
+            const isDensityGood = simDensity >= target.minDensity;
+            const isDensityAdequateGeneral = simDensity >= 50;
+            const isDensityIntermediate = simDensity >= 25 && simDensity < 50;
+
+            const generalClass = isRunoff
+              ? 'bg-rose-500/10 border-rose-500/30'
+              : isDensityGood
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : isDensityIntermediate
+              ? 'bg-amber-500/10 border-amber-500/30'
+              : 'bg-rose-500/10 border-rose-500/30';
+
+            return (
+              <div className={`rounded-2xl p-5 border flex flex-col gap-3 shadow-sm ${generalClass}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {isRunoff ? (
+                      <AlertTriangle className="w-6 h-6 text-error" />
+                    ) : isDensityGood ? (
+                      <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    )}
+                    <h2 className="text-sm font-extrabold text-on-surface">
+                      {isRunoff
+                        ? 'Excesso / Risco de Escorrimento'
+                        : isDensityGood
+                        ? 'Cobertura e Densidade Ideais'
+                        : isDensityIntermediate
+                        ? 'Densidade Intermediária'
+                        : 'Densidade Insuficiente'}
+                    </h2>
+                  </div>
+
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    isDensityAdequateGeneral
+                      ? 'bg-primary text-on-primary'
+                      : isDensityIntermediate
+                      ? 'bg-amber-500/20 text-amber-800 dark:text-amber-200'
+                      : 'bg-error-container text-on-error-container'
+                  }`}>
+                    {isDensityAdequateGeneral ? 'Bom (≥50)' : isDensityIntermediate ? 'Intermediário (25-50)' : 'Insuficiente (<25)'}
+                  </span>
+                </div>
+
+                <p className="text-xs text-on-surface leading-relaxed font-medium">
+                  {isRunoff
+                    ? `A cobertura de ${simCoverage}% ultrapassou o limite seguro. Gotas adicionais não aumentam a eficácia e escorrem da folha para o solo.`
+                    : isDensityGood
+                    ? `Atinge o padrão de ${target.minDensity} a ${target.maxDensity} gotas/cm² recomendado para ${target.label.toLowerCase()}.`
+                    : `Para ${target.label.toLowerCase()}, a densidade recomendada é de ${target.minDensity} a ${target.maxDensity} gotas/cm² (atual: ${simDensity} gotas/cm²).`}
+                </p>
+
+                <div className="pt-2 border-t border-outline-variant/60 text-xs text-on-surface-variant flex flex-col gap-1">
+                  <strong className="text-on-surface">Recomendação Agronômica:</strong>
+                  <span>
+                    {isRunoff
+                      ? 'Reduza a taxa de aplicação (L/ha) ou aumente a velocidade do pulverizador para evitar desperdício de calda.'
+                      : isDensityGood
+                      ? 'Parâmetros calibrados e adequados para a operação. Monitore as condições de vento e temperatura.'
+                      : 'Considere aumentar a pressão de pulverização, utilizar pontas de menor vazão com mais bicos por barra ou aumentar ligeiramente a taxa de aplicação.'}
+                  </span>
+                </div>
+              </div>
             );
           })()}
         </div>
