@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="mapGrad" x1="12" y1="12" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#f0fdf4" />
+      <stop offset="100%" stop-color="#dcfce7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base Card -->
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#0f2438" fill-opacity="0.04" stroke="#006439" stroke-width="1.5" stroke-opacity="0.3" />
+
+  <!-- Folded Field Map Surface -->
+  <path d="M12 16 L24 12 L40 18 L52 14 V48 L40 52 L24 46 L12 50 Z" fill="url(#mapGrad)" stroke="#006439" stroke-width="1.5" stroke-linejoin="round" />
+
+  <!-- Map Fold Lines -->
+  <path d="M24 12v34M40 18v34" stroke="#006439" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="2 2" />
+
+  <!-- Field Contour Boundary (Talhão Polygon) -->
+  <polygon points="18,24 34,22 46,30 38,44 20,40" fill="#006439" fill-opacity="0.15" stroke="#006439" stroke-width="1.5" stroke-dasharray="3 2" />
+
+  <!-- GPS Pin (Sample Location) -->
+  <g transform="translate(32, 28)">
+    <path d="M0 -14 C-5 -14 -8 -10 -8 -5 C-8 2 0 10 0 10 C0 10 8 2 8 -5 C8 -10 5 -14 0 -14 Z" fill="#ba1a1a" stroke="#ffffff" stroke-width="1.5" />
+    <circle cx="0" cy="-5" r="2.5" fill="#ffffff" />
+  </g>
+
+  <!-- Satellite Signal Arcs -->
+  <path d="M46 10a8 8 0 0 1 8 8" stroke="#00E5FF" stroke-width="2" stroke-linecap="round" />
+  <path d="M49 7a12 12 0 0 1 12 12" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2" />
+</svg>

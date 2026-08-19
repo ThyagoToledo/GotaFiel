@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="leafGrad" x1="16" y1="16" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#006439" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base Card -->
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#006439" fill-opacity="0.04" stroke="#10b981" stroke-width="1.5" stroke-opacity="0.3" />
+
+  <!-- Plant Stem / Foliar Structure -->
+  <path d="M32 54V24" stroke="#006439" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Upper Leaf Stratum (Topo) -->
+  <path d="M32 24c-8-12 4-16 12-8s-4 16-12 8z" fill="url(#leafGrad)" stroke="#006439" stroke-width="1.2" />
+  <path d="M32 24c8-12-4-16-12-8s4 16 12 8z" fill="url(#leafGrad)" stroke="#006439" stroke-width="1.2" />
+
+  <!-- Lower Leaf Stratum (Baixeiro) -->
+  <path d="M32 38c-12-8 2-16 14-6s-2 16-14 6z" fill="#006439" stroke="#004d2c" stroke-width="1.2" />
+  <path d="M32 38c12-8-2-16-14-6s2 16 14 6z" fill="#006439" stroke="#004d2c" stroke-width="1.2" />
+
+  <!-- Canopy Penetration Droplet Cascade -->
+  <circle cx="32" cy="12" r="2" fill="#00E5FF" />
+  <circle cx="28" cy="28" r="1.5" fill="#00E5FF" />
+  <circle cx="36" cy="32" r="1.8" fill="#00E5FF" />
+  <circle cx="32" cy="46" r="2.2" fill="#3D2FD6" />
+  <circle cx="26" cy="50" r="1.2" fill="#3D2FD6" />
+
+  <!-- 3-Tier Layer Brackets -->
+  <path d="M50 18h4M50 32h4M50 46h4" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+  <path d="M54 18v28" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="2 2" />
+</svg>

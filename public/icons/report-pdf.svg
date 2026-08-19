@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="docGrad" x1="16" y1="10" x2="48" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f8fafc" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base Card -->
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#ba1a1a" fill-opacity="0.04" stroke="#ba1a1a" stroke-width="1.5" stroke-opacity="0.3" />
+
+  <!-- Technical Sheet / Document Body -->
+  <path d="M18 10h20l12 12v30a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="url(#docGrad)" stroke="#006439" stroke-width="1.5" stroke-linejoin="round" />
+
+  <!-- Folded Corner Sheet -->
+  <path d="M38 10v12h12" fill="#e2e8f0" stroke="#006439" stroke-width="1.5" stroke-linejoin="round" />
+
+  <!-- Analytical Chart on Report -->
+  <path d="M22 36l6-8 6 5 8-11" stroke="#006439" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="28" cy="28" r="1.5" fill="#f59e0b" />
+  <circle cx="34" cy="33" r="1.5" fill="#f59e0b" />
+  <circle cx="42" cy="22" r="1.5" fill="#f59e0b" />
+
+  <!-- Data Table Lines -->
+  <line x1="22" y1="42" x2="42" y2="42" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="22" y1="47" x2="36" y2="47" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- PDF Badge -->
+  <rect x="36" y="44" width="16" height="8" rx="2" fill="#ba1a1a" />
+  <text x="44" y="50" font-family="sans-serif" font-size="6" font-weight="900" fill="#ffffff" text-anchor="middle">PDF</text>
+</svg>

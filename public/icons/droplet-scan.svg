@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="dropGrad" x1="16" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="50%" stop-color="#3D2FD6" />
+      <stop offset="100%" stop-color="#006439" />
+    </linearGradient>
+    <linearGradient id="gridGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#006439" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#006439" stop-opacity="0.05" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base Card -->
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#gridGrad)" stroke="#006439" stroke-width="1.5" stroke-opacity="0.3" />
+
+  <!-- Subpixel Calibration Grid -->
+  <path d="M12 20h40M12 32h40M12 44h40M20 12v40M32 12v40M44 12v40" stroke="#006439" stroke-width="0.75" stroke-dasharray="2 2" stroke-opacity="0.4" />
+
+  <!-- Homography Corner Markers -->
+  <path d="M10 16v-6h6M54 16v-6h-6M10 48v6h6M54 48v6h-6" stroke="#00E5FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Main Droplet Core -->
+  <path d="M32 14c0 0-14 16-14 24.5a14 14 0 0 0 28 0C46 30 32 14 32 14z" fill="url(#dropGrad)" />
+  
+  <!-- Droplet Specular Reflection -->
+  <ellipse cx="27" cy="33" rx="3.5" ry="6" transform="rotate(-30 27 33)" fill="#ffffff" fill-opacity="0.6" />
+  <circle cx="37" cy="41" r="1.5" fill="#ffffff" fill-opacity="0.5" />
+
+  <!-- Crosshair Focus Reticle -->
+  <circle cx="32" cy="36" r="16" stroke="#00E5FF" stroke-width="1" stroke-dasharray="3 3" stroke-opacity="0.8" />
+  <path d="M32 16v4M32 52v4M12 36h4M48 36h4" stroke="#00E5FF" stroke-width="1.5" stroke-linecap="round" />
+</svg>
