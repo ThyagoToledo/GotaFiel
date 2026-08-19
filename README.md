@@ -1,176 +1,214 @@
 <p align="center">
-  <img src="public/banner.jpg" alt="GotaFiel Banner" width="600px" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);" />
+  <img src="public/banner.jpg" alt="GotaFiel Banner" width="650px" style="border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);" />
 </p>
 
 <p align="center">
-  <img src="public/icon.svg" alt="GotaFiel Icon" width="96px" height="96px" style="border-radius: 24px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);" />
+  <img src="public/icon.svg" alt="GotaFiel Icon" width="88px" height="88px" style="border-radius: 22px; box-shadow: 0 6px 20px rgba(0, 100, 57, 0.3);" />
 </p>
 
-<h1 align="center">GotaFiel</h1>
+<h1 align="center" style="font-weight: 800; letter-spacing: -0.5px;">GotaFiel</h1>
+
+<p align="center">
+  <b>Plataforma de Visão Computacional, Metrologia e Diagnóstico de Pulverização Agrícola</b>
+</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/Vite-6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
   <img src="https://img.shields.io/badge/Neon-PostgreSQL-00E599?style=for-the-badge&logo=postgresql&logoColor=white" alt="Neon PostgreSQL" />
-  <img src="https://img.shields.io/badge/PWA-Offline_Ready-006439?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA" />
-  <img src="https://img.shields.io/badge/Precisao-%E2%89%A5_95%25-006439?style=for-the-badge" alt="Precisao" />
+  <img src="https://img.shields.io/badge/PWA-100%25_Offline-006439?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA Offline" />
+  <img src="https://img.shields.io/badge/Precisao-%E2%89%A5_95%25-f59e0b?style=for-the-badge" alt="Precisao" />
 </p>
 
 <p align="center">
-  GotaFiel é uma plataforma de visão computacional e metrologia agrícola para análise de cartões hidrossensíveis de pulverização. O software processa imagens de deposição de defensivos, quantifica densidade de gotas, cobertura percentual e diâmetros volumétricos (DV0,1, DV0,5/DMV, DV0,9, Span), além de oferecer seleção de pontas ISO 10625, ordem de mistura WALES, monitoramento termodinâmico de Delta T e suporte a operação 100% offline em campo via Progressive Web App (PWA).
+  O <b>GotaFiel</b> é uma solução científica e operacional para calibração, inspeção e análise metrológica de cartões hidrossensíveis em campo. Processa fotografias de deposição foliar em tempo real com retificação geométrica subpixel, quantifica densidade de gotas, cobertura percentual e parâmetros volumétricos (DV0,1, DV0,5/DMV, DV0,9, Span), além de integrar dimensionamento de bicos ISO 10625, ordem de adição WALES, psicrometria de Delta T e operação 100% offline via Progressive Web App (PWA).
 </p>
 
 ---
 
-## Índice
+## Índice de Navegação
 
-* [Visão Geral](#visao-geral)
-* [Componentes Principais](#componentes-principais)
-* [Validação de Testes](#validacao-de-testes)
-* [Tecnologias Utilizadas](#tecnologias-utilizadas)
-* [Documentação Completa](#documentacao-completa)
-* [Execução Local](#execucao-local)
-* [Equipe & Créditos](#equipe--creditos)
-* [Licença](#licenca)
+* [Visão Geral & Metodologia](#visao-geral)
+* [Recursos e Módulos do Sistema](#recursos-e-modulos)
+* [Validação Científica & Benchmarks](#validacao-de-testes)
+* [Tecnologias & Engenharia](#tecnologias-utilizadas)
+* [Instalação e Execução Local](#execucao-local)
+* [Equipe Técnica & Créditos](#equipe--creditos)
+* [Licença & Conformidade](#licenca)
 
 ---
 
 <a name="visao-geral"></a>
-## Visão Geral
+## Visão Geral & Metodologia
 
-O **GotaFiel** transforma fotografias de cartões hidrossensíveis capturadas por smartphones ou câmeras em diagnósticos quantitativos de pulverização. Construído sob metodologia Clean-Room, todo o pipeline de processamento foi desenvolvido em TypeScript puro com execução em Web Workers, permitindo realizar medições com precisão milimétrica mesmo sem sinal de internet na lavoura.
+O **GotaFiel** transforma imagens de cartões hidrossensíveis coletadas por smartphones ou câmeras digitais em laudos quantitativos com rigor metrológico. Desenvolvido sob metodologia *Clean-Room*, todo o processamento espectral e morfológico roda em **TypeScript puro** desacoplado na thread do navegador através de **Web Workers**, garantindo resposta instantânea e autonomia total no campo sem depender de conectividade com a internet.
 
 ---
 
-<a name="componentes-principais"></a>
-## Componentes Principais
+<a name="recursos-e-modulos"></a>
+## Recursos e Módulos do Sistema
 
-### Visão Computacional & Motores de Segmentação
-* **Motor Híbrido Adaptativo:** Fusão espectral azul-amarelo e luminância, normalização de iluminação para compensação de sombras e separação morfológica de gotas aglomeradas por transformada de distância.
-* **Motor Cromático:** Binarização espectral direta pelo diferencial cromático com limiarização automática de Otsu.
-* **Motor Monocromático:** Binarização em escala de cinza por densidade óptica e suavização espacial.
-* **Calibração Física:** Retificação geométrica por homografia subpixel e cálculo de área física por pixel (mm²/pixel).
-* **Assistente de Foco em Tempo Real:** Análise instantânea de nitidez via variância do Laplaciano no visor da câmera.
-
-### Ferramentas de Campo & Diagnóstico Agronômico
-* **Seletor de Pontas ISO 10625:** Dimensionamento hidráulico de bicos (01 Laranja a 08 Branca) com cálculo de pressão exata em bar e PSI.
-* **Guia de Ordem de Tanque WALES & Jar Test:** Sequência agronômica padronizada de adição de produtos e cronômetro de 15 minutos para teste de compatibilidade.
-* **Aferição de Bicos na Barra:** Cronômetro de coleta de 60 segundos com sinal sonoro, cálculo de desvio relativo/absoluto e gráficos de desgaste ou obstrução.
-* **Comparador de Dossel & Penetração Foliar:** Avaliação simultânea de topo, médio e baixeiro com diagnóstico de cobertura.
-* **Mapeamento Geoespacial Foliar:** Visualização de amostras por talhão em mapa interativo OpenStreetMap com geolocalização GPS.
-* **Clima & Risco de Deriva (Delta T):** Avaliação termodinâmica de bulbo úmido (Stull, 2011) para prevenção de evaporação e deriva.
+<table width="100%" style="border-collapse: collapse;">
+  <tr>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/droplet-scan.svg" width="56px" alt="Visão Computacional" /></p>
+      <h3 align="center">Visão Computacional & Retificação</h3>
+      <ul>
+        <li><b>Motor Híbrido Adaptativo:</b> Fusão de diferencial cromático (B - Y) com mapa de luminância e separação morfológica via transformada de distância.</li>
+        <li><b>Motor Cromático & Monocromático:</b> Binarização espectral Otsu e densitometria óptica direta.</li>
+        <li><b>Homografia Subpixel:</b> Retificação geométrica precisa com cálculo exato de mm²/pixel.</li>
+        <li><b>Foco em Tempo Real:</b> Avaliação de nitidez no visor via variância do Laplaciano.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/nozzle-iso.svg" width="56px" alt="Seletor ISO" /></p>
+      <h3 align="center">Seletor de Pontas ISO 10625 & Aferição</h3>
+      <ul>
+        <li><b>Dimensionamento de Bicos:</b> Cálculo exato de vazão (L/min) e pressão de trabalho (bar/PSI) para pontas codificadas de 01 Laranja a 08 Branca.</li>
+        <li><b>Diagnóstico na Barra:</b> Cronômetro integrado de 60s com alertas sonoros para identificar bicos gastos ou entupidos (desvio > 10%).</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/tank-wales.svg" width="56px" alt="Ordem WALES" /></p>
+      <h3 align="center">Guia de Mistura de Tanque WALES</h3>
+      <ul>
+        <li><b>Sequência Agronômica:</b> Ordem padronizada de adição no tanque (Água → WP/WG/DF → SC/FL → EC → SL/Solúveis → Adjuvantes).</li>
+        <li><b>Teste do Frasco (Jar Test):</b> Cronômetro guiado de 15 minutos com checklist de precipitados, grumos e incompatibilidade física.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/climate-deltat.svg" width="56px" alt="Delta T Clima" /></p>
+      <h3 align="center">Monitoramento Termodinâmico (Delta T)</h3>
+      <ul>
+        <li><b>Psicrometria (Stull, 2011):</b> Cálculo preciso de temperatura de bulbo úmido e taxa de evaporação foliar.</li>
+        <li><b>Janela de Pulverização:</b> Identificação visual de risco de deriva (&Delta;T &lt; 2&deg;C) e perda por evaporação acelerada (&Delta;T &gt; 8&deg;C).</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/canopy-leaf.svg" width="56px" alt="Dossel Vegetal" /></p>
+      <h3 align="center">Comparador de Dossel & Penetração</h3>
+      <ul>
+        <li><b>Análise Estratificada:</b> Avaliação simultânea de cartões alocados no Topo, Médio e Baixeiro da cultura.</li>
+        <li><b>Uniformidade de Deposição:</b> Diagnóstico do gradiente de penetração para controle de pragas e doenças no terço inferior.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/geo-map.svg" width="56px" alt="Geo Map" /></p>
+      <h3 align="center">Mapeamento Geoespacial Foliar</h3>
+      <ul>
+        <li><b>GPS de Alta Precisão & EXIF:</b> Leitura de coordenadas por satélite ou extração automática de metadados de fotos.</li>
+        <li><b>Visualização por Talhão:</b> Mapa interativo com dispersão geoespacial de cada amostra coletada.</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/offline-pwa.svg" width="56px" alt="PWA Offline" /></p>
+      <h3 align="center">Operação Offline & Nuvem Segura</h3>
+      <ul>
+        <li><b>PWA Instalável:</b> Funciona 100% desconectado na lavoura via Service Workers e Cache Storage.</li>
+        <li><b>Sincronização Neon Cloud:</b> Persistência resiliente de perfis, talhões e histórico analítico em PostgreSQL serverless.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top" style="padding: 16px; border: 1px solid rgba(0, 100, 57, 0.15); border-radius: 12px;">
+      <p align="center"><img src="public/icons/report-pdf.svg" width="56px" alt="Relatório PDF" /></p>
+      <h3 align="center">Laudos Técnicos em PDF & Exportação CSV</h3>
+      <ul>
+        <li><b>Relatório Técnico Formatado:</b> Emissão instantânea de PDF profissional com histograma, imagem recortada, métricas e selo técnico.</li>
+        <li><b>Exportação em Planilha:</b> Geração de CSV compatível com Excel e softwares de estatística agronômica.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 ---
 
 <a name="validacao-de-testes"></a>
-## Validação de Testes
+## Validação Científica & Benchmarks
 
-O software é validado continuamente por uma suíte automatizada de testes e benchmarks de visão computacional contra padrões de referência:
+<p align="center">
+  <img src="public/icons/accuracy-badge.svg" width="72px" alt="Acurácia 95%+" />
+</p>
+
+O pipeline de segmentação do **GotaFiel** é auditado continuamente por uma suíte de testes sintéticos e amostras de bancada com gabaritos metrológicos conhecidos:
 
 | Cenário de Teste | Precisão | Recall | F1-Score | IoU (Jaccard) | Erro Contagem | Acurácia DMV | Status |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **1. Espectro Fino (Fungicida / Inseticida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 98,64% | Aprovado |
-| **2. Espectro Médio (Fungicida Sistêmico)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 100,00% | Aprovado |
-| **3. Espectro Grosso Anti-Deriva (Herbicida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,98% | Aprovado |
-| **4. Aglomerados com Separação Morfológica** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 97,67% | Aprovado |
-| **5. Gradiente de Sombra & Iluminação (45%)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,49% | Aprovado |
-| **6. Rejeição de Fibras e Poeira** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,86% | Aprovado |
-| **Métrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **≥ 97,6%** | **Meta Atingida (≥ 95%)** |
+| **1. Espectro Fino (Fungicida / Inseticida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 98,64% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **2. Espectro Médio (Fungicida Sistêmico)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 100,00% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **3. Espectro Grosso Anti-Deriva (Herbicida)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,98% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **4. Aglomerados com Separação Morfológica** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 97,67% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **5. Gradiente de Sombra & Iluminação (45%)** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,49% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **6. Rejeição de Fibras e Poeira** | 100,00% | 100,00% | 100,00% | 100,00% | 0,00% | 99,86% | <img src="public/icons/status-pass.svg" width="16" style="vertical-align:middle" /> Aprovado |
+| **Métrica Agregada Global** | **100,00%** | **100,00%** | **100,00%** | **100,00%** | **0,00%** | **&ge; 97,6%** | <img src="public/icons/accuracy-badge.svg" width="18" style="vertical-align:middle" /> **Meta Atingida (&ge; 95%)** |
 
 ---
 
 <a name="tecnologias-utilizadas"></a>
-## Tecnologias Utilizadas
+## Tecnologias & Engenharia
 
-| Camada | Tecnologias |
+| Camada | Stack Tecnológica |
 |---|---|
-| **Frontend** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons |
-| **Computação Visual** | HTML5 Canvas, Web Workers, Transformada de Distância, Homografia Subpixel |
-| **Backend & Banco** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
-| **Mapeamento & GPS** | Leaflet, OpenStreetMap Tile Layer |
-| **PWA & Offline** | Service Workers, Cache Storage API, Web App Manifest |
-| **Relatórios & Exportação** | jsPDF, HTML2Canvas, gerador CSV estruturado |
-| **Testes & Qualidade** | Vitest (134 testes), TypeScript Strict Mode, TSX |
-
----
-
-<a name="documentacao-completa"></a>
-## Documentação Completa
-
-Para aprofundamento técnico, consulte os documentos disponíveis na pasta [`docs/`](docs/):
-
-* [**Arquitetura Técnica & Metodologia Científica**](docs/ARQUITETURA-E-METODOLOGIA.md)
-* [**Manual do Usuário & Guia de Campo**](docs/MANUAL-DO-USUARIO.md)
-* [**Estudo Científico e Comparação de Softwares**](docs/ESTUDO-CIENTIFICO-E-COMPARACAO-SOFTWARE.md)
-* [**Plano de Validação Científica (Meta ≥ 95%)**](docs/PLANO-VALIDACAO-CIENTIFICA.md)
-* [**Protocolo de Coleta e Validação em Campo**](docs/PROTOCOLO-COLETA-VALIDACAO.md)
-* [**Resultados dos Testes do Algoritmo**](docs/RESULTADOS-TESTES-ALGORITMO.md)
-* [**Auditoria de Segurança & Rate Limiting**](docs/SECURITY-AUDIT.md)
-* [**Autenticação e Persistência Neon**](docs/NEON-AUTH.md)
-* [**Roadmap & Sugestões de Novas Funcionalidades**](docs/ROADMAP-E-NOVAS-FUNCIONALIDADES.md)
+| **Interface & PWA** | React 19, TypeScript 5.8, Vite 6, TailwindCSS v4, Lucide Icons |
+| **Computação Visual & Core** | HTML5 Canvas, Web Workers, Transformada de Distância de Bofors, Homografia Subpixel |
+| **Backend & Banco de Dados** | Vercel Serverless Functions, Neon Serverless PostgreSQL (`@neondatabase/serverless`) |
+| **Mapeamento & Geoespacial** | Leaflet, OpenStreetMap Tile Layer, Leitor EXIF GPS puro |
+| **Relatórios Técnicos** | jsPDF, HTML2Canvas, Exportador Tabular CSV UTF-8 |
+| **Qualidade & Validação** | Vitest (136 testes automatizados), TypeScript Strict Typecheck |
 
 ---
 
 <a name="execucao-local"></a>
-## Execução Local
+## Instalação e Execução Local
 
-1. Clone o repositório:
 ```bash
+# 1. Clonar o repositório
 git clone https://github.com/ThyagoToledo/GotaFiel.git
 cd GotaFiel
-```
 
-2. Instale as dependências:
-```bash
+# 2. Instalar as dependências do ecossistema
 npm install
-```
 
-3. Inicie o servidor de desenvolvimento:
-```bash
+# 3. Executar o servidor de desenvolvimento
 npm run dev
-```
 
-4. Execute os testes e a validação de precisão:
-```bash
-# Execução dos 134 testes unitários automatizados
+# 4. Executar os testes automatizados e benchmark científico
 npm test
-
-# Execução do benchmark científico (95%+)
 npm run test:scientific
-
-# Verificação estrita de tipos TypeScript
 npm run lint
-```
 
-5. Gere o pacote de produção:
-```bash
+# 5. Gerar o pacote otimizado para produção
 npm run build
 ```
 
 ---
 
 <a name="equipe--creditos"></a>
-## Equipe & Créditos
+## Equipe Técnica & Créditos
 
 <div align="center">
   <table style="border: none; border-collapse: collapse; margin: auto;">
     <tr>
-      <td align="center" style="padding: 16px;">
+      <td align="center" style="padding: 18px;">
         <a href="https://github.com/ThyagoToledo">
-          <img src="https://github.com/ThyagoToledo.png" width="100px" alt="Thyago Toledo" style="border-radius: 50%; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);" />
+          <img src="https://github.com/ThyagoToledo.png" width="105px" alt="Thyago Toledo" style="border-radius: 50%; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);" />
         </a>
-        <br />
+        <br /><br />
         <b>Thyago Toledo</b>
         <br />
         <sub>Engenharia de Software & Visão Computacional</sub>
-        <br />
+        <br /><br />
         <a href="https://github.com/ThyagoToledo">
           <img src="https://img.shields.io/badge/GitHub-ThyagoToledo-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
         </a>
       </td>
-      <td align="center" style="padding: 16px;">
-        <div style="width: 100px; height: 100px; border-radius: 50%; background: #006439; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+      <td align="center" style="padding: 18px;">
+        <div style="width: 105px; height: 105px; border-radius: 50%; background: #006439; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: bold; margin: auto; box-shadow: 0 4px 18px rgba(0, 100, 57, 0.35);">
           CA
         </div>
         <br />
@@ -178,8 +216,8 @@ npm run build
         <br />
         <sub>Engenheiro Agrônomo · Consultoria de Campo</sub>
       </td>
-      <td align="center" style="padding: 16px;">
-        <div style="width: 100px; height: 100px; border-radius: 50%; background: #0f2438; color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin: auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);">
+      <td align="center" style="padding: 18px;">
+        <div style="width: 105px; height: 105px; border-radius: 50%; background: #0f2438; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: bold; margin: auto; box-shadow: 0 4px 18px rgba(15, 36, 56, 0.35);">
           MF
         </div>
         <br />
@@ -194,6 +232,6 @@ npm run build
 ---
 
 <a name="licenca"></a>
-## Licença
+## Licença & Conformidade
 
-Projeto desenvolvido com arquitetura proprietária e independente sob metodologia Clean-Room. Todos os direitos reservados.
+Projeto desenvolvido com arquitetura proprietária e independente sob metodologia *Clean-Room*. Todos os direitos reservados.
