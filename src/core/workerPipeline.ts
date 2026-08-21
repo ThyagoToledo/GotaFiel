@@ -33,9 +33,69 @@ export interface PipelineResult {
 /**
  * Loads an image URL into HTMLImageElement and extracts its raw RGBA pixels.
  */
-export function loadImagePixels(
+export async function loadImagePixels(
   imageUrl: string
 ): Promise<{ pixels: Uint8ClampedArray; width: number; height: number; imgElement: HTMLImageElement }> {
+  // Para URLs em Base64 ou Blob locais, carrega diretamente via Image
+  if (imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context unavailable'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, width, height);
+        resolve({ pixels: imgData.data, width, height, imgElement: img });
+      };
+      img.onerror = () => reject(new Error('Falha ao carregar imagem para processamento.'));
+      img.src = imageUrl;
+    });
+  }
+
+  // Para endpoints relativos (ex: /api/image) ou URLs autenticadas, busca como blob com credenciais de sessão
+  try {
+    const response = await fetch(imageUrl, { credentials: 'same-origin' });
+    if (response.ok) {
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const width = img.naturalWidth || img.width;
+          const height = img.naturalHeight || img.height;
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Canvas context unavailable'));
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          const imgData = ctx.getImageData(0, 0, width, height);
+          URL.revokeObjectURL(objectUrl);
+          resolve({ pixels: imgData.data, width, height, imgElement: img });
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Falha ao decodificar imagem carregada.'));
+        };
+        img.src = objectUrl;
+      });
+    }
+  } catch {
+    // Fallback padrão se fetch falhar (ex: ambientes sem window.fetch)
+  }
+
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
