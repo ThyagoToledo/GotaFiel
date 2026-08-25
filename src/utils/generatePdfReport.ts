@@ -1,16 +1,19 @@
 import jsPDF from 'jspdf';
-import { AnalysisData, DropletItem } from '../types';
+import { AnalysisData } from '../types';
 
 /**
- * Gera imagem de overlay com os marcadores de gotas sobre o cartão usando um canvas em memória.
+ * Gera imagem de overlay com os marcadores de gotas sobre o cartão usando um canvas em memória,
+ * preservando a proporção exata e resolução natural da imagem.
  */
 export async function getCardImagesForPdf(analysis: AnalysisData): Promise<{
   originalDataUrl: string | null;
   overlayDataUrl: string | null;
+  aspect: number;
 }> {
   const baseSrc = analysis.rectifiedImageUrl || analysis.imageUrl;
+  const fallbackAspect = (analysis.cardSizeMm.width / analysis.cardSizeMm.height) || 2.92;
   if (!baseSrc || typeof document === 'undefined') {
-    return { originalDataUrl: baseSrc || null, overlayDataUrl: null };
+    return { originalDataUrl: baseSrc || null, overlayDataUrl: null, aspect: fallbackAspect };
   }
 
   return new Promise((resolve) => {
@@ -24,14 +27,16 @@ export async function getCardImagesForPdf(analysis: AnalysisData): Promise<{
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        const aspect = width / height;
+
         if (!ctx) {
-          resolve({ originalDataUrl: baseSrc, overlayDataUrl: null });
+          resolve({ originalDataUrl: baseSrc, overlayDataUrl: null, aspect });
           return;
         }
 
         // 1. Imagem Original / Retificada
         ctx.drawImage(img, 0, 0, width, height);
-        const originalDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const originalDataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
         // 2. Imagem com Sobreposição das Gotas Detectadas
         const droplets = analysis.droplets || [];
@@ -39,7 +44,7 @@ export async function getCardImagesForPdf(analysis: AnalysisData): Promise<{
           if (d.included === false) return;
           const cx = (d.x / 100) * width;
           const cy = (d.y / 100) * height;
-          const r = Math.max(1.8, (d.sizePx || 3) / 2);
+          const r = Math.max(2.0, (d.sizePx || 3.5) / 2);
 
           ctx.beginPath();
           ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -50,14 +55,14 @@ export async function getCardImagesForPdf(analysis: AnalysisData): Promise<{
           ctx.stroke();
         });
 
-        const overlayDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        resolve({ originalDataUrl, overlayDataUrl });
+        const overlayDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        resolve({ originalDataUrl, overlayDataUrl, aspect });
       } catch {
-        resolve({ originalDataUrl: baseSrc, overlayDataUrl: null });
+        resolve({ originalDataUrl: baseSrc, overlayDataUrl: null, aspect: fallbackAspect });
       }
     };
     img.onerror = () => {
-      resolve({ originalDataUrl: baseSrc, overlayDataUrl: null });
+      resolve({ originalDataUrl: baseSrc, overlayDataUrl: null, aspect: fallbackAspect });
     };
     img.src = baseSrc;
   });
@@ -67,10 +72,10 @@ export async function getCardImagesForPdf(analysis: AnalysisData): Promise<{
  * Gera relatório técnico profissional em PDF para a análise de pulverização do cartão hidrossensível.
  *
  * Inclui:
- * - Imagens lado a lado: Cartão Original vs. Cartão com Gotas Detectadas
- * - Controle milimétrico de quebra de linhas (splitTextToSize)
- * - Proteção total contra transbordamento de texto (zero overflow nas células)
- * - Créditos para os consultores agrônomos (Carlos Alberto e Marco Antônio Moreira de Freitas)
+ * - Imagens em formato natural sem achatamento/distorção (proporção 1:1 rigorosa)
+ * - Tipografia limpa compatível com padrão PDF (sem caracteres corrompidos)
+ * - Proteção total contra transbordamento de texto
+ * - Créditos para os consultores agrônomos
  */
 export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise<void> {
   // Validação estrita contra valores inválidos (NaN/Infinity)
@@ -134,11 +139,11 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('GOTAFIEL — LAUDO TÉCNICO DE PULVERIZAÇÃO & METROLOGIA AGRÍCOLA', margin + 4, y + 7);
+  doc.text('GOTAFIEL - LAUDO TECNICO DE PULVERIZACAO E METROLOGIA AGRICOLA', margin + 4, y + 7);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
-  doc.text('Tecnologia de Aplicação · Análise Computacional de Cartão Hidrossensível · Padrão ASABE S572.1', margin + 4, y + 13.5);
+  doc.text('Tecnologia de Aplicacao - Analise Computacional de Cartao Hidrossensivel - Norma ASABE S572.1', margin + 4, y + 13.5);
 
   y += 21;
 
@@ -147,12 +152,12 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   // =========================================================================
   const metaColWidth = (contentWidth - 4) / 2; // 91 mm cada
   const dateFormatted = new Date(analysis.timestamp || Date.now()).toLocaleString('pt-BR');
-  const cardDims = `${analysis.cardColor || 'Amarelo'} (${analysis.cardSizeMm.width} × ${analysis.cardSizeMm.height} mm)`;
-  const mm2Text = analysis.mm2PerPixel ? `${analysis.mm2PerPixel.toFixed(5)} mm²/px` : 'Calibrado';
+  const cardDims = `${analysis.cardColor || 'Amarelo'} (${analysis.cardSizeMm.width} x ${analysis.cardSizeMm.height} mm)`;
+  const mm2Text = analysis.mm2PerPixel ? `${analysis.mm2PerPixel.toFixed(5)} mm2/px` : 'Calibrado';
   const resolutionText = `${quality.effectiveDpi || analysis.dpi || 300} DPI (${mm2Text})`;
 
   doc.setFontSize(7.5);
-  const rawTitle = analysis.title || 'Amostra de Cartão Hidrossensível';
+  const rawTitle = analysis.title || 'Amostra de Cartao Hidrossensivel';
   const titleLines: string[] = doc.splitTextToSize(rawTitle, metaColWidth - 28);
   const metaBoxHeight = Math.max(16, 8 + titleLines.length * 4);
 
@@ -181,24 +186,24 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   // Coluna 2: Cartão e Resolução
   const col2X = margin + metaColWidth + 2;
   doc.setFont('helvetica', 'bold');
-  doc.text('Cartão / Dimensões:', col2X + 3.5, y + 4.8);
+  doc.text('Cartao / Dimensoes:', col2X + 3.5, y + 4.8);
   doc.setFont('helvetica', 'normal');
   doc.text(cardDims, col2X + 34, y + 4.8);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Escala / Resolução:', col2X + 3.5, dateY);
+  doc.text('Escala / Resolucao:', col2X + 3.5, dateY);
   doc.setFont('helvetica', 'normal');
   doc.text(resolutionText, col2X + 34, dateY);
 
   y += metaBoxHeight + 3.5;
 
   // =========================================================================
-  // 3. IMAGENS DO CARTÃO LADO A LADO (ORIGINAL VS. GOTAS DETECTADAS)
+  // 3. IMAGENS DO CARTÃO LADO A LADO (PROPORÇÃO 100% PRESERVADA SEM ACHATAMENTO)
   // =========================================================================
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('1. IMAGENS DA ANÁLISE (CARTÃO ORIGINAL & DETECÇÃO DE GOTAS)', margin, y);
+  doc.text('1. IMAGENS DA ANALISE (CARTAO ORIGINAL E DETECCAO DE GOTAS)', margin, y);
   doc.setLineWidth(0.3);
   doc.setDrawColor(0, 100, 57);
   doc.line(margin, y + 1.2, margin + contentWidth, y + 1.2);
@@ -206,24 +211,40 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   y += 3.5;
 
   const cardImgColWidth = (contentWidth - 4) / 2; // 91 mm
-  const cardAspect = analysis.cardSizeMm.width / analysis.cardSizeMm.height || 2.92;
-  const imgDisplayWidth = 85;
-  const imgDisplayHeight = Math.min(30, Math.max(18, imgDisplayWidth / cardAspect));
-  const cardBoxHeight = imgDisplayHeight + 11;
+  const cardBoxHeight = 36; // 36 mm fixo e simétrico
+  const maxImgW = 85; // mm
+  const maxImgH = 24; // mm
 
-  // Carrega as imagens para inserção
+  // Carrega as imagens para inserção com aspecto real
   let imgOriginal: string | null = null;
   let imgOverlay: string | null = null;
+  let imgAspect = (analysis.cardSizeMm.width / analysis.cardSizeMm.height) || 2.92;
 
   try {
     const loadedImages = await getCardImagesForPdf(analysis);
     imgOriginal = loadedImages.originalDataUrl;
     imgOverlay = loadedImages.overlayDataUrl;
+    if (loadedImages.aspect && Number.isFinite(loadedImages.aspect)) {
+      imgAspect = loadedImages.aspect;
+    }
   } catch {
     imgOriginal = analysis.rectifiedImageUrl || analysis.imageUrl || null;
   }
 
-  // Box 1: Cartão Original / Retificado
+  // Cálculo milimétrico de enquadramento proporcional (Zero distorção / Zero achatamento)
+  let renderW = maxImgW;
+  let renderH = renderW / imgAspect;
+  if (renderH > maxImgH) {
+    renderH = maxImgH;
+    renderW = renderH * imgAspect;
+  }
+
+  const offsetX1 = margin + 3 + (maxImgW - renderW) / 2;
+  const col2ImgX = margin + cardImgColWidth + 4;
+  const offsetX2 = col2ImgX + 3 + (maxImgW - renderW) / 2;
+  const offsetY = y + 5.2 + (maxImgH - renderH) / 2;
+
+  // Box 1: Cartão Original
   doc.setFillColor(252, 253, 252);
   doc.rect(margin, y, cardImgColWidth, cardBoxHeight, 'F');
   doc.setDrawColor(200, 220, 205);
@@ -233,34 +254,27 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 100, 57);
-  doc.text('Cartão Hidrossensível (Original)', margin + 3, y + 4);
+  doc.text('Cartao Hidrossensivel (Original)', margin + 3, y + 4);
 
   if (imgOriginal && typeof doc.addImage === 'function') {
     try {
       const format = imgOriginal.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(imgOriginal, format, margin + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight);
+      doc.addImage(imgOriginal, format, offsetX1, offsetY, renderW, renderH);
     } catch {
       doc.setFillColor(235, 235, 235);
-      doc.rect(margin + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight, 'F');
+      doc.rect(offsetX1, offsetY, renderW, renderH, 'F');
       doc.setFontSize(6.5);
       doc.setTextColor(120, 120, 120);
-      doc.text('Imagem do cartão registrada', margin + 25, y + 5.5 + imgDisplayHeight / 2);
+      doc.text('Imagem registrada', offsetX1 + 10, offsetY + renderH / 2);
     }
-  } else {
-    doc.setFillColor(235, 235, 235);
-    doc.rect(margin + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight, 'F');
-    doc.setFontSize(6.5);
-    doc.setTextColor(120, 120, 120);
-    doc.text('Imagem do cartão registrada', margin + 25, y + 5.5 + imgDisplayHeight / 2);
   }
 
   doc.setFontSize(5.8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text(`Área útil recortada: ${analysis.cardSizeMm.width} × ${analysis.cardSizeMm.height} mm`, margin + 3, y + cardBoxHeight - 1.8);
+  doc.text(`Area util: ${analysis.cardSizeMm.width} x ${analysis.cardSizeMm.height} mm`, margin + 3, y + cardBoxHeight - 1.8);
 
   // Box 2: Cartão com Gotas Mapeadas
-  const col2ImgX = margin + cardImgColWidth + 4;
   doc.setFillColor(252, 253, 252);
   doc.rect(col2ImgX, y, cardImgColWidth, cardBoxHeight, 'F');
   doc.setDrawColor(200, 220, 205);
@@ -276,26 +290,20 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   if (displayOverlay && typeof doc.addImage === 'function') {
     try {
       const format = displayOverlay.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(displayOverlay, format, col2ImgX + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight);
+      doc.addImage(displayOverlay, format, offsetX2, offsetY, renderW, renderH);
     } catch {
       doc.setFillColor(235, 235, 235);
-      doc.rect(col2ImgX + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight, 'F');
+      doc.rect(offsetX2, offsetY, renderW, renderH, 'F');
       doc.setFontSize(6.5);
       doc.setTextColor(120, 120, 120);
-      doc.text('Mapeamento de gotas registrado', col2ImgX + 25, y + 5.5 + imgDisplayHeight / 2);
+      doc.text('Gotas registradas', offsetX2 + 10, offsetY + renderH / 2);
     }
-  } else {
-    doc.setFillColor(235, 235, 235);
-    doc.rect(col2ImgX + 3, y + 5.5, imgDisplayWidth, imgDisplayHeight, 'F');
-    doc.setFontSize(6.5);
-    doc.setTextColor(120, 120, 120);
-    doc.text('Mapeamento de gotas registrado', col2ImgX + 25, y + 5.5 + imgDisplayHeight / 2);
   }
 
   doc.setFontSize(5.8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text(`${analysis.totalDroplets} gotas · ${analysis.density} gotas/cm² · ${analysis.coveragePercent}% cobertura`, col2ImgX + 3, y + cardBoxHeight - 1.8);
+  doc.text(`${analysis.totalDroplets} gotas - ${analysis.density} gotas/cm2 - ${analysis.coveragePercent}% cob.`, col2ImgX + 3, y + cardBoxHeight - 1.8);
 
   y += cardBoxHeight + 3.5;
 
@@ -305,7 +313,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('2. MEDIÇÕES PRINCIPAIS DE DEPOSIÇÃO', margin, y);
+  doc.text('2. MEDICOES PRINCIPAIS DE DEPOSICAO', margin, y);
   doc.setLineWidth(0.3);
   doc.setDrawColor(0, 100, 57);
   doc.line(margin, y + 1.2, margin + contentWidth, y + 1.2);
@@ -331,9 +339,9 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.text(`${analysis.density}`, margin + 3.5, y + 11);
   doc.setFontSize(6.5);
   doc.setTextColor(90, 90, 90);
-  doc.text('gotas/cm²', margin + 3.5 + doc.getTextWidth(`${analysis.density}`) + 2, y + 11);
+  doc.text('gotas/cm2', margin + 3.5 + doc.getTextWidth(`${analysis.density}`) + 2, y + 11);
 
-  const densityLabel = analysis.density < 25 ? 'Insuficiente (<25)' : analysis.density <= 50 ? 'Intermediária (25-50)' : 'Adequada (≥50)';
+  const densityLabel = analysis.density < 25 ? 'Insuficiente (<25)' : analysis.density <= 50 ? 'Intermediaria (25-50)' : 'Adequada (>=50)';
   doc.setFontSize(5.8);
   doc.setTextColor(0, 90, 45);
   doc.text(densityLabel, margin + 3.5, y + 15.5);
@@ -355,7 +363,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setFontSize(11);
   doc.text(`${analysis.coveragePercent}%`, c2X + 3.5, y + 11);
 
-  const covLabel = analysis.coveragePercent >= 75 ? 'Risco Escorrimento (≥75%)' : analysis.coveragePercent >= 15 ? 'Boa Cobertura (15-74%)' : 'Baixa Cobertura (<15%)';
+  const covLabel = analysis.coveragePercent >= 75 ? 'Risco Escorrimento (>=75%)' : analysis.coveragePercent >= 15 ? 'Boa Cobertura (15-74%)' : 'Baixa Cobertura (<15%)';
   doc.setFontSize(5.8);
   doc.setTextColor(analysis.coveragePercent >= 75 ? 180 : 0, analysis.coveragePercent >= 75 ? 20 : 90, analysis.coveragePercent >= 75 ? 20 : 45);
   doc.text(covLabel, c2X + 3.5, y + 15.5);
@@ -371,7 +379,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(80, 80, 80);
   doc.setFontSize(6.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('DISPERSÃO (SPAN)', c3X + 3.5, y + 4);
+  doc.text('DISPERSAO (SPAN)', c3X + 3.5, y + 4);
 
   doc.setTextColor(0, 100, 57);
   doc.setFontSize(11);
@@ -390,7 +398,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('3. ESPECTRO VOLUMÉTRICO E DIMENSIONAMENTO (NORMA ASABE S572.1)', margin, y);
+  doc.text('3. ESPECTRO VOLUMETRICO E DIMENSIONAMENTO (NORMA ASABE S572.1)', margin, y);
   doc.setLineWidth(0.3);
   doc.setDrawColor(0, 100, 57);
   doc.line(margin, y + 1.2, margin + contentWidth, y + 1.2);
@@ -398,13 +406,13 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   y += 3.5;
 
   const tableRows = [
-    { label: 'Diâmetro Mediano Volumétrico (DMV / DV0,5)', val: `${analysis.vmdUm} µm`, desc: '50% do volume aplicado contido em gotas menores' },
-    { label: 'Classificação ASABE (Norma S572.1)', val: `${analysis.asabeCategory}`, desc: 'Padrão internacional de classificação de pontas' },
-    { label: 'DV0,1 (10% do volume acumulado)', val: `${analysis.dv01Um} µm`, desc: 'Potencial de risco de deriva por gotas finas' },
-    { label: 'DV0,9 (90% do volume acumulado)', val: `${analysis.dv09Um} µm`, desc: 'Indicador de presença de gotas excessivamente grossas' },
-    { label: 'Total de Gotas Mapeadas', val: `${analysis.totalDroplets} impactos`, desc: 'Contagem individual de manchas registradas no cartão' },
-    { label: 'Volume Estimado Aplicado', val: `${analysis.estimatedVolumeLha} L/ha`, desc: 'Estimativa volumétrica por relação de espalhamento' },
-    { label: 'Modelo de Espalhamento (Spread Factor)', val: 'Hoffmann & Hewitt', desc: 'Equação semi-empírica Syngenta para papel hidrossensível' },
+    { label: 'Diametro Mediano Volumetrico (DMV / DV0,5)', val: `${analysis.vmdUm} um`, desc: '50% do volume aplicado contido em gotas menores' },
+    { label: 'Classificacao ASABE (Norma S572.1)', val: `${analysis.asabeCategory}`, desc: 'Padrao internacional de classificacao de pontas' },
+    { label: 'DV0,1 (10% do volume acumulado)', val: `${analysis.dv01Um} um`, desc: 'Potencial de risco de deriva por gotas finas' },
+    { label: 'DV0,9 (90% do volume acumulado)', val: `${analysis.dv09Um} um`, desc: 'Indicador de presenca de gotas excessivamente grossas' },
+    { label: 'Total de Gotas Mapeadas', val: `${analysis.totalDroplets} impactos`, desc: 'Contagem individual de manchas registradas no cartao' },
+    { label: 'Volume Estimado Aplicado', val: `${analysis.estimatedVolumeLha} L/ha`, desc: 'Estimativa volumetrica por relacao de espalhamento' },
+    { label: 'Fator de Espalhamento das Gotas', val: 'Hoffmann & Hewitt', desc: 'Equacao semi-empirica Syngenta para papel hidrossensivel' },
   ];
 
   const col1W = 68;
@@ -441,27 +449,27 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   y += tableRows.length * 5.2 + 4;
 
   // =========================================================================
-  // 6. MOTOR DE PROCESSAMENTO & PARÂMETROS TÉCNICOS
+  // 6. MOTOR DE PROCESSAMENTO & PARÂMETROS TÉCNICOS (FORMATO LIMPO E SEGURO)
   // =========================================================================
-  let engineTitle = 'Motor Híbrido Adaptativo (Padrão Recomendado)';
-  let engineDesc = 'Fusão espectral azul-amarelo + contraste de luminância contínua com binarização ótima de Otsu.';
-  let engineFeatures = 'Normalização de Luz: Ativa · Separação de Aglomerados: Ativa (Watershed) · Filtro de Fibras: Ativo (Circ. ≥ 0.20)';
+  let engineTitle = 'Motor Hibrido Adaptativo (Padrao Recomendado)';
+  let engineDesc = 'Fusao espectral azul-amarelo + contraste de luminancia continua com binarizacao otima de Otsu.';
+  let engineFeatures = 'Normalizacao de Luz: Ativa | Separacao de Aglomerados: Ativa (Watershed) | Filtro de Fibras: Ativo (Circ. >= 0.20)';
 
   if (method === 'chromatic') {
-    engineTitle = 'Motor Cromático Espectral (B - max(R, G))';
-    engineDesc = 'Isolamento espectral puro do canal azul no espaço RGB com limiar ótimo de Otsu.';
-    engineFeatures = 'Normalização: Direta · Separação de Aglomerados: Desativada · Foco: Contraste de cor direto no papel amarelo';
+    engineTitle = 'Motor Cromatico Espectral (B - max(R, G))';
+    engineDesc = 'Isolamento espectral puro do canal azul no espaco RGB com limiar otimo de Otsu.';
+    engineFeatures = 'Normalizacao: Direta | Separacao de Aglomerados: Desativada | Foco: Contraste de cor direto no papel amarelo';
   } else if (method === 'gotas-legacy') {
     const passes = analysis.meanFilterPasses ?? 1;
     const holes = analysis.fillHoles ? 'Ativo' : 'Desativado';
-    engineTitle = 'Motor Monocromático em Escala de Cinza';
-    engineDesc = 'Binarização por intensidade luminosa média (R+G+B)/3 com algoritmo de contraste de densidade óptica.';
-    engineFeatures = `Suavização 3×3: ${passes} passagem(ns) · Preenchimento de Falhas: ${holes} · Ajuste Limiar: ${analysis.sensitivity > 0 ? '+' : ''}${analysis.sensitivity}`;
+    engineTitle = 'Motor Monocromatico em Escala de Cinza';
+    engineDesc = 'Binarizacao por intensidade luminosa media (R+G+B)/3 com algoritmo de contraste de densidade optica.';
+    engineFeatures = `Suavizacao 3x3: ${passes} passagem(ns) | Preenchimento de Falhas: ${holes} | Ajuste Limiar: ${analysis.sensitivity > 0 ? '+' : ''}${analysis.sensitivity}`;
   }
 
   doc.setFontSize(6.2);
-  const engineDescLines: string[] = doc.splitTextToSize(`Método: ${engineDesc}`, contentWidth - 6);
-  const engineFeatLines: string[] = doc.splitTextToSize(`Parâmetros: ${engineFeatures}`, contentWidth - 6);
+  const engineDescLines: string[] = doc.splitTextToSize(`Metodo: ${engineDesc}`, contentWidth - 6);
+  const engineFeatLines: string[] = doc.splitTextToSize(`Parametros: ${engineFeatures}`, contentWidth - 6);
   const engineBoxHeight = 6 + engineDescLines.length * 3.2 + engineFeatLines.length * 3.2;
 
   doc.setFillColor(240, 248, 242);
@@ -473,7 +481,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
-  doc.text(`4. MOTOR DE ANÁLISE: ${engineTitle.toUpperCase()}`, margin + 3, y + 4.2);
+  doc.text(`4. MOTOR DE ANALISE: ${engineTitle.toUpperCase()}`, margin + 3, y + 4.2);
 
   doc.setTextColor(50, 50, 50);
   doc.setFont('helvetica', 'normal');
@@ -495,15 +503,15 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   // =========================================================================
   const warnings = quality.warnings.length > 0
     ? quality.warnings
-    : ['Nenhuma inconsistência óptica detectada. Leitura representativa do cartão analisado.'];
+    : ['Nenhuma inconsistencia optica detectada. Leitura representativa do cartao analisado.'];
 
   const allBulletLines: string[] = [];
   warnings.slice(0, 2).forEach((w) => {
-    const splitW: string[] = doc.splitTextToSize(`• ${w}`, contentWidth - 6);
+    const splitW: string[] = doc.splitTextToSize(`- ${w}`, contentWidth - 6);
     allBulletLines.push(...splitW);
   });
 
-  const stdTip = '• Eficácia biológica depende de alvo, condições climáticas (Delta T 2 a 8°C) e vazão correta.';
+  const stdTip = '- Eficacia biologica depende de alvo, condicoes climaticas (Delta T 2 a 8 C) e vazao correta.';
   const splitTip: string[] = doc.splitTextToSize(stdTip, contentWidth - 6);
   allBulletLines.push(...splitTip);
 
@@ -518,7 +526,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(0, 100, 57);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
-  doc.text(`5. OBSERVAÇÕES TÉCNICAS (QUALIDADE DA LEITURA: ${quality.status})`, margin + 3, y + 4.2);
+  doc.text(`5. OBSERVACOES TECNICAS (QUALIDADE DA LEITURA: ${quality.status})`, margin + 3, y + 4.2);
 
   doc.setTextColor(50, 50, 50);
   doc.setFont('helvetica', 'normal');
@@ -540,13 +548,13 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setTextColor(70, 90, 75);
   doc.setFontSize(6.2);
   doc.setFont('helvetica', 'bold');
-  doc.text('Consultoria Técnica Agronômica: Carlos Alberto · Marco Antônio Moreira de Freitas', margin, 284.5);
+  doc.text('Consultoria Tecnica Agronomica: Carlos Alberto - Marco Antonio Moreira de Freitas', margin, 284.5);
 
   doc.setTextColor(110, 110, 110);
   doc.setFontSize(5.8);
   doc.setFont('helvetica', 'normal');
-  doc.text('GotaFiel v2.5.0 — Metrologia de Pulverização Agrícola · Tecnologia e Processamento de Imagens', margin, 288);
-  doc.text('Página 1 de 1', margin + contentWidth - 16, 288);
+  doc.text('GotaFiel v2.5.0 - Metrologia de Pulverizacao Agricola - Tecnologia e Processamento de Imagens', margin, 288);
+  doc.text('Pagina 1 de 1', margin + contentWidth - 16, 288);
 
   // Salva o arquivo PDF
   const cleanTitle = (analysis.title || 'relatorio-amostra')
