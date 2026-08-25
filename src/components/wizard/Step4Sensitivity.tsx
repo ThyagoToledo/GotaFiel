@@ -63,7 +63,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
 
   // Calculate percentage fills for custom visual tracks
   const sensPercent = Math.min(100, Math.max(0, sensitivity + 50));
-  const dropPercent = Math.min(100, Math.max(0, ((localMinDroplet - 10) / (150 - 10)) * 100));
+  const dropPercent = Math.min(100, Math.max(0, ((localMinDroplet - 1) / (150 - 1)) * 100));
 
   const handleNudgeSensitivity = (delta: number) => {
     const nextVal = Math.min(50, Math.max(-50, sensitivity + delta));
@@ -71,7 +71,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   };
 
   const handleNudgeMinDroplet = (delta: number) => {
-    const nextVal = Math.min(150, Math.max(10, localMinDroplet + delta));
+    const nextVal = Math.min(150, Math.max(1, localMinDroplet + delta));
     setLocalMinDroplet(nextVal);
     onChangeMinDropletUm?.(nextVal);
   };
@@ -308,17 +308,30 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center font-bold text-on-surface">
                     <span>Tamanho mínimo de gota:</span>
-                    <span className="text-primary font-extrabold text-sm bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
-                      {localMinDroplet} µm
-                    </span>
+                    <div className="flex items-center gap-1 bg-primary/10 px-2.5 py-0.5 rounded-lg border border-primary/20">
+                      <input
+                        type="number"
+                        min="1"
+                        max="150"
+                        value={localMinDroplet}
+                        onChange={(e) => {
+                          const val = Math.max(1, Math.min(150, Number(e.target.value) || 1));
+                          setLocalMinDroplet(val);
+                          onChangeMinDropletUm?.(val);
+                        }}
+                        className="w-10 bg-transparent text-primary font-extrabold text-sm text-right focus:outline-none"
+                      />
+                      <span className="text-primary font-extrabold text-sm">µm</span>
+                    </div>
                   </div>
 
                   {/* Slider with Stepper Buttons */}
                   <div className="flex items-center gap-2 py-1">
                     <button
                       type="button"
-                      onClick={() => handleNudgeMinDroplet(-5)}
+                      onClick={() => handleNudgeMinDroplet(-1)}
                       className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+                      title="Diminuir 1 µm"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -326,9 +339,9 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                     <div className="relative flex-1 py-1">
                       <input
                         type="range"
-                        min="10"
+                        min="1"
                         max="150"
-                        step="5"
+                        step="1"
                         value={localMinDroplet}
                         onChange={(e) => {
                           const val = Number(e.target.value);
@@ -344,16 +357,17 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => handleNudgeMinDroplet(5)}
+                      onClick={() => handleNudgeMinDroplet(1)}
                       className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
+                      title="Aumentar 1 µm"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Preset Droplet Chips */}
-                  <div className="grid grid-cols-4 gap-1.5 mt-0.5">
-                    {[10, 25, 50, 100].map((preset) => (
+                  <div className="grid grid-cols-5 gap-1.5 mt-0.5">
+                    {[1, 5, 10, 25, 50].map((preset) => (
                       <button
                         key={preset}
                         type="button"

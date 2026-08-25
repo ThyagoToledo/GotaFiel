@@ -21,16 +21,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
     item.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Métricas agregadas das análises
+  // Métricas agregadas das análises salvas
   const totalCount = recentAnalyses.length;
-  const coverageAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.coverageReliable);
-  const densityAnalyses = recentAnalyses.filter((analysis) => analysis.measurementQuality?.countDensityReliable);
-  const avgCoverage = coverageAnalyses.length
-    ? (coverageAnalyses.reduce((acc, a) => acc + a.coveragePercent, 0) / coverageAnalyses.length).toFixed(1)
-    : '—';
-  const avgDensity = densityAnalyses.length
-    ? Math.round(densityAnalyses.reduce((acc, a) => acc + a.density, 0) / densityAnalyses.length)
-    : '—';
+  const validCoverage = recentAnalyses.filter((a) => typeof a.coveragePercent === 'number' && !isNaN(a.coveragePercent));
+  const validDensity = recentAnalyses.filter((a) => typeof a.density === 'number' && !isNaN(a.density));
+
+  const avgCoverage = validCoverage.length
+    ? (validCoverage.reduce((acc, a) => acc + a.coveragePercent, 0) / validCoverage.length).toFixed(1)
+    : (totalCount > 0 ? '0.0' : '—');
+  const avgDensity = validDensity.length
+    ? Math.round(validDensity.reduce((acc, a) => acc + a.density, 0) / validDensity.length)
+    : (totalCount > 0 ? 0 : '—');
 
   return (
     <main className="px-4 pt-5 max-w-[1200px] mx-auto w-full pb-28 md:pl-[236px]">

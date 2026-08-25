@@ -211,9 +211,9 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   y += 3.5;
 
   const cardImgColWidth = (contentWidth - 4) / 2; // 91 mm
-  const cardBoxHeight = 36; // 36 mm fixo e simétrico
+  const cardBoxHeight = 50; // 50 mm amplo e destacado para fácil visualização
   const maxImgW = 85; // mm
-  const maxImgH = 24; // mm
+  const maxImgH = 40; // mm
 
   // Carrega as imagens para inserção com aspecto real
   let imgOriginal: string | null = null;
@@ -242,7 +242,7 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   const offsetX1 = margin + 3 + (maxImgW - renderW) / 2;
   const col2ImgX = margin + cardImgColWidth + 4;
   const offsetX2 = col2ImgX + 3 + (maxImgW - renderW) / 2;
-  const offsetY = y + 5.2 + (maxImgH - renderH) / 2;
+  const offsetY = y + 4.8 + (maxImgH - renderH) / 2;
 
   // Box 1: Cartão Original
   doc.setFillColor(252, 253, 252);
@@ -251,10 +251,10 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setLineWidth(0.2);
   doc.rect(margin, y, cardImgColWidth, cardBoxHeight, 'S');
 
-  doc.setFontSize(7);
+  doc.setFontSize(7.2);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 100, 57);
-  doc.text('Cartao Hidrossensivel (Original)', margin + 3, y + 4);
+  doc.text('Cartao Hidrossensivel (Original)', margin + 3.5, y + 4.2);
 
   if (imgOriginal && typeof doc.addImage === 'function') {
     try {
@@ -269,10 +269,10 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
     }
   }
 
-  doc.setFontSize(5.8);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text(`Area util: ${analysis.cardSizeMm.width} x ${analysis.cardSizeMm.height} mm`, margin + 3, y + cardBoxHeight - 1.8);
+  doc.text(`Area util: ${analysis.cardSizeMm.width} x ${analysis.cardSizeMm.height} mm`, margin + 3.5, y + cardBoxHeight - 1.8);
 
   // Box 2: Cartão com Gotas Mapeadas
   doc.setFillColor(252, 253, 252);
@@ -281,10 +281,10 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
   doc.setLineWidth(0.2);
   doc.rect(col2ImgX, y, cardImgColWidth, cardBoxHeight, 'S');
 
-  doc.setFontSize(7);
+  doc.setFontSize(7.2);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 100, 57);
-  doc.text(`Gotas Detectadas (${analysis.totalDroplets} impactos)`, col2ImgX + 3, y + 4);
+  doc.text(`Gotas Detectadas (${analysis.totalDroplets} impactos)`, col2ImgX + 3.5, y + 4.2);
 
   const displayOverlay = imgOverlay || imgOriginal;
   if (displayOverlay && typeof doc.addImage === 'function') {
@@ -300,10 +300,10 @@ export async function generateAnalysisPdfReport(analysis: AnalysisData): Promise
     }
   }
 
-  doc.setFontSize(5.8);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
-  doc.text(`${analysis.totalDroplets} gotas - ${analysis.density} gotas/cm2 - ${analysis.coveragePercent}% cob.`, col2ImgX + 3, y + cardBoxHeight - 1.8);
+  doc.text(`${analysis.totalDroplets} gotas - ${analysis.density} gotas/cm2 - ${analysis.coveragePercent}% cob.`, col2ImgX + 3.5, y + cardBoxHeight - 1.8);
 
   y += cardBoxHeight + 3.5;
 
