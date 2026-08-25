@@ -106,30 +106,46 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
       </div>
 
       <div className="w-full max-w-md mx-auto flex-1 flex flex-col gap-4">
-        {/* Binary Mask Preview Card */}
-        <section className="w-full h-[240px] relative rounded-2xl border-2 border-outline-variant bg-surface-container-low overflow-hidden flex flex-col shadow-sm">
-          <div className="px-4 py-2 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
+        {/* Binary Mask Preview Card (Enquadramento limpo sem corte ou sobreposição) */}
+        <section className="w-full relative rounded-2xl border-2 border-outline-variant bg-surface-container-low overflow-hidden flex flex-col shadow-sm">
+          <div className="px-4 py-2.5 bg-surface-container-high border-b border-outline-variant flex justify-between items-center z-10">
             <h2 className="text-xs font-bold text-on-surface uppercase tracking-wider flex items-center gap-1.5">
               <ImageIcon className="w-4 h-4 text-primary" />
-              Prévia da Máscara Binária ({methodLabel})
+              Prévia da Máscara Binária
             </h2>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-container text-on-surface-variant border border-outline-variant">
+                {methodLabel}
+              </span>
+              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-primary text-on-primary shadow-2xs">
+                {sensitivity > 0 ? `+${sensitivity}` : sensitivity}
+              </span>
+            </div>
           </div>
-          <div className="flex-1 relative w-full h-full p-2 flex items-center justify-center bg-black">
+          <div className="w-full min-h-[180px] max-h-[260px] p-3 flex items-center justify-center bg-neutral-950">
             {isProcessing ? (
-              <div className="flex flex-col items-center justify-center gap-2 text-cyan-400">
+              <div className="flex flex-col items-center justify-center gap-2 text-cyan-400 py-8">
                 <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-bold">Processando pixels...</span>
               </div>
             ) : binaryMaskDataUrl ? (
-              <img src={binaryMaskDataUrl} alt="Prévia real de detecção de pulverização" className="w-full h-full object-contain rounded-lg transition-all duration-200" />
+              <img
+                src={binaryMaskDataUrl}
+                alt="Prévia real de detecção de pulverização"
+                className="max-h-[230px] max-w-full w-auto h-auto object-contain rounded-lg border border-neutral-800 shadow-md transition-all duration-200"
+              />
             ) : (
-              <div className="px-5 text-center text-xs leading-relaxed text-white/80">A prévia real aparecerá depois que uma foto for processada.</div>
+              <div className="px-5 text-center text-xs leading-relaxed text-white/80 py-8">
+                A prévia real aparecerá depois que uma foto for processada.
+              </div>
             )}
-            {/* Live indicator tag */}
-            <div className="absolute bottom-3 right-3 bg-primary text-on-primary text-[11px] font-extrabold px-2.5 py-1 rounded-lg shadow-md border border-white/20">
-              Sensibilidade: {sensitivity > 0 ? `+${sensitivity}` : sensitivity}
-            </div>
           </div>
+          {typeof detectedDroplets === 'number' && (
+            <div className="px-4 py-1.5 bg-surface-container border-t border-outline-variant/60 flex items-center justify-between text-[11px] text-on-surface-variant font-medium">
+              <span>Impactos detectados nesta prévia:</span>
+              <strong className="text-primary font-bold">{detectedDroplets} gotas</strong>
+            </div>
+          )}
         </section>
 
         {/* Zero detections warning */}
