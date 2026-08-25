@@ -88,7 +88,7 @@ export const Step5Result: React.FC<Step5ResultProps> = ({
   const handleGeneratePdf = async () => {
     try {
       const { generateAnalysisPdfReport } = await import('../../utils/generatePdfReport');
-      generateAnalysisPdfReport(analysis);
+      await generateAnalysisPdfReport(analysis);
       setPdfGeneratedToast(true);
       setTimeout(() => setPdfGeneratedToast(false), 3500);
     } catch (err) {

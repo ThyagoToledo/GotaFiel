@@ -21,6 +21,8 @@ vi.mock('jspdf', () => {
       rect = vi.fn();
       line = vi.fn();
       text = vi.fn();
+      addImage = vi.fn();
+      getTextWidth = vi.fn((txt: string) => (txt ? txt.length * 1.5 : 5));
       splitTextToSize = vi.fn((txt: string) => [txt]);
       save = vi.fn();
     },
@@ -70,42 +72,42 @@ function createSampleAnalysis(override: Partial<AnalysisData> = {}): AnalysisDat
 }
 
 describe('generateAnalysisPdfReport', () => {
-  it('gera relatório PDF sem erros para o motor híbrido (hybrid)', () => {
+  it('gera relatório PDF sem erros para o motor híbrido (hybrid)', async () => {
     const analysis = createSampleAnalysis({ analysisMethod: 'hybrid' });
-    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+    await expect(generateAnalysisPdfReport(analysis)).resolves.not.toThrow();
   });
 
-  it('gera relatório PDF com sucesso para o motor cromático (chromatic)', () => {
+  it('gera relatório PDF com sucesso para o motor cromático (chromatic)', async () => {
     const analysis = createSampleAnalysis({ analysisMethod: 'chromatic' });
-    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+    await expect(generateAnalysisPdfReport(analysis)).resolves.not.toThrow();
   });
 
-  it('gera relatório PDF com sucesso para o motor monocromático (gotas-legacy)', () => {
+  it('gera relatório PDF com sucesso para o motor monocromático (gotas-legacy)', async () => {
     const analysis = createSampleAnalysis({
       analysisMethod: 'gotas-legacy',
       meanFilterPasses: 2,
       fillHoles: true,
       sensitivity: 5,
     });
-    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+    await expect(generateAnalysisPdfReport(analysis)).resolves.not.toThrow();
   });
 
-  it('gera relatório PDF com alerta para cartões com alta cobertura (>= 75%)', () => {
+  it('gera relatório PDF com alerta para cartões com alta cobertura (>= 75%)', async () => {
     const analysis = createSampleAnalysis({
       coveragePercent: 82.5,
       density: 180,
     });
-    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+    await expect(generateAnalysisPdfReport(analysis)).resolves.not.toThrow();
   });
 
-  it('rejeita geração de relatório com métricas inválidas (NaN ou Infinity)', () => {
+  it('rejeita geração de relatório com métricas inválidas (NaN ou Infinity)', async () => {
     const invalidAnalysis = createSampleAnalysis({ density: NaN });
-    expect(() => generateAnalysisPdfReport(invalidAnalysis)).toThrowError(
+    await expect(generateAnalysisPdfReport(invalidAnalysis)).rejects.toThrowError(
       'Não é possível gerar PDF com métricas inválidas (NaN/Infinity).'
     );
   });
 
-  it('gera relatório PDF com textos longos e múltiplos avisos sem erros', () => {
+  it('gera relatório PDF com textos longos e múltiplos avisos sem erros', async () => {
     const analysis = createSampleAnalysis({
       title: 'Talhão Fazenda Santa Maria - Setor Pivô Central 04 - Pulverização de Fungicida Sistêmico com Adjuvante Siliconado',
       measurementQuality: {
@@ -134,6 +136,6 @@ describe('generateAnalysisPdfReport', () => {
       },
     });
 
-    expect(() => generateAnalysisPdfReport(analysis)).not.toThrow();
+    await expect(generateAnalysisPdfReport(analysis)).resolves.not.toThrow();
   });
 });
