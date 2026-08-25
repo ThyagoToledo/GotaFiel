@@ -8,7 +8,8 @@ import {
   Sparkles,
   Move,
   Scan,
-  ShieldAlert,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import { CardColor } from '../../types';
 
@@ -20,9 +21,9 @@ interface Step2CropProps {
   onNext: (corners: Record<CornerKey, Point>) => void;
 }
 
-type CornerKey = 'tl' | 'tr' | 'br' | 'bl';
+export type CornerKey = 'tl' | 'tr' | 'br' | 'bl';
 
-interface Point {
+export interface Point {
   x: number; // percentage 0 - 100
   y: number; // percentage 0 - 100
 }
@@ -48,6 +49,10 @@ const CORNER_LABELS: Record<CornerKey, string> = {
   bl: 'Base-Esq',
 };
 
+/**
+ * Calcula cantos proporcionais para a área de análise respeitando a proporção física do cartão
+ * e o aspecto da imagem original.
+ */
 export function computeCornersForAspect(
   cardWidth: number,
   cardHeight: number,
@@ -104,8 +109,14 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
-  // Measure natural dimensions & aspect ratio of the image to scale workspace and initial crop box
+  // Proporção e dimensões físicas do cartão ativo
+  const cardWidth = cardSizeMm?.width || 76;
+  const cardHeight = cardSizeMm?.height || 26;
+  const cardAspect = cardWidth / cardHeight;
+
+  // Mede as dimensões reais da foto e inicializa a seleção azul proporcionalmente
   useEffect(() => {
     if (!imageUrl) return;
     const img = new Image();
@@ -117,14 +128,10 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
         setImageDimensions({ width: imgW, height: imgH });
         setAspectRatio(imgAspect);
 
-        const cW = cardSizeMm?.width || 76;
-        const cH = cardSizeMm?.height || 26;
-        const cardAspect = cW / cH;
-
-        // Se a proporção do cartão for diferente da proporção da imagem (>3% de diferença),
+        // Se a proporção do cartão for diferente da proporção da imagem (>3%),
         // inicializa a seleção diretamente com a dimensão/proporção do cartão!
         if (Math.abs(cardAspect - imgAspect) / imgAspect > 0.03) {
-          const fittedCorners = computeCornersForAspect(cW, cH, imgAspect);
+          const fittedCorners = computeCornersForAspect(cardWidth, cardHeight, imgAspect);
           setCorners(fittedCorners);
         } else {
           setCorners(DEFAULT_FULL_CORNERS);
@@ -136,9 +143,9 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     setIsManualAdjust(false);
     setActiveCorner(null);
     setIsDraggingArea(false);
-  }, [imageUrl, cardSizeMm?.width, cardSizeMm?.height]);
+  }, [imageUrl, cardWidth, cardHeight]);
 
-  // Calculate approximate percentage area of quadrilateral (Shoelace formula)
+  // Calcula percentual aproximado da área do quadrilátero selecionado
   const calculateAreaPercent = useCallback(() => {
     const { tl, tr, br, bl } = corners;
     const area = Math.abs(
@@ -150,7 +157,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     return Math.min(100, Math.max(1, Math.round(area)));
   }, [corners]);
 
-  // Handle pointer/touch position updates for individual corner dragging
+  // Atualização dos cantos individuais
   const updateCornerPos = useCallback(
     (clientX: number, clientY: number, cornerKey: CornerKey) => {
       if (!containerRef.current) return;
@@ -158,7 +165,6 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
       const rawX = ((clientX - rect.left) / rect.width) * 100;
       const rawY = ((clientY - rect.top) / rect.height) * 100;
 
-      // Allow full range [0, 100] without artificial inner limits
       const clampedX = Math.min(100, Math.max(0, parseFloat(rawX.toFixed(1))));
       const clampedY = Math.min(100, Math.max(0, parseFloat(rawY.toFixed(1))));
 
@@ -170,7 +176,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     []
   );
 
-  // Handle dragging the entire selection area in bulk (pan selection)
+  // Arraste do bloco inteiro da seleção
   const updateAreaPos = useCallback(
     (clientX: number, clientY: number) => {
       if (!containerRef.current || !dragAreaStart) return;
@@ -179,8 +185,6 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
       const deltaYPct = ((clientY - dragAreaStart.clientY) / rect.height) * 100;
 
       const { initialCorners } = dragAreaStart;
-
-      // Calculate bounding box of initial corners to ensure whole polygon stays in [0, 100]
       const points = Object.values(initialCorners) as Point[];
       const minX = Math.min(...points.map((p) => p.x));
       const maxX = Math.max(...points.map((p) => p.x));
@@ -212,7 +216,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     [dragAreaStart]
   );
 
-  // Global event handlers for drag tracking
+  // Listeners globais de movimento
   useEffect(() => {
     if (!activeCorner && !isDraggingArea) return;
 
@@ -268,62 +272,28 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     setDragAreaStart({ clientX, clientY, initialCorners: { ...corners } });
   };
 
-  // Proporção do cartão físico configurado no Passo 2
-  const cardWidth = cardSizeMm?.width || 76;
-  const cardHeight = cardSizeMm?.height || 26;
-  const cardAspect = cardWidth / cardHeight;
-
-  // Enquadrar seleção com a proporção exata do cartão físico escolhido
-  const handleFitCardAspect = () => {
+  // Ajusta seleção para uma proporção física específica
+  const applyPresetAspect = (wMm: number, hMm: number) => {
     setIsManualAdjust(true);
-    const imgAspect = aspectRatio || 1;
-    let widthPct = 90;
-    let heightPct = 90;
-
-    if (cardAspect <= imgAspect) {
-      heightPct = 85;
-      widthPct = parseFloat((85 * (cardAspect / imgAspect)).toFixed(1));
-      if (widthPct > 96) {
-        widthPct = 96;
-        heightPct = parseFloat((96 * (imgAspect / cardAspect)).toFixed(1));
-      }
-    } else {
-      widthPct = 90;
-      heightPct = parseFloat((90 * (imgAspect / cardAspect)).toFixed(1));
-      if (heightPct > 96) {
-        heightPct = 96;
-        widthPct = parseFloat((96 * (cardAspect / imgAspect)).toFixed(1));
-      }
-    }
-
-    const left = parseFloat(((100 - widthPct) / 2).toFixed(1));
-    const right = parseFloat((left + widthPct).toFixed(1));
-    const top = parseFloat(((100 - heightPct) / 2).toFixed(1));
-    const bottom = parseFloat((top + heightPct).toFixed(1));
-
-    setCorners({
-      tl: { x: left, y: top },
-      tr: { x: right, y: top },
-      br: { x: right, y: bottom },
-      bl: { x: left, y: bottom },
-    });
+    const imgAspect = aspectRatio || (imageDimensions ? imageDimensions.width / imageDimensions.height : 1);
+    setCorners(computeCornersForAspect(wMm, hMm, imgAspect));
   };
 
-  // Select 100% of the loaded image (Full Workspace)
+  // Selecionar 100% da imagem
   const handleSelectAll = () => {
     setIsManualAdjust(true);
     setCorners(DEFAULT_FULL_CORNERS);
   };
 
-  // Safe Margins (5% margin)
+  // Margem segura de 5%
   const handleSafeMargin = () => {
     setIsManualAdjust(true);
     setCorners(DEFAULT_MARGIN_CORNERS);
   };
 
-  // Reset to original default (Card Aspect or 100% of image)
+  // Redefinir para o padrão do cartão atual
   const handleResetCorners = () => {
-    const imgAspect = aspectRatio || 1;
+    const imgAspect = aspectRatio || (imageDimensions ? imageDimensions.width / imageDimensions.height : 1);
     if (Math.abs(cardAspect - imgAspect) / imgAspect > 0.03) {
       setCorners(computeCornersForAspect(cardWidth, cardHeight, imgAspect));
     } else {
@@ -332,7 +302,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     setIsManualAdjust(false);
   };
 
-  // Micro-nudge for a specific corner
+  // Micro-ajuste direcional
   const handleNudge = (dx: number, dy: number) => {
     setIsManualAdjust(true);
     setCorners((prev) => {
@@ -350,21 +320,30 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
   const activeCornerPoint = activeCorner ? corners[activeCorner] : null;
   const areaPercent = calculateAreaPercent();
 
-  // Selected crop pixel size estimation
-  const selectedPxWidth = imageDimensions
-    ? Math.round((imageDimensions.width * Math.abs(corners.tr.x - corners.tl.x)) / 100)
-    : null;
-  const selectedPxHeight = imageDimensions
-    ? Math.round((imageDimensions.height * Math.abs(corners.bl.y - corners.tl.y)) / 100)
-    : null;
+  // Dimensões em pixels da área recortada em tempo real
+  const rawCropW = imageDimensions
+    ? Math.round((imageDimensions.width * Math.abs(corners.tr.x - corners.tl.x + corners.br.x - corners.bl.x)) / 200)
+    : 0;
+  const rawCropH = imageDimensions
+    ? Math.round((imageDimensions.height * Math.abs(corners.bl.y - corners.tl.y + corners.br.y - corners.tr.y)) / 200)
+    : 0;
+  const selectedPxWidth = Math.max(1, rawCropW);
+  const selectedPxHeight = Math.max(1, rawCropH);
 
-  // Exact Loupe calculations using container size
+  // Resolução e DPI efetivo calculados na hora
+  const effectiveDpi = imageDimensions && cardWidth > 0
+    ? Math.round(selectedPxWidth / (cardWidth / 25.4))
+    : 300;
+  const mm2PerPx = (cardWidth * cardHeight) / (selectedPxWidth * selectedPxHeight);
+  const minDetectableUm = Math.max(10, Math.round(Math.sqrt(mm2PerPx) * 1000));
+
+  // Lupa de precisão
   const containerRect = containerRef.current?.getBoundingClientRect();
   const mainW = containerRect ? containerRect.width : 340;
   const mainH = containerRect ? containerRect.height : 180;
 
-  const loupeSize = 144; // 144px (w-36 h-36)
-  const loupeCenter = loupeSize / 2; // 72px
+  const loupeSize = 144;
+  const loupeCenter = loupeSize / 2;
   const zoomScale = 3.0;
 
   const zoomedW = mainW * zoomScale;
@@ -378,7 +357,6 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     loupeImgTop = loupeCenter - (activeCornerPoint.y / 100) * zoomedH;
   }
 
-  // Position Loupe in opposite quadrant so finger never covers it
   let loupePositionClass = 'bottom-2 right-2';
   if (activeCornerPoint) {
     const isRight = activeCornerPoint.x >= 50;
@@ -417,21 +395,59 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
         <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 flex items-start gap-2.5 shadow-xs">
           <Sparkles className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="text-xs text-on-surface leading-relaxed">
-            <strong className="text-primary font-bold">Ajuste os 4 cantos azuis</strong> para delimitar a área de análise do cartão hidrossensível ou use <strong className="text-primary font-bold">Selecionar tudo</strong> para utilizar a imagem inteira.
+            <strong className="text-primary font-bold">Ajuste os 4 cantos azuis</strong> para delimitar a área útil do cartão. A resolução e o DPI da área são calculados em tempo real.
           </p>
         </div>
 
-        {/* Card Image Interactive Workspace Frame */}
+        {/* Quick Format Chips Selector */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            type="button"
+            onClick={() => applyPresetAspect(76, 26)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+              cardWidth === 76 && cardHeight === 26 && areaPercent < 100
+                ? 'bg-primary text-on-primary border-primary shadow-xs'
+                : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface'
+            }`}
+          >
+            Cartão 76×26 mm
+          </button>
+
+          <button
+            type="button"
+            onClick={() => applyPresetAspect(76, 52)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface transition-all cursor-pointer"
+          >
+            Cartão 76×52 mm
+          </button>
+
+          <button
+            type="button"
+            onClick={() => applyPresetAspect(26, 38)}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface transition-all cursor-pointer"
+          >
+            Cartão 26×38 mm
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+              areaPercent === 100
+                ? 'bg-primary text-on-primary border-primary shadow-xs'
+                : 'bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface'
+            }`}
+          >
+            100% Foto Inteira
+          </button>
+        </div>
+
+        {/* Card Image Interactive Workspace Frame (Zero Letterboxing, Zero Margin Offset) */}
         <div className="w-full bg-neutral-950 rounded-2xl p-2.5 border-2 border-outline-variant shadow-md flex items-center justify-center overflow-visible">
-          {/* Workspace Container: Aspect ratio dynamically matches image natural size with ZERO cropping and ZERO letterboxing */}
+          {/* Workspace Container: Tightly shrink-wrapped to the image element */}
           <div
             ref={containerRef}
-            style={{
-              aspectRatio: `${aspectRatio}`,
-              width: aspectRatio >= 1 ? '100%' : `min(100%, calc(420px * ${aspectRatio}))`,
-              maxHeight: '52vh',
-            }}
-            className="relative rounded-xl overflow-visible touch-none select-none cursor-crosshair mx-auto"
+            className="relative inline-block max-w-full max-h-[50vh] touch-none select-none cursor-crosshair mx-auto rounded-lg overflow-visible"
             onClick={(e) => {
               if (!activeCorner && !isDraggingArea) {
                 const rect = containerRef.current?.getBoundingClientRect();
@@ -453,11 +469,22 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               }
             }}
           >
-            {/* Full Sample Image - Shown 100% complete without cropping */}
+            {/* Full Sample Image - Rendered with exact natural aspect ratio without empty bars */}
             <img
+              ref={imageRef}
               src={imageUrl}
               alt="Cartão hidrossensível original"
-              className="w-full h-full block rounded-lg pointer-events-none select-none object-contain"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  const imgW = img.naturalWidth;
+                  const imgH = img.naturalHeight;
+                  const imgAspect = imgW / imgH;
+                  setImageDimensions({ width: imgW, height: imgH });
+                  setAspectRatio(imgAspect);
+                }
+              }}
+              className="block max-h-[50vh] max-w-full w-auto h-auto rounded-lg pointer-events-none select-none shadow-sm object-contain"
             />
 
             {/* Polygon Overlay & Selection Border */}
@@ -614,37 +641,63 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
           </div>
         </div>
 
-        {/* Dimension & Selection Metadata Badge */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface-container rounded-xl p-3 border border-outline-variant gap-2.5 shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-quality-good shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-on-surface">
-                {areaPercent === 100 ? 'Imagem 100% Selecionada' : 'Área de Análise Personalizada'}
-              </span>
-              <span className="text-[11px] font-medium text-on-surface-variant">
-                Área selecionada: <strong className="text-primary font-bold">{areaPercent}%</strong>
-                {selectedPxWidth && selectedPxHeight ? ` (${selectedPxWidth} × ${selectedPxHeight} px)` : ''}
+        {/* Live Resolution & Metrology Panel (Calculado em tempo real pela área azul) */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-3.5 shadow-xs flex flex-col gap-2.5">
+          <div className="flex items-center justify-between border-b border-outline-variant/60 pb-2">
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="text-xs font-bold text-on-surface uppercase tracking-wide">
+                Metrologia & Resolução da Área
               </span>
             </div>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+              effectiveDpi >= 300
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20'
+            }`}>
+              <ShieldCheck className="w-3 h-3" />
+              {effectiveDpi >= 300 ? 'Alta Resolução' : 'Resolução Básica'}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-outline-variant/60">
-            <div className="flex flex-col text-left sm:text-right">
-              <span className="text-[10px] uppercase font-bold text-on-surface-variant">Cartão Referência</span>
-              <span className="text-xs font-extrabold text-primary">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            {/* 1. Tamanho do Cartão */}
+            <div className="bg-surface-container rounded-xl p-2 flex flex-col items-center justify-center">
+              <span className="text-[9px] font-bold text-on-surface-variant uppercase">Cartão Físico</span>
+              <span className="text-xs font-extrabold text-primary mt-0.5">
                 {cardWidth} × {cardHeight} mm
               </span>
+              <span className="text-[9px] text-on-surface-variant font-medium">({cardAspect.toFixed(2)}:1)</span>
             </div>
 
-            {imageDimensions && (
-              <div className="flex flex-col text-right pl-3 border-l border-outline-variant/60">
-                <span className="text-[10px] uppercase font-bold text-on-surface-variant">Foto Original</span>
-                <span className="text-xs font-extrabold text-on-surface">
-                  {imageDimensions.width} × {imageDimensions.height} px
-                </span>
-              </div>
-            )}
+            {/* 2. Resolução da Seleção */}
+            <div className="bg-surface-container rounded-xl p-2 flex flex-col items-center justify-center">
+              <span className="text-[9px] font-bold text-on-surface-variant uppercase">Resolução da Área</span>
+              <span className="text-xs font-extrabold text-on-surface mt-0.5">
+                {selectedPxWidth} × {selectedPxHeight} px
+              </span>
+              <span className="text-[9px] text-on-surface-variant font-medium">{areaPercent}% da imagem</span>
+            </div>
+
+            {/* 3. DPI Efetivo */}
+            <div className="bg-surface-container rounded-xl p-2 flex flex-col items-center justify-center">
+              <span className="text-[9px] font-bold text-on-surface-variant uppercase">DPI Efetivo</span>
+              <span className={`text-xs font-extrabold mt-0.5 ${
+                effectiveDpi >= 300 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
+              }`}>
+                {effectiveDpi} DPI
+              </span>
+              <span className="text-[9px] text-on-surface-variant font-medium">calibração óptica</span>
+            </div>
+
+            {/* 4. Menor Gota Detectável */}
+            <div className="bg-surface-container rounded-xl p-2 flex flex-col items-center justify-center">
+              <span className="text-[9px] font-bold text-on-surface-variant uppercase">Menor Gota</span>
+              <span className="text-xs font-extrabold text-primary mt-0.5">
+                ≥ {minDetectableUm} µm
+              </span>
+              <span className="text-[9px] text-on-surface-variant font-medium">sensibilidade ASABE</span>
+            </div>
           </div>
         </div>
 
@@ -677,10 +730,10 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
                 <span className="truncate">Selecionar tudo</span>
               </button>
 
-              {/* Proporção do Cartão (76x26 mm, etc.) */}
+              {/* Proporção do Cartão */}
               <button
                 type="button"
-                onClick={handleFitCardAspect}
+                onClick={handleResetCorners}
                 className="h-11 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis shadow-2xs"
                 title={`Ajustar na proporção exata do cartão (${cardWidth}×${cardHeight} mm)`}
               >
@@ -688,7 +741,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
                 <span className="truncate">Cartão {cardWidth}×{cardHeight}</span>
               </button>
 
-              {/* Margem Segura (5% de margem) */}
+              {/* Margem Segura (5%) */}
               <button
                 type="button"
                 onClick={handleSafeMargin}
@@ -749,20 +802,23 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               >
                 ▲
               </button>
-              <div className="flex gap-1 my-0.5">
+              <div className="flex">
                 <button
                   type="button"
                   onClick={() => handleNudge(-0.5, 0)}
                   className="w-8 h-7 bg-surface-container border border-outline-variant hover:bg-primary/20 rounded-l-md flex items-center justify-center text-xs font-bold text-on-surface active:scale-95 transition-all cursor-pointer"
-                  title="Mover 0.5% para esquerda"
+                  title="Mover 0.5% para a esquerda"
                 >
                   ◀
                 </button>
+                <div className="w-8 h-7 bg-surface-container-high border-t border-b border-outline-variant flex items-center justify-center text-[9px] font-bold text-primary">
+                  0.5%
+                </div>
                 <button
                   type="button"
                   onClick={() => handleNudge(0.5, 0)}
                   className="w-8 h-7 bg-surface-container border border-outline-variant hover:bg-primary/20 rounded-r-md flex items-center justify-center text-xs font-bold text-on-surface active:scale-95 transition-all cursor-pointer"
-                  title="Mover 0.5% para direita"
+                  title="Mover 0.5% para a direita"
                 >
                   ▶
                 </button>
@@ -779,49 +835,36 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
           </div>
         </div>
 
-        {/* Color Selector */}
-        <div className="flex flex-col gap-1 mt-0.5">
-          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-            COR DO PAPEL HIDROSSENSÍVEL
-          </label>
-          <span className="text-[11px] text-on-surface-variant leading-relaxed -mt-0.5">
-            Registrado no relatório. Não altera a detecção — o ajuste fino é feito no passo 4.
-          </span>
-          <div className="relative">
-            <select
-              value={cardColor}
-              onChange={(e) => onChangeCardColor(e.target.value as CardColor)}
-              className="w-full h-11 border border-outline-variant rounded-xl px-3 pl-10 bg-surface-container-lowest text-on-surface font-bold text-xs md:text-sm appearance-none focus:outline-none focus:border-primary cursor-pointer shadow-xs"
-            >
-              <option value="Amarelo">Amarelo (Hidrossensível Padrão)</option>
-              <option value="Branco">Branco</option>
-              <option value="Outro">Outro</option>
-            </select>
-            <div
-              className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-sm border border-outline-variant ${
-                cardColor === 'Amarelo'
-                  ? 'bg-cartao-amarelo'
-                  : cardColor === 'Branco'
-                  ? 'bg-white'
-                  : 'bg-gray-400'
-              }`}
-            />
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
+        {/* Card Color Selector */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-3.5 shadow-xs flex items-center justify-between">
+          <span className="text-xs font-bold text-on-surface">Tipo de Cartão:</span>
+          <div className="flex gap-2">
+            {(['Amarelo', 'Branco'] as CardColor[]).map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => onChangeCardColor(color)}
+                className={`h-9 px-3.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                  cardColor === color
+                    ? 'bg-primary text-on-primary border-primary shadow-xs'
+                    : 'bg-surface-container border-outline-variant text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                {color === 'Amarelo' ? '🟡 Papel Amarelo' : '⚪ Papel Branco'}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Fixed Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface/95 dark:bg-surface-dim/95 backdrop-blur-md border-t border-outline-variant z-40">
-        <div className="max-w-md mx-auto flex gap-2">
-          <button
-            type="button"
-            onClick={() => onNext(corners)}
-            className="w-full h-[52px] bg-primary text-on-primary font-bold text-sm rounded-xl hover:bg-primary-container active:scale-[0.98] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2"
-          >
-            <span>Confirmar Seleção da Imagem</span>
-          </button>
-        </div>
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={() => onNext(corners)}
+          className="w-full h-12 bg-primary text-on-primary rounded-xl font-bold text-sm shadow-md hover:bg-primary-container active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
+        >
+          <span>Avançar para Ajuste de Detecção</span>
+          <CheckCircle2 className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
