@@ -63,7 +63,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
 
   // Calculate percentage fills for custom visual tracks
   const sensPercent = Math.min(100, Math.max(0, sensitivity + 50));
-  const dropPercent = Math.min(100, Math.max(0, ((localMinDroplet - 1) / (150 - 1)) * 100));
+  const dropPercent = Math.min(100, Math.max(0, ((localMinDroplet - 1) / (500 - 1)) * 100));
 
   const handleNudgeSensitivity = (delta: number) => {
     const nextVal = Math.min(50, Math.max(-50, sensitivity + delta));
@@ -71,7 +71,8 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   };
 
   const handleNudgeMinDroplet = (delta: number) => {
-    const nextVal = Math.min(150, Math.max(1, localMinDroplet + delta));
+    const step = localMinDroplet <= 10 ? 1 : 5;
+    const nextVal = Math.min(1000, Math.max(1, localMinDroplet + (delta > 0 ? step : -step)));
     setLocalMinDroplet(nextVal);
     onChangeMinDropletUm?.(nextVal);
   };
@@ -312,14 +313,14 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                       <input
                         type="number"
                         min="1"
-                        max="150"
+                        max="1000"
                         value={localMinDroplet}
                         onChange={(e) => {
-                          const val = Math.max(1, Math.min(150, Number(e.target.value) || 1));
+                          const val = Math.max(1, Math.min(1000, Number(e.target.value) || 1));
                           setLocalMinDroplet(val);
                           onChangeMinDropletUm?.(val);
                         }}
-                        className="w-10 bg-transparent text-primary font-extrabold text-sm text-right focus:outline-none"
+                        className="w-12 bg-transparent text-primary font-extrabold text-sm text-right focus:outline-none"
                       />
                       <span className="text-primary font-extrabold text-sm">µm</span>
                     </div>
@@ -331,7 +332,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                       type="button"
                       onClick={() => handleNudgeMinDroplet(-1)}
                       className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
-                      title="Diminuir 1 µm"
+                      title="Diminuir"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
@@ -340,7 +341,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                       <input
                         type="range"
                         min="1"
-                        max="150"
+                        max="500"
                         step="1"
                         value={localMinDroplet}
                         onChange={(e) => {
@@ -359,15 +360,15 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
                       type="button"
                       onClick={() => handleNudgeMinDroplet(1)}
                       className="w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant flex items-center justify-center text-on-surface font-bold active:scale-95 transition-all shrink-0 cursor-pointer shadow-xs"
-                      title="Aumentar 1 µm"
+                      title="Aumentar"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Preset Droplet Chips */}
-                  <div className="grid grid-cols-5 gap-1.5 mt-0.5">
-                    {[1, 5, 10, 25, 50].map((preset) => (
+                  <div className="grid grid-cols-6 gap-1 mt-0.5">
+                    {[1, 10, 50, 100, 200, 300].map((preset) => (
                       <button
                         key={preset}
                         type="button"

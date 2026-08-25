@@ -50,6 +50,7 @@ export interface DropletComponent {
   included: boolean;
   roundness?: number;
   isSplitCluster?: boolean;
+  pixels?: number[];
 }
 
 export interface ProcessedAnalysisMetrics {

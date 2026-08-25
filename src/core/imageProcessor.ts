@@ -881,6 +881,7 @@ export function findConnectedComponents(
     touchesBorder: boolean;
     roundness: number;
     isSplitCluster: boolean;
+    pixels?: number[];
   }> = [];
 
   let nextId = 1;
@@ -979,6 +980,7 @@ export function findConnectedComponents(
             }
             rawComponents.push({
               id: nextId++,
+              pixels: part.pixels,
               pixelCount: part.pixels.length,
               minX: part.minX,
               maxX: part.maxX,
@@ -1000,6 +1002,7 @@ export function findConnectedComponents(
           }
           rawComponents.push({
             id: nextId++,
+            pixels: compPixels,
             pixelCount: compPixels.length,
             minX,
             maxX,
@@ -1032,6 +1035,7 @@ export function findConnectedComponents(
     result.push({
       id: `drop-${c.id}`,
       pixelCount: c.pixelCount,
+      pixels: c.pixels,
       areaMm2: Number(areaMm2.toFixed(6)),
       diameterUm: Math.round(correctedDiameterUm),
       centerX: Number(((c.sumX / c.pixelCount / width) * 100).toFixed(2)),

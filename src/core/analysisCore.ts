@@ -123,7 +123,17 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
     roundnessMin: params.roundnessMin,
   });
 
-  // 6. Histogram + metrics.
+  // 6. Máscara binária filtrada (apenas componentes incluídos no limiar de tamanho e filtros)
+  const filteredBinaryMask = new Uint8Array(targetWidth * targetHeight);
+  for (const c of components) {
+    if (c.included !== false && c.pixels) {
+      for (const p of c.pixels) {
+        filteredBinaryMask[p] = 1;
+      }
+    }
+  }
+
+  // 7. Histogram + metrics.
   const histogram = buildHistogramBins(components);
   const metrics = computeMetricsFromHistogram(
     histogram,
@@ -133,12 +143,12 @@ export function runAnalysisCore(input: AnalysisCoreInput): AnalysisCoreResult {
     targetHeight
   );
 
-  // 7. Droplet items for the inspection screen.
+  // 8. Droplet items for the inspection screen.
   const droplets = convertComponentsToDropletItems(components, targetWidth, targetHeight);
 
   return {
     rectifiedPixels,
-    binaryMask,
+    binaryMask: filteredBinaryMask,
     thresholdUsed,
     components,
     histogram,
