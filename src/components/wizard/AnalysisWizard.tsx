@@ -23,10 +23,10 @@ interface AnalysisWizardProps {
 }
 
 const DEFAULT_CORNERS: CropCorners = {
-  tl: { x: 5, y: 10 },
-  tr: { x: 95, y: 10 },
-  br: { x: 95, y: 90 },
-  bl: { x: 5, y: 90 },
+  tl: { x: 0, y: 0 },
+  tr: { x: 100, y: 0 },
+  br: { x: 100, y: 100 },
+  bl: { x: 0, y: 100 },
 };
 
 export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
@@ -295,6 +295,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onImageSelected={(img, gpsCoords, canopyPosition) => {
             setPipelineDirty(true);
             setBinaryMaskDataUrl('');
+            setCorners(DEFAULT_CORNERS);
             setAnalysisState((prev) => ({
               ...prev,
               imageUrl: img,
