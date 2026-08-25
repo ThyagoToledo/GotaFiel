@@ -14,6 +14,7 @@ import { CardColor } from '../../types';
 
 interface Step2CropProps {
   imageUrl: string;
+  cardSizeMm?: { width: number; height: number };
   cardColor: CardColor;
   onChangeCardColor: (color: CardColor) => void;
   onNext: (corners: Record<CornerKey, Point>) => void;
@@ -49,6 +50,7 @@ const CORNER_LABELS: Record<CornerKey, string> = {
 
 export const Step2Crop: React.FC<Step2CropProps> = ({
   imageUrl,
+  cardSizeMm = { width: 76, height: 26 },
   cardColor,
   onChangeCardColor,
   onNext,
@@ -212,6 +214,47 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     setIsManualAdjust(true);
     setIsDraggingArea(true);
     setDragAreaStart({ clientX, clientY, initialCorners: { ...corners } });
+  };
+
+  // Proporção do cartão físico configurado no Passo 2
+  const cardWidth = cardSizeMm?.width || 76;
+  const cardHeight = cardSizeMm?.height || 26;
+  const cardAspect = cardWidth / cardHeight;
+
+  // Enquadrar seleção com a proporção exata do cartão físico escolhido
+  const handleFitCardAspect = () => {
+    setIsManualAdjust(true);
+    const imgAspect = aspectRatio || 1;
+    let widthPct = 90;
+    let heightPct = 90;
+
+    if (cardAspect <= imgAspect) {
+      heightPct = 85;
+      widthPct = parseFloat((85 * (cardAspect / imgAspect)).toFixed(1));
+      if (widthPct > 96) {
+        widthPct = 96;
+        heightPct = parseFloat((96 * (imgAspect / cardAspect)).toFixed(1));
+      }
+    } else {
+      widthPct = 90;
+      heightPct = parseFloat((90 * (imgAspect / cardAspect)).toFixed(1));
+      if (heightPct > 96) {
+        heightPct = 96;
+        widthPct = parseFloat((96 * (cardAspect / imgAspect)).toFixed(1));
+      }
+    }
+
+    const left = parseFloat(((100 - widthPct) / 2).toFixed(1));
+    const right = parseFloat((left + widthPct).toFixed(1));
+    const top = parseFloat(((100 - heightPct) / 2).toFixed(1));
+    const bottom = parseFloat((top + heightPct).toFixed(1));
+
+    setCorners({
+      tl: { x: left, y: top },
+      tr: { x: right, y: top },
+      br: { x: right, y: bottom },
+      bl: { x: left, y: bottom },
+    });
   };
 
   // Select 100% of the loaded image (Full Workspace)
@@ -515,7 +558,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
         </div>
 
         {/* Dimension & Selection Metadata Badge */}
-        <div className="flex items-center justify-between bg-surface-container rounded-xl p-3 border border-outline-variant shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-surface-container rounded-xl p-3 border border-outline-variant gap-2.5 shadow-xs">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-quality-good shrink-0" />
             <div className="flex flex-col">
@@ -529,14 +572,23 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
             </div>
           </div>
 
-          {imageDimensions && (
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] uppercase font-bold text-on-surface-variant">Original</span>
-              <span className="text-xs font-extrabold text-on-surface">
-                {imageDimensions.width} × {imageDimensions.height} px
+          <div className="flex items-center gap-3 border-t sm:border-t-0 pt-2 sm:pt-0 border-outline-variant/60">
+            <div className="flex flex-col text-left sm:text-right">
+              <span className="text-[10px] uppercase font-bold text-on-surface-variant">Cartão Referência</span>
+              <span className="text-xs font-extrabold text-primary">
+                {cardWidth} × {cardHeight} mm
               </span>
             </div>
-          )}
+
+            {imageDimensions && (
+              <div className="flex flex-col text-right pl-3 border-l border-outline-variant/60">
+                <span className="text-[10px] uppercase font-bold text-on-surface-variant">Foto Original</span>
+                <span className="text-xs font-extrabold text-on-surface">
+                  {imageDimensions.width} × {imageDimensions.height} px
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Toolbar & Precision Controls */}
@@ -552,7 +604,7 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-1.5 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 w-full">
               {/* Selecionar Tudo - 100% Exato */}
               <button
                 type="button"
@@ -566,6 +618,17 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
               >
                 <Maximize2 className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">Selecionar tudo</span>
+              </button>
+
+              {/* Proporção do Cartão (76x26 mm, etc.) */}
+              <button
+                type="button"
+                onClick={handleFitCardAspect}
+                className="h-11 px-1.5 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors whitespace-nowrap overflow-hidden text-ellipsis shadow-2xs"
+                title={`Ajustar na proporção exata do cartão (${cardWidth}×${cardHeight} mm)`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="truncate">Cartão {cardWidth}×{cardHeight}</span>
               </button>
 
               {/* Margem Segura (5% de margem) */}

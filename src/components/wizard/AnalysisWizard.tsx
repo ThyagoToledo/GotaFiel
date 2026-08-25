@@ -340,6 +340,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       {currentStep === 3 && (
         <Step2Crop
           imageUrl={analysisState.imageUrl}
+          cardSizeMm={analysisState.cardSizeMm}
           cardColor={analysisState.cardColor}
           onChangeCardColor={(color) => {
             setPipelineDirty(true);

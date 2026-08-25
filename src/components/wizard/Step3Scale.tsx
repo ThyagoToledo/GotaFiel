@@ -25,7 +25,12 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
   limitedBySource = false,
   onNext,
 }) => {
-  const [selectedOption, setSelectedOption] = useState<ScaleOption>('auto');
+  const [selectedOption, setSelectedOption] = useState<ScaleOption>(() => {
+    if (cardSizeMm.width === 76 && cardSizeMm.height === 26) return '76x26';
+    if (cardSizeMm.width === 76 && cardSizeMm.height === 52) return '76x52';
+    if (cardSizeMm.width === 26 && cardSizeMm.height === 38) return '26x38';
+    return 'auto';
+  });
   const [customW, setCustomW] = useState(cardSizeMm.width || 76);
   const [customH, setCustomH] = useState(cardSizeMm.height || 26);
   const [imageAspect, setImageAspect] = useState<number | null>(null);
