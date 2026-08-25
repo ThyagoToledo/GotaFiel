@@ -29,7 +29,7 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
     if (cardSizeMm.width === 76 && cardSizeMm.height === 26) return '76x26';
     if (cardSizeMm.width === 76 && cardSizeMm.height === 52) return '76x52';
     if (cardSizeMm.width === 26 && cardSizeMm.height === 38) return '26x38';
-    return 'auto';
+    return '76x26';
   });
   const [customW, setCustomW] = useState(cardSizeMm.width || 76);
   const [customH, setCustomH] = useState(cardSizeMm.height || 26);
@@ -115,6 +115,33 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
 
         {/* Radio Cards List */}
         <div className="flex flex-col gap-2.5">
+          {/* Option: 76x26 mm (Padrão Principal) */}
+          <label
+            onClick={() => handleSelectOption('76x26')}
+            className={`flex items-center p-3.5 border rounded-xl cursor-pointer transition-all active:opacity-80 shadow-xs ${
+              selectedOption === '76x26'
+                ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                : 'border-outline-variant bg-surface hover:bg-surface-container'
+            }`}
+          >
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-on-surface">76 × 26 mm</span>
+                <span className="text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">Padrão Hidrossensível</span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-0.5">
+                Cartão amarelo padrão Syngenta / TeeJet comercial (Proporção 2.92:1)
+              </p>
+            </div>
+            <div
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                selectedOption === '76x26' ? 'border-primary' : 'border-outline-variant'
+              }`}
+            >
+              {selectedOption === '76x26' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+            </div>
+          </label>
+
           {/* Option: Automático (Proporcional à Imagem) */}
           <label
             onClick={() => handleSelectOption('auto')}
@@ -167,28 +194,6 @@ export const Step3Scale: React.FC<Step3ScaleProps> = ({
               }`}
             >
               {selectedOption === 'full' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-            </div>
-          </label>
-
-          {/* Option: 76x26 mm */}
-          <label
-            onClick={() => handleSelectOption('76x26')}
-            className={`flex items-center p-3.5 border rounded-xl cursor-pointer transition-all active:opacity-80 shadow-xs ${
-              selectedOption === '76x26'
-                ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                : 'border-outline-variant bg-surface hover:bg-surface-container'
-            }`}
-          >
-            <div className="flex-1">
-              <span className="text-sm font-bold text-on-surface">76 × 26 mm</span>
-              <span className="text-xs text-on-surface-variant ml-2">(Padrão Hidrossensível Comercial)</span>
-            </div>
-            <div
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                selectedOption === '76x26' ? 'border-primary' : 'border-outline-variant'
-              }`}
-            >
-              {selectedOption === '76x26' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
             </div>
           </label>
 
