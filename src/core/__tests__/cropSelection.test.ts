@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_FULL_CORNERS } from '../../components/wizard/Step2Crop';
+import { DEFAULT_FULL_CORNERS, computeCornersForAspect } from '../../components/wizard/Step2Crop';
 import { measureQuadSizePx, orientCropCornersForCard } from '../imageProcessor';
 import { CropCorners } from '../types';
 
@@ -87,5 +87,35 @@ describe('Validação do Dimensionamento e Seleção de Imagem (Passo 2)', () =>
     const fullQuad = measureQuadSizePx(DEFAULT_FULL_CORNERS, srcWidth, srcHeight);
     expect(fullQuad.widthPx).toBe(1000);
     expect(fullQuad.heightPx).toBe(1000);
+  });
+
+  it('8. Ajuste automático dos cantos pela proporção do cartão (76x26 mm)', () => {
+    // Foto 16:9 (aspecto 1.777) e Cartão 76x26 (aspecto 2.923)
+    const imgAspect = 16 / 9;
+    const corners76x26 = computeCornersForAspect(76, 26, imgAspect);
+
+    expect(corners76x26.tl.x).toBeGreaterThanOrEqual(0);
+    expect(corners76x26.tr.x).toBeLessThanOrEqual(100);
+    expect(corners76x26.tl.y).toBeGreaterThanOrEqual(0);
+    expect(corners76x26.bl.y).toBeLessThanOrEqual(100);
+
+    // Largura deve ser maior que altura
+    const widthPct = corners76x26.tr.x - corners76x26.tl.x;
+    const heightPct = corners76x26.bl.y - corners76x26.tl.y;
+    const computedAspect = (widthPct / heightPct) * imgAspect;
+
+    expect(computedAspect).toBeCloseTo(76 / 26, 1);
+  });
+
+  it('9. Ajuste automático dos cantos para cartão quadrado/vertical (26x38 mm)', () => {
+    // Foto 4:3 (aspecto 1.333) e Cartão 26x38 (aspecto 0.684)
+    const imgAspect = 4 / 3;
+    const corners26x38 = computeCornersForAspect(26, 38, imgAspect);
+
+    const widthPct = corners26x38.tr.x - corners26x38.tl.x;
+    const heightPct = corners26x38.bl.y - corners26x38.tl.y;
+    const computedAspect = (widthPct / heightPct) * imgAspect;
+
+    expect(computedAspect).toBeCloseTo(26 / 38, 1);
   });
 });

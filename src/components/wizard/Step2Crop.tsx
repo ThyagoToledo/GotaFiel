@@ -48,6 +48,44 @@ const CORNER_LABELS: Record<CornerKey, string> = {
   bl: 'Base-Esq',
 };
 
+export function computeCornersForAspect(
+  cardWidth: number,
+  cardHeight: number,
+  imgAspect: number
+): Record<CornerKey, Point> {
+  const cardAspect = cardWidth / cardHeight;
+  let widthPct = 90;
+  let heightPct = 90;
+
+  if (cardAspect <= imgAspect) {
+    heightPct = 85;
+    widthPct = parseFloat((85 * (cardAspect / imgAspect)).toFixed(1));
+    if (widthPct > 96) {
+      widthPct = 96;
+      heightPct = parseFloat((96 * (imgAspect / cardAspect)).toFixed(1));
+    }
+  } else {
+    widthPct = 90;
+    heightPct = parseFloat((90 * (imgAspect / cardAspect)).toFixed(1));
+    if (heightPct > 96) {
+      heightPct = 96;
+      widthPct = parseFloat((96 * (cardAspect / imgAspect)).toFixed(1));
+    }
+  }
+
+  const left = parseFloat(((100 - widthPct) / 2).toFixed(1));
+  const right = parseFloat((left + widthPct).toFixed(1));
+  const top = parseFloat(((100 - heightPct) / 2).toFixed(1));
+  const bottom = parseFloat((top + heightPct).toFixed(1));
+
+  return {
+    tl: { x: left, y: top },
+    tr: { x: right, y: top },
+    br: { x: right, y: bottom },
+    bl: { x: left, y: bottom },
+  };
+}
+
 export const Step2Crop: React.FC<Step2CropProps> = ({
   imageUrl,
   cardSizeMm = { width: 76, height: 26 },
@@ -67,24 +105,38 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Measure natural dimensions & aspect ratio of the image to scale workspace perfectly
+  // Measure natural dimensions & aspect ratio of the image to scale workspace and initial crop box
   useEffect(() => {
     if (!imageUrl) return;
     const img = new Image();
     img.onload = () => {
       if (img.naturalWidth && img.naturalHeight) {
-        setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
-        setAspectRatio(img.naturalWidth / img.naturalHeight);
+        const imgW = img.naturalWidth;
+        const imgH = img.naturalHeight;
+        const imgAspect = imgW / imgH;
+        setImageDimensions({ width: imgW, height: imgH });
+        setAspectRatio(imgAspect);
+
+        const cW = cardSizeMm?.width || 76;
+        const cH = cardSizeMm?.height || 26;
+        const cardAspect = cW / cH;
+
+        // Se a proporção do cartão for diferente da proporção da imagem (>3% de diferença),
+        // inicializa a seleção diretamente com a dimensão/proporção do cartão!
+        if (Math.abs(cardAspect - imgAspect) / imgAspect > 0.03) {
+          const fittedCorners = computeCornersForAspect(cW, cH, imgAspect);
+          setCorners(fittedCorners);
+        } else {
+          setCorners(DEFAULT_FULL_CORNERS);
+        }
       }
     };
     img.src = imageUrl;
 
-    // Reset corners to 100% full image whenever a new image is loaded
-    setCorners(DEFAULT_FULL_CORNERS);
     setIsManualAdjust(false);
     setActiveCorner(null);
     setIsDraggingArea(false);
-  }, [imageUrl]);
+  }, [imageUrl, cardSizeMm?.width, cardSizeMm?.height]);
 
   // Calculate approximate percentage area of quadrilateral (Shoelace formula)
   const calculateAreaPercent = useCallback(() => {
@@ -269,9 +321,14 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
     setCorners(DEFAULT_MARGIN_CORNERS);
   };
 
-  // Reset to original default (100% of image)
+  // Reset to original default (Card Aspect or 100% of image)
   const handleResetCorners = () => {
-    setCorners(DEFAULT_FULL_CORNERS);
+    const imgAspect = aspectRatio || 1;
+    if (Math.abs(cardAspect - imgAspect) / imgAspect > 0.03) {
+      setCorners(computeCornersForAspect(cardWidth, cardHeight, imgAspect));
+    } else {
+      setCorners(DEFAULT_FULL_CORNERS);
+    }
     setIsManualAdjust(false);
   };
 
