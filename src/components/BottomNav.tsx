@@ -46,7 +46,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onChangeTab }) 
       <aside className="hidden md:flex flex-col fixed left-0 top-14 bottom-0 w-[220px] bg-surface dark:bg-surface-dim border-r border-outline-variant z-40 p-3">
         <div className="flex items-center gap-2 px-3 py-2 mb-2 text-primary font-bold text-sm border-b border-outline-variant/60 pb-3">
           <Droplets className="w-5 h-5 fill-primary/20" />
-          <span>Spray Analysis</span>
+          <span>Analisador de Gotas</span>
         </div>
 
         <div className="flex flex-col gap-1">

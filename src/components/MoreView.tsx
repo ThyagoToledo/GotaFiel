@@ -485,7 +485,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
           {/* Badges de Destaque */}
           <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
             <span className="px-2.5 py-1 rounded-lg bg-brand-navy/10 text-brand-navy dark:text-blue-300 border border-brand-navy/20">
-              Clean-Room Metrology
+              Metrologia Científica
             </span>
             <span className="px-2.5 py-1 rounded-lg bg-brand-yellow/15 text-amber-800 dark:text-amber-300 border border-brand-yellow/30">
               PWA 100% Offline
