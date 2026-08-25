@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, UserPlus, Sparkles, ShieldCheck, Droplets } from 'lucide-react';
+import { LogIn, UserPlus, Sparkles, ShieldCheck, Droplets, Eye, EyeOff } from 'lucide-react';
 import { api, AuthUser } from '../api/client';
 
 interface AuthViewProps {
@@ -20,6 +20,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(initialError ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,17 +95,32 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
 
           <label className="flex flex-col gap-1 text-xs font-bold text-on-surface-variant">
             Senha
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-              minLength={8}
-              maxLength={200}
-              type="password"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              className="h-11 rounded-xl border border-outline-variant bg-surface px-3.5 text-sm text-on-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs"
-              placeholder="Mínimo de 8 caracteres"
-            />
+            <div className="relative flex items-center">
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={8}
+                maxLength={200}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                className="w-full h-11 rounded-xl border border-outline-variant bg-surface pl-3.5 pr-11 text-sm text-on-surface font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-xs"
+                placeholder="Mínimo de 8 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-1 w-9 h-9 flex items-center justify-center text-on-surface-variant hover:text-on-surface rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                title={showPassword ? 'Ocultar senha' : 'Ver senha'}
+                aria-label={showPassword ? 'Ocultar senha' : 'Ver senha'}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4 text-primary" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
           </label>
 
           <button
