@@ -33,7 +33,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
   onChangeSensitivity,
   method = 'hybrid',
   onChangeMethod,
-  minDropletUm = 50,
+  minDropletUm = 10,
   onChangeMinDropletUm,
   discardBorder = true,
   onChangeDiscardBorder,
@@ -337,7 +337,7 @@ export const Step4Sensitivity: React.FC<Step4SensitivityProps> = ({
 
                   {/* Preset Droplet Chips */}
                   <div className="grid grid-cols-4 gap-1.5 mt-0.5">
-                    {[25, 50, 75, 100].map((preset) => (
+                    {[10, 25, 50, 100].map((preset) => (
                       <button
                         key={preset}
                         type="button"

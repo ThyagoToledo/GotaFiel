@@ -48,7 +48,7 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
     if (defaultEngineMode === 'chromatic') return 'chromatic';
     return 'hybrid';
   });
-  const [minDropletUm, setMinDropletUm] = useState<number>(50);
+  const [minDropletUm, setMinDropletUm] = useState<number>(10);
   const [discardBorder, setDiscardBorder] = useState<boolean>(true);
   const [meanFilterPasses, setMeanFilterPasses] = useState<number>(1);
   const [fillHoles, setFillHoles] = useState<boolean>(true);
@@ -244,9 +244,9 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       case 1:
         return 'Análise';
       case 2:
-        return 'Cartão';
-      case 3:
         return 'Escala';
+      case 3:
+        return 'Cartão';
       case 4:
         return 'Ajustes';
       case 5:
@@ -320,6 +320,24 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
       )}
 
       {currentStep === 2 && (
+        <Step3Scale
+          cardSizeMm={analysisState.cardSizeMm}
+          onChangeCardSize={(size) => {
+            setPipelineDirty(true);
+            setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }));
+          }}
+          imageUrl={analysisState.imageUrl}
+          rectWidthPx={analysisState.rectWidthPx}
+          rectHeightPx={analysisState.rectHeightPx}
+          limitedBySource={rasterLimitedBySource}
+          onNext={() => {
+            setPipelineDirty(true);
+            setCurrentStep(3);
+          }}
+        />
+      )}
+
+      {currentStep === 3 && (
         <Step2Crop
           imageUrl={analysisState.imageUrl}
           cardColor={analysisState.cardColor}
@@ -330,23 +348,6 @@ export const AnalysisWizard: React.FC<AnalysisWizardProps> = ({
           onNext={(selectedCorners) => {
             setPipelineDirty(true);
             setCorners(selectedCorners);
-            setCurrentStep(3);
-          }}
-        />
-      )}
-
-      {currentStep === 3 && (
-        <Step3Scale
-          cardSizeMm={analysisState.cardSizeMm}
-          onChangeCardSize={(size) => {
-            setPipelineDirty(true);
-            setAnalysisState((prev) => ({ ...prev, cardSizeMm: size }));
-          }}
-          rectWidthPx={analysisState.rectWidthPx}
-          rectHeightPx={analysisState.rectHeightPx}
-          limitedBySource={rasterLimitedBySource}
-          onNext={() => {
-            setPipelineDirty(true);
             setCurrentStep(4);
           }}
         />

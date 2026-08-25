@@ -299,13 +299,13 @@ export const Step2Crop: React.FC<Step2CropProps> = ({
       {/* Step Progress Dots */}
       <div className="w-full max-w-md mx-auto mb-3">
         <div className="flex justify-between items-center text-xs text-on-surface-variant uppercase font-semibold mb-1">
-          <span>Passo 2 de 6</span>
+          <span>Passo 3 de 6</span>
           <span>Dimensionamento & Seleção do Cartão</span>
         </div>
         <div className="flex gap-1.5 w-full">
           <div className="h-1 flex-1 bg-primary rounded-full" />
           <div className="h-1 flex-1 bg-primary rounded-full" />
-          <div className="h-1 flex-1 bg-surface-variant rounded-full" />
+          <div className="h-1 flex-1 bg-primary rounded-full" />
           <div className="h-1 flex-1 bg-surface-variant rounded-full" />
           <div className="h-1 flex-1 bg-surface-variant rounded-full" />
           <div className="h-1 flex-1 bg-surface-variant rounded-full" />
