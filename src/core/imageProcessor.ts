@@ -438,16 +438,36 @@ export function binarizeImageBuffer(
 
     return { binaryMask, thresholdUsed, stainValues };
   } else if (method === 'hybrid') {
-    // Hybrid Method: Chromatic Blue Contrast + Inverse Luminance Contrast
+    // Hybrid Method: Normalized Blue-Yellow Spectral Opponency + Chromatic Contrast
     const histogram = new Array(256).fill(0);
 
     for (let i = 0; i < totalPixels; i++) {
       const r = pixels[i * 4];
       const g = pixels[i * 4 + 1];
       const b = pixels[i * 4 + 2];
+
+      // 1. Contraste cromático direto (B - max(R, G))
       const chromatic = Math.max(0, b - Math.max(r, g));
-      const lumContrast = Math.max(0, Math.round(255 - (0.299 * r + 0.587 * g + 0.114 * b)));
-      const stain = Math.max(0, Math.min(255, Math.round(0.7 * chromatic + 0.3 * lumContrast)));
+
+      // 2. Fundo de papel amarelo (R e G dominantes sobre B) -> stain = 0
+      const isYellowPaper = (r + g > 240) && (b < Math.max(r, g) - 8);
+
+      let stain = 0;
+      if (!isYellowPaper) {
+        // Índice normalizado de oponência espectral azul-amarelo
+        const sumRgb = r + g + b + 10;
+        const oppRaw = (2.5 * b - 1.2 * r - 0.8 * g) / sumRgb;
+        const normOpp = Math.max(0, Math.min(255, Math.round(Math.max(0, oppRaw) * 255)));
+
+        // Contraste de luminância inversa
+        const lumContrast = Math.max(0, Math.round(255 - (0.299 * r + 0.587 * g + 0.114 * b)));
+
+        // Fusão de alta fidelidade
+        stain = Math.max(
+          0,
+          Math.min(255, Math.max(chromatic, Math.round(0.65 * chromatic + 0.20 * normOpp + 0.15 * lumContrast)))
+        );
+      }
 
       stainValues[i] = stain;
       histogram[stain]++;
@@ -746,16 +766,16 @@ export function splitOverlappingCluster(
     }
   }
 
-  // Encontrar picos de distância significativos (raio >= 2 px)
+  // Encontrar picos de distância significativos (raio >= 1.4 px para capturar pequenas gotas sobrepostas)
   const peaks: Array<{ x: number; y: number; r: number }> = [];
   for (let y = 1; y < boxH - 1; y++) {
     for (let x = 1; x < boxW - 1; x++) {
       const idx = y * boxW + x;
       const r = dist[idx];
-      if (r < 2.5) continue;
+      if (r < 1.4) continue;
 
       let isMax = true;
-      const win = Math.max(2, Math.floor(r * 0.6));
+      const win = Math.max(1, Math.floor(r * 0.5));
       for (let dy = -win; dy <= win && isMax; dy++) {
         for (let dx = -win; dx <= win && isMax; dx++) {
           if (dx === 0 && dy === 0) continue;
@@ -786,7 +806,7 @@ export function splitOverlappingCluster(
     let tooClose = false;
     for (const fp of filteredPeaks) {
       const distBetween = Math.hypot(p.x - fp.x, p.y - fp.y);
-      if (distBetween < Math.max(p.r, fp.r) * 0.85) {
+      if (distBetween < Math.max(p.r, fp.r) * 0.75) {
         tooClose = true;
         break;
       }
@@ -811,7 +831,7 @@ export function splitOverlappingCluster(
         const ly = Math.round(p1.y + (s / steps) * (p2.y - p1.y));
         minAlongLine = Math.min(minAlongLine, dist[ly * boxW + lx]);
       }
-      if (minAlongLine < Math.min(p1.r, p2.r) * 0.88) {
+      if (minAlongLine < Math.min(p1.r, p2.r) * 0.94) {
         validConstriction = true;
         break;
       }
@@ -956,17 +976,17 @@ export function findConnectedComponents(
         }
         const roundness = Math.min(1.0, (4 * Math.PI * compPixels.length) / Math.max(1, perimeter * perimeter));
 
-        // Filtro de artefatos lineares / fibras quando ativado
+        // Filtro de artefatos lineares / fibras quando ativado (protege gotas pequenas <= 25 px de falso descarte)
         if (
           (params.filterArtifacts || params.roundnessMin !== undefined) &&
-          compPixels.length > 15 &&
-          roundness < (params.roundnessMin ?? 0.15)
+          compPixels.length > 25 &&
+          roundness < (params.roundnessMin ?? 0.12)
         ) {
           continue;
         }
 
-        // Separação de gotas sobrepostas quando ativada
-        if (params.splitOverlappingDroplets && compPixels.length >= 35) {
+        // Separação de gotas sobrepostas quando ativada (permite desmembrar pequenos pares de gotas a partir de 12 px)
+        if (params.splitOverlappingDroplets && compPixels.length >= 12) {
           const splitParts = splitOverlappingCluster(compPixels, width, height, minX, maxX, minY, maxY);
           const isSplit = splitParts.length > 1;
 
