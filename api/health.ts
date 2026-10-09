@@ -9,8 +9,8 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     await getSql()`SELECT 1`;
     return sendJson(res, 200, { status: 'ok' });
-  } catch (error) {
-    console.error('Falha de saúde do banco:', error);
+  } catch {
+    console.error('Verificação de conectividade do banco falhou.');
     return sendJson(res, 503, { status: 'error' });
   }
 }
