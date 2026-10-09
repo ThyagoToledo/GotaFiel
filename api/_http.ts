@@ -73,5 +73,6 @@ export function setSessionCookie(res: ApiResponse, token: string, maxAgeSeconds 
 }
 
 export function clearSessionCookie(res: ApiResponse) {
-  res.setHeader('Set-Cookie', 'gotas_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax');
+  const secure = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  res.setHeader('Set-Cookie', `gotas_session=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`);
 }

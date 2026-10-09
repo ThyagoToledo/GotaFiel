@@ -235,3 +235,11 @@ npm run build
 ## Licença & Conformidade
 
 Projeto desenvolvido com arquitetura proprietária e independente sob metodologia *Clean-Room*. Todos os direitos reservados.
+
+---
+
+## Privacidade, termos e Android
+
+- Consulte a minuta [Política de Privacidade e Termos de Uso](public/privacidade.html). Contatos e titularidade estão intencionalmente pendentes até a formalização da startup e dos direitos relacionados ao IF Goiano. O documento não deve ser tratado como final antes de revisão jurídica e institucional.
+- Consulte [VERCEL-SETUP.md](VERCEL-SETUP.md) para os itens de ambiente e publicação.
+- Consulte [android/README.md](android/README.md) para preparar e compilar o app Android mantendo o design web atual.

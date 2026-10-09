@@ -29,7 +29,7 @@ export function databaseIsConfigured() {
 
 /**
  * Garante a criação automática e idempotente de todas as tabelas necessárias no Neon.
- * Executa cada comando DDL individualmente para compatibilidade total com o driver Neon Serverless.
+ * Executa cada comando DDL individualmente para compatibilidade com o driver Neon Serverless.
  */
 export async function ensureSchema(): Promise<void> {
   if (!databaseIsConfigured()) return;

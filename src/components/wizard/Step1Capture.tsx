@@ -51,7 +51,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
 
-  // Tenta obter coordenadas GPS em background com estratégia de camadas (Rápida + GNSS Alta Precisão)
+  // Tenta obter coordenadas durante o uso da tela com estratégia de camadas (Rápida + GNSS Alta Precisão).
   const requestGps = () => {
     if (!('geolocation' in navigator)) {
       setGpsError('GPS não suportado neste navegador');
@@ -102,7 +102,7 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
 
-    // 3ª Monitoramento contínuo em background enquanto o usuário enquadra a foto
+    // Acompanha a precisão enquanto a tela permanece aberta; encerra ao sair do fluxo.
     try {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -202,6 +202,21 @@ export const Step1Capture: React.FC<Step1CaptureProps> = ({ onImageSelected }) =
     setIsWebcamOpen(false);
     setWebcamError(null);
   };
+
+  useEffect(() => () => {
+    if (watchIdRef.current !== null && 'geolocation' in navigator) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (focusCheckIntervalRef.current) {
+      clearInterval(focusCheckIntervalRef.current);
+      focusCheckIntervalRef.current = null;
+    }
+  }, []);
 
   // Inicia webcam e foco em tempo real
   const startWebcam = async () => {

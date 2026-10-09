@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#006439">
+  <title>Privacidade e Termos — GotaFiel</title>
+  <style>
+    :root{color-scheme:light dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#181d19;background:#f6fbf3}body{max-width:820px;margin:0 auto;padding:32px 22px 64px;line-height:1.7}h1,h2{line-height:1.25;color:#064b2e}h1{font-size:2rem}h2{margin-top:2.2rem;font-size:1.35rem}a{color:#006439}.notice{padding:14px 16px;border:1px solid #d79b13;border-radius:12px;background:#fff8df}.pending{color:#784d00;font-weight:650}footer{margin-top:3rem;border-top:1px solid #becabe;padding-top:1rem;font-size:.92rem}@media(prefers-color-scheme:dark){:root{color:#e1e7e2;background:#121814}h1,h2{color:#a8f3c1}a{color:#a8f3c1}.notice{background:#2b2617;color:#f7e8bf}.pending{color:#f7d77a}}
+  </style>
+</head>
+<body>
+  <h1>Privacidade e Termos de Uso — GotaFiel</h1>
+  <p>Versão preliminar · 9 de outubro de 2026</p>
+  <div class="notice"><strong>Documento em preparação para lançamento.</strong> Os campos de titularidade e contato permanecem pendentes. Esta minuta descreve o funcionamento técnico observado no código e precisa ser revisada pelo responsável e por assessoria jurídica antes da publicação como versão definitiva.</div>
+
+  <h2>Responsáveis e titularidade</h2>
+  <p><strong>Responsável pelo aplicativo:</strong> <span class="pending">[PREENCHER: nome ou razão social da startup]</span>.</p>
+  <p><strong>Contato de privacidade e suporte:</strong> <span class="pending">[PREENCHER: e-mail de contato]</span>.</p>
+  <p><strong>Endereço para solicitações formais:</strong> <span class="pending">[PREENCHER: endereço, se aplicável]</span>.</p>
+  <p><strong>Titularidade e direitos de propriedade intelectual:</strong> <span class="pending">[PREENCHER APÓS FORMALIZAÇÃO: titular(es), participação, instrumento jurídico e identificação institucional do IF Goiano, se aplicável]</span>.</p>
+  <p>A referência ao IF Goiano não representa, por si só, confirmação de titularidade, endosso, parceria ou participação institucional. Essas informações deverão refletir os instrumentos e autorizações formalmente aprovados pelas partes competentes.</p>
+
+  <h2>Dados tratados e finalidades</h2>
+  <p>O GotaFiel permite criar uma conta usando nome de usuário e senha. A senha é armazenada no servidor como hash criptográfico. Para autenticação, o sistema mantém um identificador de sessão em cookie HttpOnly, protegido por HTTPS em produção.</p>
+  <p>Quando você utiliza os recursos, o aplicativo pode tratar imagens de cartões hidrossensíveis, resultados de análise, informações digitadas sobre cultura e talhão, coordenadas GPS ou metadados de localização da imagem quando disponíveis. A localização é obtida durante o uso mediante ação e permissão do usuário. Dados e imagens são usados para produzir, exibir e sincronizar análises associadas à conta.</p>
+  <p>Preferências da interface e dados de trabalho offline podem ser mantidos no armazenamento local do aparelho ou navegador. O processamento de imagens acontece no dispositivo. A sincronização com a conta depende de conexão e é iniciada pelo uso do recurso correspondente.</p>
+
+  <h2>Serviços e compartilhamento</h2>
+  <p>O site e a API são hospedados na Vercel. A conta e as análises sincronizadas usam PostgreSQL fornecido pelo Neon. Imagens podem ser armazenadas no Vercel Blob com acesso privado e servidas pela API após validação da sessão e da titularidade da análise. A infraestrutura desses fornecedores pode tratar dados técnicos como endereço IP e registros de requisição, conforme seus próprios termos.</p>
+  <p>Os mapas carregam imagens de tiles do OpenStreetMap quando abertos com conexão. Abrir o mapa pode enviar ao provedor de tiles dados técnicos da conexão e a área cartográfica consultada. Não identificamos SDK de publicidade ou analytics nesta versão. Não venda dados pessoais.</p>
+
+  <h2>Cookies e armazenamento local</h2>
+  <p>O cookie de sessão é necessário para manter o login. O armazenamento local mantém preferências e recursos necessários ao trabalho offline. O aplicativo não oferece uma categoria opcional de cookies ou publicidade nesta versão; o controle de privacidade do app apenas reinicia o aviso informativo, não desativa o cookie de sessão.</p>
+
+  <h2>Retenção, segurança e exclusão</h2>
+  <p>Dados de conta e análises sincronizadas são mantidos enquanto a conta estiver ativa, até exclusão pelo usuário ou enquanto houver obrigação legal aplicável. Períodos de retenção de backups devem ser definidos e preenchidos antes do lançamento: <span class="pending">[PREENCHER: prazo de retenção de backups e registros]</span>.</p>
+  <p>As imagens são vinculadas à conta e recuperadas pela API com sessão autenticada. A política de segurança é aplicada em conjunto com os controles dos provedores de hospedagem e banco. Nenhum sistema pode garantir risco zero; proteja suas credenciais e evite dados pessoais de terceiros desnecessários. Para suporte da aplicação e prevenção de abuso, o backend usa controles técnicos de requisição e grava registros operacionais mínimos; os prazos de retenção devem ser definidos pelo responsável antes do lançamento.</p>
+  <p>A função de apagar preferências locais remove configurações salvas no aparelho; ela não exclui a conta ou os dados sincronizados no Neon. Para solicitar acesso, correção ou exclusão de conta e dados sincronizados, use o canal: <span class="pending">[PREENCHER: e-mail e procedimento de exclusão]</span>.</p>
+
+  <h2>Termos de uso</h2>
+  <p>O GotaFiel é uma ferramenta de apoio à inspeção de cartões hidrossensíveis, análise de deposição e calibração de equipamentos de pulverização. Os resultados dependem da qualidade da imagem, das dimensões e calibração informadas, das condições de captura e dos métodos selecionados. Verifique advertências de qualidade e valide decisões operacionais com profissional habilitado.</p>
+  <p>Calculadoras, guias e classificações não substituem rótulo, bula, normas aplicáveis, calibração rastreável, recomendação agronômica ou avaliação de segurança. O usuário é responsável por confirmar a adequação dos parâmetros e pela operação do equipamento. Não utilize o aplicativo como única base para decisões de segurança ou conformidade regulatória.</p>
+  <p>Use a conta pessoalmente, mantenha a senha em sigilo e não envie conteúdo sem autorização. Atividades ilícitas, tentativas de acesso indevido, automação abusiva ou violação dos direitos de terceiros podem resultar em suspensão do acesso. Os direitos sobre código, marca, conteúdo e metodologia devem ser exercidos e atribuídos conforme os contratos e a legislação aplicável, respeitada a titularidade que vier a ser formalmente estabelecida.</p>
+
+  <h2>Seus direitos e atualizações</h2>
+  <p>Você pode solicitar informações, correção ou exclusão pelo contato que será preenchido nesta página. A política pode ser atualizada quando recursos, fornecedores ou requisitos legais mudarem. A versão e a data da última atualização serão publicadas no início deste documento.</p>
+
+  <footer>Última atualização: 9 de outubro de 2026 · Contato: <span class="pending">[PREENCHER ANTES DO LANÇAMENTO]</span></footer>
+</body>
+</html>

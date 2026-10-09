@@ -58,7 +58,7 @@ export const InstallAppBanner: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
-              Instale o app direto no seu celular para leitura instantânea de cartões e uso 100% offline no campo.
+              Instale o GotaFiel no seu celular para análise de cartões e uso offline no campo.
             </p>
 
             <div className="flex items-center gap-2 mt-2">

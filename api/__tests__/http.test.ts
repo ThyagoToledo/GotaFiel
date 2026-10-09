@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameOrigin } from '../_http';
+import { clearSessionCookie, isSameOrigin } from '../_http';
 import type { ApiRequest } from '../_types';
 
 function request(headers: Record<string, string>): ApiRequest {
@@ -7,6 +7,23 @@ function request(headers: Record<string, string>): ApiRequest {
 }
 
 describe('proteções HTTP da API', () => {
+  it('preserva Secure também ao encerrar a sessão em produção', () => {
+    const priorNodeEnv = process.env.NODE_ENV;
+    const priorVercel = process.env.VERCEL;
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.VERCEL;
+      let cookie = '';
+      clearSessionCookie({ setHeader: (_name: string, value: string) => { cookie = value; } } as any);
+      expect(cookie).toContain('HttpOnly; SameSite=Lax; Secure');
+    } finally {
+      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = priorNodeEnv;
+      if (priorVercel === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = priorVercel;
+    }
+  });
+
   it('aceita chamadas sem Origin para integrações servidor-a-servidor', () => {
     expect(isSameOrigin(request({ host: 'gotas2.vercel.app' }))).toBe(true);
   });

@@ -439,10 +439,20 @@ export const MoreView: React.FC<MoreViewProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <Cookie className="w-4 h-4 text-primary" />
-              <span>Privacidade & Cookies (LGPD)</span>
+              <span>Redefinir aviso de privacidade</span>
             </div>
             <span className="text-[11px] text-primary font-bold">Redefinir</span>
           </button>
+
+          <a
+            href="/privacidade.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-between p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors cursor-pointer text-sm font-medium text-on-surface"
+          >
+            <span>Política de Privacidade e Termos de Uso</span>
+            <span aria-hidden="true" className="text-primary">↗</span>
+          </a>
 
           <button
             onClick={onClearData}
@@ -469,7 +479,7 @@ export const MoreView: React.FC<MoreViewProps> = ({
               <h3 className="font-extrabold text-base text-on-surface flex items-center gap-2">
                 GotaFiel
                 <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  v2.5.0
+                  v2.5.1
                 </span>
               </h3>
               <p className="text-xs text-on-surface-variant font-medium">

@@ -6,8 +6,8 @@
  * por construção do Vite). Depois da primeira visita o app abre sem sinal — cenário
  * comum na lavoura.
  */
-const CACHE_NAME = 'gotafiel-v2';
-const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/icon.svg', '/icon-maskable.svg', '/app-icon.png', '/apple-touch-icon.png', '/banner.jpg'];
+const CACHE_NAME = 'gotafiel-v3';
+const PRECACHE_URLS = ['/', '/manifest.webmanifest', '/privacidade.html', '/icon.svg', '/icon-maskable.svg', '/app-icon.png', '/apple-touch-icon.png', '/banner.jpg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

@@ -142,6 +142,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onAuthenticated, initialErro
         >
           {mode === 'login' ? 'Ainda não tem conta? Crie uma agora' : 'Já possui cadastro? Clique para entrar'}
         </button>
+        <p className="text-[10px] text-on-surface-variant text-center leading-relaxed">
+          Ao criar uma conta, você declara que leu a{' '}
+          <a className="text-primary font-semibold underline" href="/privacidade.html" target="_blank" rel="noopener noreferrer">Política de Privacidade e os Termos de Uso</a>.
+        </p>
       </section>
     </main>
   );

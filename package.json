@@ -1,7 +1,7 @@
 {
   "name": "gotafiel",
   "private": true,
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": "Thyago Toledo",
   "repository": {
     "type": "git",
@@ -17,7 +17,10 @@
     "test:benchmark": "tsx scripts/benchmarkRunner.ts",
     "test:scientific": "tsx scripts/advancedScientificBenchmark.ts",
     "verify:calibration": "tsx scripts/verifyCalibration.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:release": "npm run android:sync && cap build android --androidreleasetype AAB"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -35,6 +38,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
     "@vercel/node": "^5.3.25",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",

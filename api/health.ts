@@ -30,21 +30,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     const sql = getSql();
     const result = (await sql`SELECT 1 as connected, NOW() as server_time`) as unknown as Array<Record<string, unknown>>;
     await ensureSchema();
-    const usersCount = (await sql`SELECT COUNT(*)::int as count FROM gotas_users`) as unknown as Array<{ count: number }>;
-
     return sendJson(res, 200, {
       status: 'ok',
       message: 'Conexão com o banco Neon estabelecida com sucesso e tabelas verificadas.',
       serverTime: result[0]?.server_time,
-      usersCount: usersCount[0]?.count ?? 0,
-      variablesChecked: envDetected,
     });
   } catch (error) {
     console.error('Falha de saúde do banco:', error);
     return sendJson(res, 200, {
       status: 'error',
       message: 'Erro ao conectar ou consultar o banco Neon.',
-      error: error instanceof Error ? error.message : String(error),
       variablesChecked: envDetected,
     });
   }

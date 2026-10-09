@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Cookie, ShieldCheck, Check, X, Info } from 'lucide-react';
+import { Cookie, ShieldCheck, X, Info } from 'lucide-react';
 
 const STORAGE_KEY = 'gotafiel_cookie_consent';
 
-export type CookieConsentType = 'all' | 'essential';
+export type CookieConsentType = 'essential';
 
 export const CookieConsentBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState<boolean>(false);
@@ -70,7 +70,7 @@ export const CookieConsentBanner: React.FC = () => {
         </div>
 
         <p className="text-xs text-on-surface-variant leading-relaxed">
-          Utilizamos cookies e armazenamento local para manter sua sessão conectada, permitir o processamento 100% offline em campo (PWA) e salvar seus talhões e análises com segurança.
+        O GotaFiel usa armazenamento local para preferências e trabalho offline, além de um cookie estritamente necessário para manter sua sessão. Quando você usa sua conta, análises e imagens podem ser sincronizadas com os serviços descritos na política de privacidade. Não usamos cookies de publicidade nem analytics nesta versão.
         </p>
 
         {showDetails && (
@@ -80,11 +80,9 @@ export const CookieConsentBanner: React.FC = () => {
               Categorias de Dados:
             </div>
             <p>
-              • <strong>Essenciais (Sempre Ativos):</strong> Sessão de login segura, armazenamento local de cartões e banco offline Neon.
+              • <strong>Essenciais:</strong> Cookie de sessão (HttpOnly), preferências e fila local de análises para funcionamento offline.
             </p>
-            <p>
-              • <strong>Preferências:</strong> Tema escuro/claro e parâmetros agronômicos de calibração de bicos e motor de análise.
-            </p>
+            <p>Não há categoria opcional, publicidade ou analytics nesta versão. Os dados essenciais são usados somente para as funções solicitadas no aplicativo.</p>
           </div>
         )}
 
@@ -99,21 +97,13 @@ export const CookieConsentBanner: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleConsent('essential')}
-              className="flex-1 sm:flex-none h-8 px-3 rounded-xl border border-outline-variant text-[11px] font-bold text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-            >
-              Apenas Essenciais
-            </button>
-            <button
-              type="button"
-              onClick={() => handleConsent('all')}
-              className="flex-1 sm:flex-none h-8 px-4 rounded-xl bg-primary text-on-primary text-[11px] font-bold shadow-sm hover:bg-primary-container active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1"
-            >
-              <Check className="w-3.5 h-3.5" />
-              Aceitar Todos
-            </button>
+          <button
+            type="button"
+            onClick={() => handleConsent('essential')}
+            className="flex-1 sm:flex-none h-8 px-4 rounded-xl bg-primary text-on-primary text-[11px] font-bold shadow-sm hover:bg-primary-container active:scale-95 transition-all cursor-pointer"
+          >
+            Continuar com armazenamento essencial
+          </button>
           </div>
         </div>
       </div>
