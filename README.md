@@ -208,13 +208,17 @@ npm run build
         </a>
       </td>
       <td align="center" style="padding: 18px;">
-        <div style="width: 105px; height: 105px; border-radius: 50%; background: #006439; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: bold; margin: auto; box-shadow: 0 4px 18px rgba(0, 100, 57, 0.35);">
-          CA
-        </div>
-        <br />
+        <a href="https://github.com/carlosalberto1206">
+          <img src="https://github.com/carlosalberto1206.png" width="105px" alt="Carlos Alberto" style="border-radius: 50%; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);" />
+        </a>
+        <br /><br />
         <b>Carlos Alberto</b>
         <br />
         <sub>Engenheiro Agrônomo · Consultoria de Campo</sub>
+        <br /><br />
+        <a href="https://github.com/carlosalberto1206">
+          <img src="https://img.shields.io/badge/GitHub-carlosalberto1206-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+        </a>
       </td>
       <td align="center" style="padding: 18px;">
         <div style="width: 105px; height: 105px; border-radius: 50%; background: #0f2438; color: white; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: bold; margin: auto; box-shadow: 0 4px 18px rgba(15, 36, 56, 0.35);">
