@@ -3,6 +3,16 @@
 </p>
 
 <p align="center">
+  <a href="docs/registro-software-inpi.pdf">
+    <img src="https://img.shields.io/badge/INPI-BR512026008370--2-006439?style=for-the-badge" alt="Registro INPI BR512026008370-2" />
+  </a>
+  <img src="https://img.shields.io/badge/Titular-IF_Goiano-1b5e20?style=for-the-badge" alt="IF Goiano" />
+</p>
+
+> **Registro de Programa de Computador (INPI):** Processo Nº **`BR512026008370-2`** — *Sistema de verificação da qualidade da pulverização*  
+> **Titular:** Instituto Federal de Educação, Ciência e Tecnologia Goiano (IF Goiano) · **Autores:** Marco Antônio Moreira de Freitas, Lucas Vieira Melo, Wallace Luan de Freitas Fernandes e Carlos Alberto Silva · **Criação/Publicação:** 26/02/2026 (Expedido em 29/09/2026, proteção legal de 50 anos conforme Lei nº 9.609/1998) · [Visualizar Certificado (cópia de exposição)](docs/registro-software-inpi.pdf).
+
+<p align="center">
   <img src="public/icon.svg" alt="GotaFiel Icon" width="88px" height="88px" style="border-radius: 22px; box-shadow: 0 6px 20px rgba(0, 100, 57, 0.3);" />
 </p>
 
